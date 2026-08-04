@@ -1,0 +1,914 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarifario | Autoridad Portuaria</title>
+    <style>
+        :root {
+            --navy-deep: #062d52;
+            --navy: #0d4777;
+            --blue: #1d6f9f;
+            --amber: #f4b63f;
+            --amber-border: #d69212;
+            --surface: #edf2f6;
+            --card: #ffffff;
+            --border: #d7e0e8;
+            --text: #1d2d3d;
+            --muted: #66788a;
+            --danger: #a11c1c;
+            --success: #176b3a;
+            --success-light: #e8f6ed;
+            --success-border: #b9dfc7;
+            --warning: #8a6d1c;
+            --warning-light: #fff9e6;
+            --warning-border: #f5e0a3;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--surface);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--text);
+        }
+        .shell {
+            max-width: 1160px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: var(--card);
+            box-shadow: 0 0 35px rgba(6,45,82,.09);
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 18px 26px;
+            color: white;
+            background: linear-gradient(120deg, var(--navy-deep), var(--navy));
+        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand img { width: 58px; background: white; border-radius: 7px; padding: 4px; }
+        .brand h1 { margin: 0; font-size: 22px; letter-spacing: .4px; }
+        .brand p { margin: 4px 0 0; font-size: 12.5px; opacity: .82; }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-link {
+            color: rgba(255,255,255,.8);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 6px;
+            transition: all .2s;
+            border: 1px solid transparent;
+        }
+        .nav-link:hover {
+            color: white;
+            background: rgba(255,255,255,.08);
+        }
+        .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,.16);
+            border-color: rgba(255,255,255,.2);
+        }
+        .session { text-align: right; font-size: 12px; line-height: 1.5; }
+        .logout-form { margin-top: 7px; }
+        .logout-form button {
+            border: 1px solid rgba(255,255,255,.45);
+            border-radius: 6px;
+            padding: 7px 12px;
+            color: white;
+            background: rgba(255,255,255,.08);
+            cursor: pointer;
+        }
+        main { padding: 26px 30px 38px; }
+        
+        /* Toast/Notification Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13.5px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: white;
+            border-left: 4px solid var(--blue);
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.success {
+            border-left-color: var(--success);
+            background: var(--success-light);
+            border: 1px solid var(--success-border);
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+        .toast.warning {
+            border-left-color: var(--amber-border);
+            background: var(--warning-light);
+            border: 1px solid var(--warning-border);
+            border-left: 4px solid var(--amber-border);
+            color: var(--warning);
+        }
+
+        /* Action Toolbar Styles */
+        .toolbar {
+            display: flex;
+            gap: 20px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .toolbar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px dashed var(--border);
+            padding-right: 20px;
+            position: relative;
+        }
+        .toolbar-group:last-child {
+            border-right: none;
+            padding-right: 0;
+        }
+        .toolbar-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .toolbar-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-top: auto;
+        }
+        .btn-tool {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+            color: var(--navy);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+            gap: 4px;
+        }
+        .btn-tool svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .btn-tool:hover {
+            background: var(--surface);
+            border-color: var(--blue);
+            color: var(--blue);
+            transform: translateY(-1px);
+        }
+        .btn-tool:active {
+            transform: translateY(0);
+        }
+
+        /* Section Styles */
+        .section { margin-bottom: 27px; }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.15px;
+            text-transform: uppercase;
+        }
+        .section-title::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+        
+        /* Grid Layout for Form */
+        .grid-form {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+        
+        /* Field layouts */
+        .col-1 { grid-column: span 1; }
+        .col-2 { grid-column: span 2; }
+        .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
+        .col-5 { grid-column: span 5; }
+        .col-6 { grid-column: span 6; }
+        .col-7 { grid-column: span 7; }
+        .col-8 { grid-column: span 8; }
+        .col-9 { grid-column: span 9; }
+        .col-10 { grid-column: span 10; }
+        .col-11 { grid-column: span 11; }
+        .col-12 { grid-column: span 12; }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 13px;
+            font-weight: 650;
+            margin-top: 26px; /* Aligns with input field */
+        }
+        .checkbox-container input {
+            width: auto;
+            cursor: pointer;
+        }
+        
+        label { font-size: 12px; font-weight: 650; }
+        input, select, textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+            color: var(--text);
+            font: 13px "Segoe UI", Arial, sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[readonly], input:disabled {
+            background: #f3f6f8;
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: 3px solid rgba(29,111,159,.12);
+            border-color: var(--blue);
+        }
+
+        /* Side-by-side inputs for Partida / Senae */
+        .input-group-combo {
+            display: flex;
+            gap: 8px;
+        }
+        .input-combo-short {
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        /* Segmented / Elegant Radio Styles */
+        .radio-box-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        .radio-option:hover {
+            border-color: var(--blue);
+            background: rgba(29, 111, 159, 0.05);
+        }
+        .radio-option.selected {
+            border-color: var(--blue);
+            background: rgba(29, 111, 159, 0.1);
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        /* Grid for Calculations & Tickets */
+        .flex-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .sub-panel {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+        }
+        .sub-panel-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--navy);
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--surface);
+            padding-bottom: 6px;
+        }
+
+        .calc-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .calc-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .calc-group-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        /* Table styles */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { padding: 10px 13px; text-align: left; background: var(--navy-deep); color: white; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 13px; border-top: 1px solid var(--border); font-size: 13px; }
+        tbody tr:nth-child(even) { background: #f8fafb; }
+        tbody tr { cursor: pointer; transition: background 0.15s; }
+        tbody tr:hover { background: #eef4f8; }
+        .empty { text-align: center; color: var(--muted); padding: 22px; }
+
+        @media (max-width: 850px) {
+            .grid-form {
+                grid-template-columns: 1fr;
+            }
+            .grid-form > div {
+                grid-column: span 12 !important;
+            }
+            .flex-sections {
+                grid-template-columns: 1fr;
+            }
+            .checkbox-container {
+                margin-top: 5px;
+            }
+            .toolbar {
+                justify-content: center;
+            }
+            .toolbar-group {
+                border-right: none;
+                border-bottom: 1px dashed var(--border);
+                padding-right: 0;
+                padding-bottom: 12px;
+                width: 100%;
+            }
+            .toolbar-group:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+            .toolbar-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 700px) {
+            header { align-items: flex-start; flex-direction: column; }
+            .nav-links { margin-top: 10px; margin-bottom: 5px; width: 100%; justify-content: flex-start; gap: 4px; }
+            .nav-link { padding: 6px 10px; font-size: 13px; }
+            .session { text-align: left; }
+            main { padding: 20px 17px 30px; }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header>
+        <div class="brand">
+            <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
+            <div>
+                <h1>TARIFARIO</h1>
+                <p>Autoridad Portuaria de Manta</p>
+            </div>
+        </div>
+        <nav class="nav-links">
+            <a href="{% url 'bitacora_home' %}" class="nav-link">Bitácora</a>
+            <a href="{% url 'tarifa' %}" class="nav-link active">Tarifario</a>
+        </nav>
+        <div class="session">
+            <strong>{{ usuario_nombre|default:"Usuario" }}</strong><br>
+            {{ usuario_cargo|default:"Administrador" }} · {{ usuario_login|default:"admin" }}
+            <form class="logout-form" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit">Cerrar sesión</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        {% if demo_mode %}<div class="demo" style="margin-bottom: 18px; padding: 10px 13px; border-radius: 7px; background: #fff7db; border: 1px solid #efd78a; color: #654d00; font-size: 12.5px;"><strong>Modo demostración:</strong> los datos del tarifario no modifican directamente la base de datos de producción.</div>{% endif %}
+
+        <!-- Accion Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnSave" onclick="triggerAction('save')">
+                        <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                        Guardar (F4)
+                    </button>
+                    <button class="btn-tool" id="btnSaveNew" onclick="triggerAction('saveNew')">
+                        <svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
+                        Guardar/Nuevo
+                    </button>
+                    <button class="btn-tool" id="btnCancel" onclick="triggerAction('cancel')">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>
+                        Anular
+                    </button>
+                </div>
+                <div class="toolbar-label">Accion</div>
+            </div>
+
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnList" onclick="triggerAction('list')">
+                        <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
+                        Listado
+                    </button>
+                    <button class="btn-tool" id="btnSelect" onclick="triggerAction('select')">
+                        <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 7H11v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>
+                        Seleccionar
+                    </button>
+                </div>
+                <div class="toolbar-label">Mostrar</div>
+            </div>
+
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnNew" onclick="triggerAction('new')">
+                        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                        Nuevo (F2)
+                    </button>
+                    <button class="btn-tool" id="btnRefresh" onclick="triggerAction('refresh')">
+                        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        Refrescar
+                    </button>
+                </div>
+                <div class="toolbar-label">Otros</div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <section class="section">
+            <div class="section-title">Datos del Tarifario</div>
+            <form id="tarifaForm" onsubmit="event.preventDefault();">
+                <div class="grid-form">
+                    <!-- ID -->
+                    <div class="field col-2">
+                        <label for="tarifaId">Id</label>
+                        <input type="text" id="tarifaId" name="id" value="0" readonly>
+                    </div>
+
+                    <!-- Código & Activa -->
+                    <div class="field col-4">
+                        <div style="display: flex; gap: 20px; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="tarifaCodigo">Codigo</label>
+                                <input type="text" id="tarifaCodigo" name="codigo" placeholder="Ingrese código">
+                            </div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="tarifaActiva" name="activa" checked>
+                                Activa
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-6"></div> <!-- empty spacer -->
+
+                    <!-- Tasa -->
+                    <div class="field col-6">
+                        <label for="tarifaTasa">Tasa</label>
+                        <input type="text" id="tarifaTasa" name="tasa" placeholder="Ingrese tasa">
+                    </div>
+                    <div class="col-6"></div> <!-- empty spacer -->
+
+                    <!-- Tarifa -->
+                    <div class="field col-10">
+                        <label for="tarifaName">Tarifa</label>
+                        <input type="text" id="tarifaName" name="tarifa" placeholder="Ingrese descripción detallada de la tarifa">
+                    </div>
+                    <div class="col-2"></div> <!-- empty spacer -->
+
+                    <!-- Partida -->
+                    <div class="field col-6">
+                        <label for="tarifaPartidaCod">Partida</label>
+                        <div class="input-group-combo">
+                            <input type="text" id="tarifaPartidaCod" name="partida_cod" class="input-combo-short" placeholder="Código">
+                            <input type="text" id="tarifaPartidaDesc" name="partida_desc" placeholder="Descripción de partida arancelaria">
+                        </div>
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Fórmula -->
+                    <div class="field col-6">
+                        <label for="tarifaFormula">Fórmula</label>
+                        <input type="text" id="tarifaFormula" name="formula" placeholder="Ingrese fórmula de cálculo">
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Detalle -->
+                    <div class="field col-6">
+                        <label for="tarifaDetalle">Detalle</label>
+                        <input type="text" id="tarifaDetalle" name="detalle" placeholder="Observaciones o especificaciones de cobro">
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Valor -->
+                    <div class="field col-3">
+                        <label for="tarifaValor">Valor</label>
+                        <input type="text" id="tarifaValor" name="valor" value="0.0000" style="text-align: right;" onfocus="if(this.value==='0.0000') this.value='';" onblur="formatDecimal(this);">
+                    </div>
+                    <div class="col-9"></div>
+
+                    <!-- Id. S.Ante & Se cobra con iva -->
+                    <div class="field col-4">
+                        <div style="display: flex; gap: 20px; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="tarifaSAnte">Id. S.Ante</label>
+                                <input type="text" id="tarifaSAnte" name="s_ante" placeholder="Id anterior">
+                            </div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="tarifaIva" name="se_cobra_iva">
+                                Se cobra con iva
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-8"></div>
+
+                    <!-- SENAE -->
+                    <div class="field col-6">
+                        <label for="tarifaSenaeCod">SENAE</label>
+                        <div class="input-group-combo">
+                            <input type="text" id="tarifaSenaeCod" name="senae_cod" class="input-combo-short" placeholder="Código">
+                            <input type="text" id="tarifaSenaeDesc" name="senae_desc" placeholder="Detalle SENAE">
+                        </div>
+                    </div>
+                    <div class="col-6"></div>
+                </div>
+
+                <!-- Calculations & Tickets Segmented Controls -->
+                <div class="flex-sections">
+                    <!-- Calculos -->
+                    <div class="sub-panel">
+                        <div class="sub-panel-title">Calculos</div>
+                        <div class="calc-row">
+                            <div class="calc-group">
+                                <span class="calc-group-label">Parámetro Principal</span>
+                                <div class="radio-box-container">
+                                    <label class="radio-option selected">
+                                        <input type="radio" name="calc_param" value="eslora" checked onchange="updateRadioSelection(this)">
+                                        Eslora
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="ton_bruto" onchange="updateRadioSelection(this)">
+                                        Ton.Bruto
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="t_neto" onchange="updateRadioSelection(this)">
+                                        T.Neto
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="otros" onchange="updateRadioSelection(this)">
+                                        Otros
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="calc-group">
+                                <span class="calc-group-label">Unidad de Cobro</span>
+                                <div class="radio-box-container">
+                                    <label class="radio-option selected">
+                                        <input type="radio" name="calc_unidad" value="dia" checked onchange="updateRadioSelection(this)">
+                                        Dia
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="horas" onchange="updateRadioSelection(this)">
+                                        Horas
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="cantidad" onchange="updateRadioSelection(this)">
+                                        Cantidad
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="otros" onchange="updateRadioSelection(this)">
+                                        Otros
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tickets -->
+                    <div class="sub-panel">
+                        <div class="sub-panel-title">Tickets</div>
+                        <div class="calc-group">
+                            <span class="calc-group-label">Servicio Vinculado</span>
+                            <div class="radio-box-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <label class="radio-option" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="vehiculo" onchange="updateRadioSelection(this)">
+                                    Servicio de Vehiculo
+                                </label>
+                                <label class="radio-option" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="muelle" onchange="updateRadioSelection(this)">
+                                    Servicio de Muelle
+                                </label>
+                                <label class="radio-option selected" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="ninguno" checked onchange="updateRadioSelection(this)">
+                                    Ninguno
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- List Section -->
+        <section class="section">
+            <div class="section-title">Ultimas Tarifas creadas por Tasa</div>
+            <div class="table-wrap">
+                <table id="tarifasTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%">Tasa</th>
+                            <th style="width: 15%">Codigo</th>
+                            <th style="width: 60%">Tarifa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows populated with data matching screenshot details, plus extra data for the auto-fill feature -->
+                        <tr data-tarifa='{"id":"1", "codigo":"117", "activa":true, "tasa":"TASA CABOTAJE", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-01", "partida_desc":"Cobros de cabotaje", "formula":"(Eslora * 1.25) * Dia", "detalle":"Tarifa regulada para barcos pesqueros y de cabotaje", "valor":"0.1250", "s_ante":"10", "se_cobra_iva":false, "senae_cod":"S-99", "senae_desc":"Regulación nacional de cabotaje", "calc_param":"eslora", "calc_unidad":"dia", "ticket_srv":"ninguno"}'>
+                            <td>TASA CABOTAJE</td>
+                            <td>117</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                        <tr data-tarifa='{"id":"2", "codigo":"247", "activa":true, "tasa":"TASAS A LAS NAVES", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-08", "partida_desc":"Tasas portuarias generales", "formula":"(T.Neto * 2.50) * Horas", "detalle":"Tarifa portuaria naves mercantes internacionales", "valor":"0.5000", "s_ante":"15", "se_cobra_iva":true, "senae_cod":"S-102", "senae_desc":"Impuestos aduaneros generales", "calc_param":"t_neto", "calc_unidad":"horas", "ticket_srv":"muelle"}'>
+                            <td>TASAS A LAS NAVES</td>
+                            <td>247</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                        <tr data-tarifa='{"id":"3", "codigo":"339", "activa":false, "tasa":"TASAS ESPECIFICAS", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-15", "partida_desc":"Tasas por carga especial", "formula":"Cantidad * 0.85", "detalle":"Cobro por servicios específicos y especiales", "valor":"1.0000", "s_ante":"20", "se_cobra_iva":true, "senae_cod":"S-205", "senae_desc":"Tarifación aduanera específica", "calc_param":"otros", "calc_unidad":"cantidad", "ticket_srv":"vehiculo"}'>
+                            <td>TASAS ESPECIFICAS</td>
+                            <td>339</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // Toast Notification helper
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        // Icon matching toast type
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+        } else if (type === 'warning') {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
+        } else {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-4h-2V7h2v6z"/></svg>';
+        }
+
+        toast.innerHTML = `${iconSvg} <span>${message}</span>`;
+        container.appendChild(toast);
+        
+        // Trigger reflow for slide in transition
+        setTimeout(() => toast.classList.add('show'), 50);
+        
+        // Remove after 3.5s
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
+
+    // Format Valor field to 4 decimal places
+    function formatDecimal(input) {
+        const val = parseFloat(input.value);
+        if (isNaN(val)) {
+            input.value = "0.0000";
+        } else {
+            input.value = val.toFixed(4);
+        }
+    }
+
+    // Update styling when a radio button is selected
+    function updateRadioSelection(radioEl) {
+        const name = radioEl.name;
+        // Remove 'selected' class from all options in the same group
+        document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+            input.closest('.radio-option').classList.remove('selected');
+        });
+        // Add to selected
+        if (radioEl.checked) {
+            radioEl.closest('.radio-option').classList.add('selected');
+        }
+    }
+
+    // Clear form to initial empty state
+    function clearForm() {
+        document.getElementById('tarifaId').value = "0";
+        document.getElementById('tarifaCodigo').value = "";
+        document.getElementById('tarifaActiva').checked = true;
+        document.getElementById('tarifaTasa').value = "";
+        document.getElementById('tarifaName').value = "";
+        document.getElementById('tarifaPartidaCod').value = "";
+        document.getElementById('tarifaPartidaDesc').value = "";
+        document.getElementById('tarifaFormula').value = "";
+        document.getElementById('tarifaDetalle').value = "";
+        document.getElementById('tarifaValor').value = "0.0000";
+        document.getElementById('tarifaSAnte').value = "";
+        document.getElementById('tarifaIva').checked = false;
+        document.getElementById('tarifaSenaeCod').value = "";
+        document.getElementById('tarifaSenaeDesc').value = "";
+
+        // Reset radio choices
+        document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
+        document.querySelector('input[name="calc_unidad"][value="dia"]').checked = true;
+        document.querySelector('input[name="ticket_srv"][value="ninguno"]').checked = true;
+
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            updateRadioSelection(radio);
+        });
+
+        // Remove active class from table rows
+        document.querySelectorAll('#tarifasTable tbody tr').forEach(row => {
+            row.style.background = "";
+        });
+    }
+
+    // Populate form with row data
+    function loadTarifaData(data) {
+        document.getElementById('tarifaId').value = data.id || "0";
+        document.getElementById('tarifaCodigo').value = data.codigo || "";
+        document.getElementById('tarifaActiva').checked = !!data.activa;
+        document.getElementById('tarifaTasa').value = data.tasa || "";
+        document.getElementById('tarifaName').value = data.tarifa || "";
+        document.getElementById('tarifaPartidaCod').value = data.partida_cod || "";
+        document.getElementById('tarifaPartidaDesc').value = data.partida_desc || "";
+        document.getElementById('tarifaFormula').value = data.formula || "";
+        document.getElementById('tarifaDetalle').value = data.detalle || "";
+        document.getElementById('tarifaValor').value = data.valor || "0.0000";
+        document.getElementById('tarifaSAnte').value = data.s_ante || "";
+        document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
+        document.getElementById('tarifaSenaeCod').value = data.senae_cod || "";
+        document.getElementById('tarifaSenaeDesc').value = data.senae_desc || "";
+
+        // Check correct radio buttons
+        const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);
+        if (paramRadio) {
+            paramRadio.checked = true;
+            updateRadioSelection(paramRadio);
+        }
+        
+        const unitRadio = document.querySelector(`input[name="calc_unidad"][value="${data.calc_unidad}"]`);
+        if (unitRadio) {
+            unitRadio.checked = true;
+            updateRadioSelection(unitRadio);
+        }
+
+        const ticketRadio = document.querySelector(`input[name="ticket_srv"][value="${data.ticket_srv}"]`);
+        if (ticketRadio) {
+            ticketRadio.checked = true;
+            updateRadioSelection(ticketRadio);
+        }
+    }
+
+    // Trigger action bar buttons
+    function triggerAction(action) {
+        if (action === 'save') {
+            const code = document.getElementById('tarifaCodigo').value.trim();
+            const desc = document.getElementById('tarifaName').value.trim();
+            if (!code || !desc) {
+                showToast("Por favor complete los campos obligatorios (Codigo y Tarifa).", "warning");
+                return;
+            }
+            showToast(`¡Tarifa [${code}] guardada correctamente en el sistema!`);
+        } else if (action === 'saveNew') {
+            const code = document.getElementById('tarifaCodigo').value.trim();
+            if (!code) {
+                showToast("Por favor ingrese al menos el Código para guardar.", "warning");
+                return;
+            }
+            showToast(`¡Guardado exitoso! Preparando nueva entrada.`);
+            clearForm();
+        } else if (action === 'cancel') {
+            const id = document.getElementById('tarifaId').value;
+            if (id === "0") {
+                showToast("No se puede anular un registro nuevo sin guardar.", "warning");
+            } else {
+                showToast(`Registro ID ${id} anulado correctamente de los registros.`, "warning");
+                clearForm();
+            }
+        } else if (action === 'list') {
+            showToast("Abriendo listado general de tarifas...");
+        } else if (action === 'select') {
+            showToast("Buscando registros en el sistema...");
+        } else if (action === 'new') {
+            showToast("Formulario limpio para ingreso de nuevos datos.");
+            clearForm();
+        } else if (action === 'refresh') {
+            showToast("Formulario restaurado y actualizado.");
+            clearForm();
+        }
+    }
+
+    // Setup interactive events
+    document.addEventListener('DOMContentLoaded', () => {
+        // Table row click listener for auto-filling the form
+        const rows = document.querySelectorAll('#tarifasTable tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('click', () => {
+                // Highlight selected row
+                rows.forEach(r => r.style.background = "");
+                row.style.background = "rgba(29, 111, 159, 0.08)";
+                
+                // Parse JSON data attribute
+                const rawData = row.dataset.tarifa;
+                if (rawData) {
+                    try {
+                        const data = JSON.parse(rawData);
+                        loadTarifaData(data);
+                        showToast(`Tarifa seleccionada: ${data.tasa} (Código ${data.codigo})`);
+                    } catch (e) {
+                        console.error("Error parsing row data:", e);
+                    }
+                }
+            });
+        });
+
+        // Initialize radio styles
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            updateRadioSelection(radio);
+        });
+
+        // Keyboard Shortcuts (F4 and F2)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F4') {
+                e.preventDefault();
+                triggerAction('save');
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                triggerAction('new');
+            }
+        });
+    });
+</script>
+</body>
+</html>

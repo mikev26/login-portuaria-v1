@@ -132,3 +132,22 @@ def logout_view(request):
     request.session.flush()
     messages.success(request, "Sesión cerrada correctamente.")
     return redirect("login")
+
+
+@never_cache
+@require_http_methods(["GET"])
+def tarifa_view(request):
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    return render(
+        request,
+        "bitacora/tarifa.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
+            "demo_mode": settings.DEMO_MODE,
+        },
+    )
