@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso | Bitácora Electrónica</title>
+    <style>
+        :root {
+            --navy: #07345f;
+            --navy-dark: #052746;
+            --blue: #17689d;
+            --surface: #eef4f8;
+            --text: #162536;
+            --muted: #66788a;
+            --danger: #a61b1b;
+            --success: #176b3a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 15%, rgba(255,255,255,.12), transparent 28%),
+                linear-gradient(135deg, var(--navy-dark), var(--blue));
+        }
+        .login-card {
+            width: min(100%, 410px);
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 24px 70px rgba(0,0,0,.3);
+        }
+        .institution {
+            padding: 30px 34px 20px;
+            text-align: center;
+        }
+        .institution img {
+            width: 96px;
+            height: auto;
+            margin-bottom: 12px;
+        }
+        h1 { margin: 0; color: var(--navy); font-size: 23px; }
+        .subtitle { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+        .form-area { padding: 10px 34px 34px; }
+        .field { margin-bottom: 17px; }
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 13px;
+            font-weight: 650;
+        }
+        input {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid #cbd5df;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        input:focus {
+            outline: 3px solid rgba(23,104,157,.14);
+            border-color: var(--blue);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--navy);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        button:hover { background: var(--navy-dark); }
+        .message {
+            padding: 10px 12px;
+            border-radius: 7px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.4;
+            background: #fce8e8;
+            color: var(--danger);
+            border: 1px solid #efbaba;
+        }
+        .message.success {
+            background: #e8f6ed;
+            color: var(--success);
+            border-color: #b9dfc7;
+        }
+        .demo {
+            margin: 0 34px 18px;
+            padding: 10px 12px;
+            border-radius: 7px;
+            background: #fff7db;
+            border: 1px solid #efd78a;
+            color: #654d00;
+            font-size: 12.5px;
+            line-height: 1.45;
+        }
+        .footer {
+            padding: 13px 24px;
+            text-align: center;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <section class="institution">
+            <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
+            <h1>Autoridad Portuaria</h1>
+            <p class="subtitle">Acceso a la Bitácora Electrónica</p>
+        </section>
+
+        <section class="form-area">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" autocomplete="off">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="usuario">Usuario institucional</label>
+                    <input type="text" id="usuario" name="usuario" maxlength="80" required autofocus autocomplete="username">
+                </div>
+                <div class="field">
+                    <label for="clave">Contraseña</label>
+                    <input type="password" id="clave" name="clave" maxlength="128" required autocomplete="current-password">
+                </div>
+                <button type="submit">Ingresar</button>
+            </form>
+        </section>
+
+        <div class="footer">Sistema interno · Acceso restringido a personal autorizado</div>
+    </main>
+</body>
+</html>
