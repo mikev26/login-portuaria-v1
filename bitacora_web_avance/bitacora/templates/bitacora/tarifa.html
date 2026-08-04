@@ -527,8 +527,11 @@
 
                     <!-- Tasa -->
                     <div class="field col-6">
-                        <label for="tarifaTasa">Tasa</label>
-                        <input type="text" id="tarifaTasa" name="tasa" placeholder="Ingrese tasa">
+                        <label for="tarifaTasaId">Tasa (ID | Descripción)</label>
+                        <div class="input-group-combo">
+                            <input type="text" id="tarifaTasaId" name="tasa_id" style="width: 80px; flex-shrink: 0;" placeholder="ID">
+                            <input type="text" id="tarifaTasaDesc" name="tasa" placeholder="Descripción de la tasa" readonly>
+                        </div>
                     </div>
                     <div class="col-6"></div> <!-- empty spacer -->
 
@@ -540,14 +543,15 @@
                     <div class="col-2"></div> <!-- empty spacer -->
 
                     <!-- Partida -->
-                    <div class="field col-6">
-                        <label for="tarifaPartidaCod">Partida</label>
+                    <div class="field col-8">
+                        <label for="tarifaPartidaCod">Partida (scpartida | Descripción | Cédula Finanza)</label>
                         <div class="input-group-combo">
-                            <input type="text" id="tarifaPartidaCod" name="partida_cod" class="input-combo-short" placeholder="Código">
-                            <input type="text" id="tarifaPartidaDesc" name="partida_desc" placeholder="Descripción de partida arancelaria">
+                            <input type="text" id="tarifaPartidaCod" name="partida_cod" style="width: 140px; flex-shrink: 0;" placeholder="scpartida (Ej: 17.02.02.00.)">
+                            <input type="text" id="tarifaPartidaDesc" name="partida_desc" placeholder="Descripción de la partida" readonly>
+                            <input type="text" id="tarifaPartidaCedula" name="partida_cedula" style="width: 130px; flex-shrink: 0;" placeholder="Cédula Finanza" readonly>
                         </div>
                     </div>
-                    <div class="col-6"></div>
+                    <div class="col-4"></div>
 
                     <!-- Fórmula -->
                     <div class="field col-6">
@@ -686,17 +690,17 @@
                     </thead>
                     <tbody>
                         <!-- Rows populated with data matching screenshot details, plus extra data for the auto-fill feature -->
-                        <tr data-tarifa='{"id":"1", "codigo":"117", "activa":true, "tasa":"TASA CABOTAJE", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-01", "partida_desc":"Cobros de cabotaje", "formula":"(Eslora * 1.25) * Dia", "detalle":"Tarifa regulada para barcos pesqueros y de cabotaje", "valor":"0.1250", "s_ante":"10", "se_cobra_iva":false, "senae_cod":"S-99", "senae_desc":"Regulación nacional de cabotaje", "calc_param":"eslora", "calc_unidad":"dia", "ticket_srv":"ninguno"}'>
+                        <tr data-tarifa='{"id":"1", "codigo":"117", "activa":true, "tasa":"TASA CABOTAJE", "tasa_id":"5", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"17.02.02.00.", "partida_desc":"Rentas por Arrendamientos de Bienes", "partida_cedula":"170202", "formula":"(Eslora * 1.25) * Dia", "detalle":"Tarifa regulada para barcos pesqueros y de cabotaje", "valor":"0.1250", "s_ante":"10", "se_cobra_iva":false, "senae_cod":"S-99", "senae_desc":"Regulación nacional de cabotaje", "calc_param":"eslora", "calc_unidad":"dia", "ticket_srv":"ninguno"}'>
                             <td>TASA CABOTAJE</td>
                             <td>117</td>
                             <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
                         </tr>
-                        <tr data-tarifa='{"id":"2", "codigo":"247", "activa":true, "tasa":"TASAS A LAS NAVES", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-08", "partida_desc":"Tasas portuarias generales", "formula":"(T.Neto * 2.50) * Horas", "detalle":"Tarifa portuaria naves mercantes internacionales", "valor":"0.5000", "s_ante":"15", "se_cobra_iva":true, "senae_cod":"S-102", "senae_desc":"Impuestos aduaneros generales", "calc_param":"t_neto", "calc_unidad":"horas", "ticket_srv":"muelle"}'>
+                        <tr data-tarifa='{"id":"2", "codigo":"247", "activa":true, "tasa":"TASAS A LAS NAVES", "tasa_id":"2", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"13.02.01.01.00.", "partida_desc":"ACCESO AL PUERTO MARITIMO", "partida_cedula":"1302010100", "formula":"(T.Neto * 2.50) * Horas", "detalle":"Tarifa portuaria naves mercantes internacionales", "valor":"0.5000", "s_ante":"15", "se_cobra_iva":true, "senae_cod":"S-102", "senae_desc":"Impuestos aduaneros generales", "calc_param":"t_neto", "calc_unidad":"horas", "ticket_srv":"muelle"}'>
                             <td>TASAS A LAS NAVES</td>
                             <td>247</td>
                             <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
                         </tr>
-                        <tr data-tarifa='{"id":"3", "codigo":"339", "activa":false, "tasa":"TASAS ESPECIFICAS", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-15", "partida_desc":"Tasas por carga especial", "formula":"Cantidad * 0.85", "detalle":"Cobro por servicios específicos y especiales", "valor":"1.0000", "s_ante":"20", "se_cobra_iva":true, "senae_cod":"S-205", "senae_desc":"Tarifación aduanera específica", "calc_param":"otros", "calc_unidad":"cantidad", "ticket_srv":"vehiculo"}'>
+                        <tr data-tarifa='{"id":"3", "codigo":"339", "activa":false, "tasa":"TASAS ESPECIFICAS", "tasa_id":"7", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"13.02.01.04.00.", "partida_desc":"PRACTICAJE", "partida_cedula":"1302010400", "formula":"Cantidad * 0.85", "detalle":"Cobro por servicios específicos y especiales", "valor":"1.0000", "s_ante":"20", "se_cobra_iva":true, "senae_cod":"S-205", "senae_desc":"Tarifación aduanera específica", "calc_param":"otros", "calc_unidad":"cantidad", "ticket_srv":"vehiculo"}'>
                             <td>TASAS ESPECIFICAS</td>
                             <td>339</td>
                             <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
@@ -766,10 +770,12 @@
         document.getElementById('tarifaId').value = "0";
         document.getElementById('tarifaCodigo').value = "";
         document.getElementById('tarifaActiva').checked = true;
-        document.getElementById('tarifaTasa').value = "";
+        document.getElementById('tarifaTasaId').value = "";
+        document.getElementById('tarifaTasaDesc').value = "";
         document.getElementById('tarifaName').value = "";
         document.getElementById('tarifaPartidaCod').value = "";
         document.getElementById('tarifaPartidaDesc').value = "";
+        document.getElementById('tarifaPartidaCedula').value = "";
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
         document.getElementById('tarifaValor').value = "0.0000";
@@ -798,10 +804,12 @@
         document.getElementById('tarifaId').value = data.id || "0";
         document.getElementById('tarifaCodigo').value = data.codigo || "";
         document.getElementById('tarifaActiva').checked = !!data.activa;
-        document.getElementById('tarifaTasa').value = data.tasa || "";
+        document.getElementById('tarifaTasaId').value = data.tasa_id || "";
+        document.getElementById('tarifaTasaDesc').value = data.tasa || "";
         document.getElementById('tarifaName').value = data.tarifa || "";
         document.getElementById('tarifaPartidaCod').value = data.partida_cod || "";
         document.getElementById('tarifaPartidaDesc').value = data.partida_desc || "";
+        document.getElementById('tarifaPartidaCedula').value = data.partida_cedula || "";
         document.getElementById('tarifaFormula').value = data.formula || "";
         document.getElementById('tarifaDetalle').value = data.detalle || "";
         document.getElementById('tarifaValor').value = data.valor || "0.0000";
@@ -908,6 +916,85 @@
                 triggerAction('new');
             }
         });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- AUTOCOMPLETADO DE PARTIDA ---
+        const inputCod = document.getElementById('tarifaPartidaCod');
+        const inputDesc = document.getElementById('tarifaPartidaDesc');
+
+        if (inputCod && inputDesc) {
+            let debounceTimer;
+
+            async function cargarPartida(codigo) {
+                if (!codigo) {
+                    inputDesc.value = '';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/buscar-partida/?codigo=${encodeURIComponent(codigo)}`);
+                    const data = await response.json();
+
+                    if (data.success && data.data.length > 0) {
+                        const partida = data.data[0];
+                        inputDesc.value = partida.descripcion || partida.partidafinanzas || partida.nombre || partida.detalle || '';
+                        document.getElementById('tarifaPartidaCedula').value = partida.cedulafinanza || partida.cedulaFinanza || '';
+                    } else {
+                        inputDesc.value = '';
+                        document.getElementById('tarifaPartidaCedula').value = '';
+                    }
+                } catch (error) {
+                    console.error('Error al consultar la partida:', error);
+                }
+            }
+
+            inputCod.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const valor = this.value.trim();
+                debounceTimer = setTimeout(() => {
+                    cargarPartida(valor || '1');
+                }, 300);
+            });
+        }
+
+        // --- AUTOCOMPLETADO DE TASA ---
+        const inputTasaId = document.getElementById('tarifaTasaId');
+        const inputTasaDesc = document.getElementById('tarifaTasaDesc');
+
+        if (inputTasaId && inputTasaDesc) {
+            let debounceTasaTimer;
+
+            async function cargarTasa(idtasa) {
+                if (!idtasa) {
+                    inputTasaDesc.value = '';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/buscar-tasa/?idtasa=${encodeURIComponent(idtasa)}`);
+                    const data = await response.json();
+
+                    if (data.success && data.data.length > 0) {
+                        const tasaObj = data.data[0];
+                        inputTasaDesc.value = tasaObj.tasa || '';
+                    } else {
+                        inputTasaDesc.value = '';
+                    }
+                } catch (error) {
+                    console.error('Error al consultar la tasa:', error);
+                }
+            }
+
+            inputTasaId.addEventListener('input', function() {
+                clearTimeout(debounceTasaTimer);
+                const valor = this.value.trim();
+                debounceTasaTimer = setTimeout(() => {
+                    cargarTasa(valor);
+                }, 300);
+            });
+        }
     });
 </script>
 </body>

@@ -14,6 +14,9 @@ from .db import (
     obtener_buques_industriales,
     obtener_turnos_usuario,
     validar_usuario,
+    obtener_partidas,
+    obtener_tasa_por_id,
+    obtener_siguiente_codigo_tarifa,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,3 +154,73 @@ def tarifa_view(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
+
+from django.http import JsonResponse
+# ... tus imports anteriores ...
+
+
+@never_cache
+@require_http_methods(["GET"])
+def api_buscar_partida(request):
+    """API Endpoint para consultar partidas mediante AJAX."""
+    if not request.session.get("usuario_id"):
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    codigo = request.GET.get("codigo", "1").strip()
+
+    try:
+        resultados = obtener_partidas(codigo)
+        return JsonResponse({"success": True, "data": resultados})
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de base de datos al buscar partida")
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+    except Exception:
+        logger.exception("Error inesperado al buscar partida")
+        return JsonResponse(
+            {"success": False, "error": "No se pudo consultar la partida."}, status=500
+        )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def api_buscar_tasa(request):
+    """API Endpoint para consultar tasas mediante AJAX."""
+    if not request.session.get("usuario_id"):
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    idtasa = request.GET.get("idtasa", "").strip()
+    if not idtasa:
+        return JsonResponse({"success": True, "data": []})
+
+    try:
+        resultados = obtener_tasa_por_id(idtasa)
+        return JsonResponse({"success": True, "data": resultados})
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de base de datos al buscar tasa")
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+    except Exception:
+        logger.exception("Error inesperado al buscar tasa")
+        return JsonResponse(
+            {"success": False, "error": "No se pudo consultar la tasa."}, status=500
+        )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def api_siguiente_codigo(request):
+    """API Endpoint para consultar el siguiente código secuencial para una tasa."""
+    if not request.session.get("usuario_id"):
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    idtasa = request.GET.get("idtasa", "").strip()
+    if not idtasa:
+        return JsonResponse({"success": False, "error": "Falta idtasa"}, status=400)
+
+    try:
+        siguiente = obtener_siguiente_codigo_tarifa(idtasa)
+        return JsonResponse({"success": True, "siguiente": siguiente})
+    except Exception:
+        logger.exception("Error al calcular el siguiente código de tarifa")
+        return JsonResponse(
+            {"success": False, "error": "No se pudo calcular el siguiente código."}, status=500
+        )

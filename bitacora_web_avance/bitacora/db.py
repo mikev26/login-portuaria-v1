@@ -366,3 +366,123 @@ def obtener_buques_artesanales() -> list[dict[str, Any]]:
         if _is_missing_object_error(exc):
             return []
         raise
+
+def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
+    """
+    Realiza una consulta directa a la tabla dbo.dim_partida.
+    """
+    if settings.DEMO_MODE:
+        return [
+            {
+                "idpartida": 1,
+                "codigo": "17.02.02.00.",
+                "partidafinanzas": "Rentas por Arrendamientos de Bienes",
+                "cedulafinanza": "170202",
+                "activo": 1,
+            }
+        ]
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        idpartida,
+                        cedulaFinanza AS codigo,
+                        nombreFinanza AS partidafinanzas,
+                        scpartida,
+                        activo
+                    FROM dbo.dim_partida
+                    WHERE (scpartida LIKE ? OR cedulaFinanza LIKE ?)
+                      AND activo = 1
+                    """,
+                    str(codigo) + "%",
+                    str(codigo) + "%",
+                )
+                rows = _rows_as_dicts(cursor)
+                return rows
+    except Exception as exc:
+        if _is_missing_object_error(exc):
+            return []
+        raise
+
+
+def obtener_tasa_por_id(idtasa: int | str) -> list[dict[str, Any]]:
+    """
+    Realiza una consulta directa a la tabla dbo.dim_tasa.
+    """
+    if settings.DEMO_MODE:
+        tasa_map = {
+            "5": "TASA CABOTAJE",
+            "7": "TASAS ESPECIFICAS",
+            "2": "TASAS A LAS NAVES",
+        }
+        tasa_desc = tasa_map.get(str(idtasa), "")
+        if tasa_desc:
+            return [{"idtasa": int(idtasa), "tasa": tasa_desc}]
+        return []
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        idtasa,
+                        tasa
+                    FROM dbo.dim_tasa
+                    WHERE idtasa = ?
+                    """,
+                    int(idtasa) if str(idtasa).isdigit() else idtasa,
+                )
+                rows = _rows_as_dicts(cursor)
+                return rows
+    except Exception as exc:
+        if _is_missing_object_error(exc):
+            return []
+        raise
+
+
+def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
+    """
+    Calcula el siguiente código secuencial para las tarifas asociadas a una tasa.
+    """
+    if settings.DEMO_MODE:
+        tasa_next_map = {
+            "5": 118,
+            "2": 248,
+            "7": 340,
+        }
+        return tasa_next_map.get(str(idtasa), 1)
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    """
+                    SELECT ISNULL(MAX(TRY_CAST(codigo AS INT)), 0) + 1 AS siguiente
+                    FROM dbo.dim_tarifa
+                    WHERE idtasa = ?
+                    """,
+                    idtasa,
+                )
+                row = cursor.fetchone()
+                if row and row[0]:
+                    return row[0]
+                
+                # Códigos base si no existen tarifas
+                base_codes = {
+                    "5": 101,
+                    "2": 201,
+                    "7": 301,
+                }
+                return base_codes.get(str(idtasa), 1)
+    except Exception:
+        # Fallback si falla la base de datos o no existe la tabla de tarifas aún
+        tasa_next_map = {
+            "5": 118,
+            "2": 248,
+            "7": 340,
+        }
+        return tasa_next_map.get(str(idtasa), 1)
