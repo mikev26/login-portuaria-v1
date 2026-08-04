@@ -6,6 +6,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
+from .forms import LoginForm
 from .db import (
     DatabaseConfigurationError,
     DatabaseContractError,
@@ -18,19 +19,30 @@ from .db import (
 logger = logging.getLogger(__name__)
 
 
+def _iniciar_sesion(request, datos_usuario, turnos):
+    request.session.cycle_key()
+    request.session["usuario_id"] = datos_usuario["idusuario"]
+    request.session["usuario_login"] = datos_usuario["usuario"]
+    request.session["usuario_nombre"] = datos_usuario["nombre"]
+    request.session["usuario_cargo"] = turnos[0].get("cargo") or datos_usuario.get(
+        "cargo",
+        "Inspector",
+    )
+
+
 @never_cache
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.session.get("usuario_id"):
         return redirect("bitacora_home")
 
-    if request.method == "POST":
-        usuario = request.POST.get("usuario", "").strip()
-        clave = request.POST.get("clave", "")
+    form = LoginForm(request.POST or None)
 
-        if not usuario or not clave:
-            messages.error(request, "Ingrese el usuario y la contraseña.")
-        else:
+    if request.method == "POST":
+        if form.is_valid():
+            usuario = form.cleaned_data["usuario"]
+            clave = form.cleaned_data["clave"]
+
             try:
                 datos_usuario = validar_usuario(usuario, clave)
 
@@ -47,13 +59,7 @@ def login_view(request):
                             "habilitado para la bitácora.",
                         )
                     else:
-                        request.session.cycle_key()
-                        request.session["usuario_id"] = datos_usuario["idusuario"]
-                        request.session["usuario_login"] = datos_usuario["usuario"]
-                        request.session["usuario_nombre"] = datos_usuario["nombre"]
-                        request.session["usuario_cargo"] = (
-                            turnos[0].get("cargo") or datos_usuario.get("cargo", "Inspector")
-                        )
+                        _iniciar_sesion(request, datos_usuario, turnos)
                         return redirect("bitacora_home")
 
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
@@ -70,7 +76,7 @@ def login_view(request):
     return render(
         request,
         "bitacora/login.html",
-        {"demo_mode": settings.DEMO_MODE},
+        {"demo_mode": settings.DEMO_MODE, "form": form},
     )
 
 

@@ -93,6 +93,11 @@
             color: var(--success);
             border-color: #b9dfc7;
         }
+        .field-error {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--danger);
+        }
         .demo {
             margin: 0 34px 18px;
             padding: 10px 12px;
@@ -127,15 +132,21 @@
                 {% endfor %}
             {% endif %}
 
-            <form method="post" autocomplete="off">
+            <form method="post" action="{% url 'login' %}" autocomplete="off">
                 {% csrf_token %}
                 <div class="field">
-                    <label for="usuario">Usuario institucional</label>
-                    <input type="text" id="usuario" name="usuario" maxlength="80" required autofocus autocomplete="username">
+                    {{ form.usuario.label_tag }}
+                    {{ form.usuario }}
+                    {% if form.usuario.errors %}
+                        <div class="field-error">{{ form.usuario.errors|striptags }}</div>
+                    {% endif %}
                 </div>
                 <div class="field">
-                    <label for="clave">Contraseña</label>
-                    <input type="password" id="clave" name="clave" maxlength="128" required autocomplete="current-password">
+                    {{ form.clave.label_tag }}
+                    {{ form.clave }}
+                    {% if form.clave.errors %}
+                        <div class="field-error">{{ form.clave.errors|striptags }}</div>
+                    {% endif %}
                 </div>
                 <button type="submit">Ingresar</button>
             </form>

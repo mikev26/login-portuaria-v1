@@ -54,11 +54,11 @@ def _validated_parameter(env_name: str, default: str) -> str:
     return value
 
 
-def _connection_string() -> str:
+def _connection_string(database_name: str | None = None) -> str:
     driver = os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server").strip()
     server = os.getenv("DB_SERVER", "").strip()
     port = os.getenv("DB_PORT", "1433").strip()
-    database = os.getenv("DB_NAME", "dim_sis_puerto_v1").strip()
+    database = (database_name or os.getenv("DB_NAME", "dim_sis_puerto_v1")).strip()
     trusted = os.getenv("DB_TRUSTED_CONNECTION", "no").strip().lower() in {
         "1", "true", "yes", "si", "sí", "on"
     }
@@ -96,12 +96,12 @@ def _connection_string() -> str:
     return ";".join(parts) + ";"
 
 
-def get_connection():
+def get_connection(database_name: str | None = None):
     if pyodbc is None:
         raise DatabaseConfigurationError(
             "pyodbc no está instalado. Ejecuta: pip install -r requirements.txt"
         )
-    return pyodbc.connect(_connection_string())
+    return pyodbc.connect(_connection_string(database_name))
 
 
 def _rows_as_dicts(cursor) -> list[dict[str, Any]]:
@@ -163,15 +163,58 @@ def _format_datetime(value: Any) -> str:
     return str(value)
 
 
+def _is_missing_object_error(exc: Exception) -> bool:
+    if pyodbc is None or not isinstance(exc, pyodbc.ProgrammingError):
+        return False
+    message = str(exc).lower()
+    return "2812" in message or "no se encontró el procedimiento almacenado" in message
+
+
+def _login_desde_vista_turno(usuario: str, clave: str) -> dict[str, Any] | None:
+    login_view = os.getenv("LOGIN_VIEW", "dbo.dim_con_mov_turno").strip()
+    if not _IDENTIFIER_RE.fullmatch(login_view):
+        raise DatabaseConfigurationError(
+            "LOGIN_VIEW debe tener formato esquema.vista o base.esquema.vista."
+        )
+
+    with closing(get_connection()) as connection:
+        with closing(connection.cursor()) as cursor:
+            cursor.execute(
+                f"""
+                SELECT TOP 1 idusuario, usuario, nombre, cargo
+                FROM {login_view}
+                WHERE usuario = ?
+                  AND ClaveBitacora = ?
+                  AND fecha_s IS NULL
+                  AND activo <> 7
+                  AND bitacora = 1
+                ORDER BY idturno DESC, idusuario
+                """,
+                usuario,
+                clave,
+            )
+            row = cursor.fetchone()
+
+    if row is None:
+        return None
+
+    return {
+        "idusuario": row[0],
+        "usuario": row[1],
+        "nombre": row[2],
+        "cargo": row[3] or "Inspector",
+    }
+
+
 def validar_usuario(usuario: str, clave: str) -> dict[str, Any] | None:
     """
-    Valida las credenciales con el procedimiento institucional existente.
+    Valida las credenciales con la vista de turnos activa.
 
     Contrato mínimo esperado del primer registro:
-    - idusuario (o usuario_id / idfuncionario)
+    - idusuario
+    - usuario
     - nombre (opcional)
-    - usuario (opcional)
-    - autorizado / valido / resultado (opcional; si no existe, una fila implica éxito)
+    - cargo (opcional)
     """
     if settings.DEMO_MODE:
         if usuario == "inspector.demo" and clave == "Demo1234":
@@ -183,35 +226,16 @@ def validar_usuario(usuario: str, clave: str) -> dict[str, Any] | None:
             }
         return None
 
-    procedure = _validated_procedure("SP_LOGIN")
-    user_param = _validated_parameter("SP_LOGIN_USER_PARAM", "@usuario")
-    password_param = _validated_parameter("SP_LOGIN_PASSWORD_PARAM", "@clave")
-
-    rows = _execute_procedure(
-        procedure,
-        [(user_param, usuario), (password_param, clave)],
-    )
-    if not rows:
-        return None
-
-    row = rows[0]
-    status_keys = ("autorizado", "valido", "válido", "resultado", "estado_login")
-    present_status = next((key for key in status_keys if key in row), None)
-    if present_status and not _bool_value(row[present_status]):
-        return None
-
-    idusuario = _first_value(row, ("idusuario", "usuario_id", "idfuncionario", "id"))
-    if idusuario is None:
-        raise DatabaseContractError(
-            "El procedimiento de login respondió, pero no devolvió idusuario."
-        )
-
-    return {
-        "idusuario": idusuario,
-        "usuario": _first_value(row, ("usuario", "login", "username"), usuario),
-        "nombre": _first_value(row, ("nombre", "nombre_completo", "funcionario"), usuario),
-        "cargo": _first_value(row, ("cargo", "rol", "perfil"), "Inspector"),
-    }
+    try:
+        return _login_desde_vista_turno(usuario, clave)
+    except Exception as exc:
+        if pyodbc is not None and isinstance(exc, pyodbc.ProgrammingError):
+            message = str(exc).lower()
+            if "no se encontró la vista" in message or "invalid object name" in message:
+                raise DatabaseConfigurationError(
+                    "No se encontró la vista LOGIN_VIEW configurada para el login."
+                ) from exc
+        raise
 
 
 def obtener_turnos_usuario(idusuario: int) -> list[dict[str, Any]]:
@@ -231,9 +255,27 @@ def obtener_turnos_usuario(idusuario: int) -> list[dict[str, Any]]:
             }
         ]
 
-    procedure = _validated_procedure("SP_TURNOS_ACTIVOS")
-    id_param = _validated_parameter("SP_TURNOS_ID_PARAM", "@idusuario")
-    rows = _execute_procedure(procedure, [(id_param, idusuario)])
+    login_view = os.getenv("LOGIN_VIEW", "dbo.dim_con_mov_turno").strip()
+    if not _IDENTIFIER_RE.fullmatch(login_view):
+        raise DatabaseConfigurationError(
+            "LOGIN_VIEW debe tener formato esquema.vista o base.esquema.vista."
+        )
+
+    with closing(get_connection()) as connection:
+        with closing(connection.cursor()) as cursor:
+            cursor.execute(
+                f"""
+                SELECT idturno, idusuario, fecha_i, fecha_s, nombre, usuario, numero, cargo
+                FROM {login_view}
+                WHERE fecha_s IS NULL
+                  AND activo <> 7
+                  AND bitacora = 1
+                  AND idusuario = ?
+                ORDER BY idturno DESC
+                """,
+                idusuario,
+            )
+            rows = _rows_as_dicts(cursor)
 
     turnos = []
     for row in rows:
@@ -304,13 +346,23 @@ def obtener_buques_industriales() -> list[dict[str, Any]]:
             "industrial",
         )
 
-    procedure = _validated_procedure("SP_BUQUES_INDUSTRIALES")
-    return _normalize_ship_rows(_execute_procedure(procedure), "industrial")
+    try:
+        procedure = _validated_procedure("SP_BUQUES_INDUSTRIALES")
+        return _normalize_ship_rows(_execute_procedure(procedure), "industrial")
+    except Exception as exc:
+        if _is_missing_object_error(exc):
+            return []
+        raise
 
 
 def obtener_buques_artesanales() -> list[dict[str, Any]]:
     if settings.DEMO_MODE:
         return []
 
-    procedure = _validated_procedure("SP_BUQUES_ARTESANALES")
-    return _normalize_ship_rows(_execute_procedure(procedure), "artesanal")
+    try:
+        procedure = _validated_procedure("SP_BUQUES_ARTESANALES")
+        return _normalize_ship_rows(_execute_procedure(procedure), "artesanal")
+    except Exception as exc:
+        if _is_missing_object_error(exc):
+            return []
+        raise

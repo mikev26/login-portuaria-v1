@@ -82,7 +82,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "bitacora_web.wsgi.application"
 
-# SQLite se usa únicamente para sesiones internas de Django.
+# Django usa sesiones firmadas en cookie para no depender de una base local.
 # La lógica institucional y los datos de bitácora permanecen en SQL Server.
 DATABASES = {
     "default": {
@@ -105,6 +105,7 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
 # Solo para mostrar el avance sin depender de la red institucional.
 # Debe permanecer en False cuando se conecte a la base real.

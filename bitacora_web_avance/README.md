@@ -54,10 +54,15 @@ Copy-Item .env.example .env
 
 Edita `.env` y coloca la contraseña real únicamente en tu equipo. No subas `.env` a GitHub.
 
-Prepara las sesiones de Django:
+Si quieres usar el panel de administración de Django, ejecuta también las migraciones:
 
 ```powershell
 py manage.py migrate
+```
+
+Para levantar la aplicación:
+
+```powershell
 py manage.py runserver
 ```
 
