@@ -1,4 +1,8 @@
 import logging
+import csv
+from datetime import datetime
+
+from django.http import HttpResponse
 
 from django.conf import settings
 from django.contrib import messages
@@ -125,6 +129,51 @@ def bitacora_home(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
+
+
+@require_http_methods(["GET", "POST"])
+def reporte_inec_view(request):
+    """Página para consultar y exportar el reporte INEC por rango de fechas."""
+    if request.method == "POST":
+        inicio = request.POST.get("inicio")
+        fin = request.POST.get("fin")
+        export = request.POST.get("export")
+
+        try:
+            fecha_inicio = datetime.strptime(inicio, "%Y-%m-%d").date()
+            fecha_fin = datetime.strptime(fin, "%Y-%m-%d").date()
+        except Exception:
+            messages.error(request, "Formato de fecha inválido.")
+            return render(request, "bitacora/ReporteInec.html", {})
+
+        try:
+            from .db import obtener_reporte_inec
+
+            rows = obtener_reporte_inec(fecha_inicio, fecha_fin)
+
+        except Exception as exc:
+            logger.exception("Error al obtener reporte INEC")
+            messages.error(request, str(exc))
+            rows = []
+
+        if export:
+            # Exportar CSV
+            response = HttpResponse(content_type="text/csv; charset=utf-8")
+            response["Content-Disposition"] = (
+                f"attachment; filename=Reporte_INEC_{inicio}_a_{fin}.csv"
+            )
+            writer = csv.writer(response)
+            if rows:
+                headers = list(rows[0].keys())
+                writer.writerow(headers)
+                for r in rows:
+                    writer.writerow([r.get(h, "") for h in headers])
+            return response
+
+        return render(request, "bitacora/ReporteInec.html", {"rows": rows, "inicio": inicio, "fin": fin})
+
+    # GET
+    return render(request, "bitacora/ReporteInec.html", {})
 
 
 @require_http_methods(["POST"])
