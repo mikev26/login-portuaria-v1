@@ -11,13 +11,14 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm
-from .db import (
+from .services import (
     DatabaseConfigurationError,
     DatabaseContractError,
     obtener_buques_artesanales,
     obtener_buques_industriales,
     obtener_turnos_usuario,
     validar_usuario,
+    obtener_reporte_inec,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,9 +132,31 @@ def bitacora_home(request):
     )
 
 
+@never_cache
+@require_http_methods(["GET"])
+def tarifa_view(request):
+    """Página base del tarifario."""
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    return render(
+        request,
+        "bitacora/tarifa.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
+            "demo_mode": settings.DEMO_MODE,
+        },
+    )
+
+
 @require_http_methods(["GET", "POST"])
 def reporte_inec_view(request):
     """Página para consultar y exportar el reporte INEC por rango de fechas."""
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
     if request.method == "POST":
         inicio = request.POST.get("inicio")
         fin = request.POST.get("fin")
@@ -144,11 +167,18 @@ def reporte_inec_view(request):
             fecha_fin = datetime.strptime(fin, "%Y-%m-%d").date()
         except Exception:
             messages.error(request, "Formato de fecha inválido.")
-            return render(request, "bitacora/ReporteInec.html", {})
+            return render(
+                request,
+                "bitacora/ReporteInec.html",
+                {
+                    "usuario_nombre": request.session.get("usuario_nombre"),
+                    "usuario_login": request.session.get("usuario_login"),
+                    "usuario_cargo": request.session.get("usuario_cargo"),
+                    "demo_mode": settings.DEMO_MODE,
+                },
+            )
 
         try:
-            from .db import obtener_reporte_inec
-
             rows = obtener_reporte_inec(fecha_inicio, fecha_fin)
 
         except Exception as exc:
@@ -170,10 +200,31 @@ def reporte_inec_view(request):
                     writer.writerow([r.get(h, "") for h in headers])
             return response
 
-        return render(request, "bitacora/ReporteInec.html", {"rows": rows, "inicio": inicio, "fin": fin})
+        return render(
+            request,
+            "bitacora/ReporteInec.html",
+            {
+                "rows": rows,
+                "inicio": inicio,
+                "fin": fin,
+                "usuario_nombre": request.session.get("usuario_nombre"),
+                "usuario_login": request.session.get("usuario_login"),
+                "usuario_cargo": request.session.get("usuario_cargo"),
+                "demo_mode": settings.DEMO_MODE,
+            },
+        )
 
     # GET
-    return render(request, "bitacora/ReporteInec.html", {})
+    return render(
+        request,
+        "bitacora/ReporteInec.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
+            "demo_mode": settings.DEMO_MODE,
+        },
+    )
 
 
 @require_http_methods(["POST"])

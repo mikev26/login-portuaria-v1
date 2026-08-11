@@ -43,3 +43,36 @@ class ProjectSmokeTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Usuario o contraseña incorrectos.")
+
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def _authenticate(self, mock_validar, mock_turnos):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Inspector"}]
+
+        response = self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+        self.assertRedirects(response, "/bitacora/")
+
+    def test_tarifa_page_loads(self):
+        self._authenticate()
+
+        response = self.client.get("/tarifario/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tarifario")
+
+    def test_report_page_loads(self):
+        self._authenticate()
+
+        response = self.client.get("/reporte/inec/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reportes INEC")

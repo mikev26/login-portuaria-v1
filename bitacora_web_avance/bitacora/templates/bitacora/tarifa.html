@@ -1,0 +1,277 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Tarifario | Autoridad Portuaria{% endblock %}
+{% block header_title %}TARIFARIO{% endblock %}
+{% block body_class %}tarifa-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'bitacora/css/tarifa.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        <!-- Accion Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnSave" onclick="triggerAction('save')">
+                        <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                        Guardar (F4)
+                    </button>
+                    <button class="btn-tool" id="btnSaveNew" onclick="triggerAction('saveNew')">
+                        <svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
+                        Guardar/Nuevo
+                    </button>
+                    <button class="btn-tool" id="btnCancel" onclick="triggerAction('cancel')">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>
+                        Anular
+                    </button>
+                </div>
+                <div class="toolbar-label">Accion</div>
+            </div>
+
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnList" onclick="triggerAction('list')">
+                        <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
+                        Listado
+                    </button>
+                    <button class="btn-tool" id="btnSelect" onclick="triggerAction('select')">
+                        <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 7H11v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>
+                        Seleccionar
+                    </button>
+                </div>
+                <div class="toolbar-label">Mostrar</div>
+            </div>
+
+            <div class="toolbar-group">
+                <div class="toolbar-buttons">
+                    <button class="btn-tool" id="btnNew" onclick="triggerAction('new')">
+                        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                        Nuevo (F2)
+                    </button>
+                    <button class="btn-tool" id="btnRefresh" onclick="triggerAction('refresh')">
+                        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        Refrescar
+                    </button>
+                </div>
+                <div class="toolbar-label">Otros</div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <section class="section">
+            <div class="section-title">Datos del Tarifario</div>
+            <form id="tarifaForm" onsubmit="event.preventDefault();">
+                <div class="grid-form">
+                    <!-- ID -->
+                    <div class="field col-2">
+                        <label for="tarifaId">Id</label>
+                        <input type="text" id="tarifaId" name="id" value="0" readonly>
+                    </div>
+
+                    <!-- Código & Activa -->
+                    <div class="field col-4">
+                        <div style="display: flex; gap: 20px; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="tarifaCodigo">Codigo</label>
+                                <input type="text" id="tarifaCodigo" name="codigo" placeholder="Ingrese código">
+                            </div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="tarifaActiva" name="activa" checked>
+                                Activa
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-6"></div> <!-- empty spacer -->
+
+                    <!-- Tasa -->
+                    <div class="field col-6">
+                        <label for="tarifaTasa">Tasa</label>
+                        <input type="text" id="tarifaTasa" name="tasa" placeholder="Ingrese tasa">
+                    </div>
+                    <div class="col-6"></div> <!-- empty spacer -->
+
+                    <!-- Tarifa -->
+                    <div class="field col-10">
+                        <label for="tarifaName">Tarifa</label>
+                        <input type="text" id="tarifaName" name="tarifa" placeholder="Ingrese descripción detallada de la tarifa">
+                    </div>
+                    <div class="col-2"></div> <!-- empty spacer -->
+
+                    <!-- Partida -->
+                    <div class="field col-6">
+                        <label for="tarifaPartidaCod">Partida</label>
+                        <div class="input-group-combo">
+                            <input type="text" id="tarifaPartidaCod" name="partida_cod" class="input-combo-short" placeholder="Código">
+                            <input type="text" id="tarifaPartidaDesc" name="partida_desc" placeholder="Descripción de partida arancelaria">
+                        </div>
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Fórmula -->
+                    <div class="field col-6">
+                        <label for="tarifaFormula">Fórmula</label>
+                        <input type="text" id="tarifaFormula" name="formula" placeholder="Ingrese fórmula de cálculo">
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Detalle -->
+                    <div class="field col-6">
+                        <label for="tarifaDetalle">Detalle</label>
+                        <input type="text" id="tarifaDetalle" name="detalle" placeholder="Observaciones o especificaciones de cobro">
+                    </div>
+                    <div class="col-6"></div>
+
+                    <!-- Valor -->
+                    <div class="field col-3">
+                        <label for="tarifaValor">Valor</label>
+                        <input type="text" id="tarifaValor" name="valor" value="0.0000" style="text-align: right;" onfocus="if(this.value==='0.0000') this.value='';" onblur="formatDecimal(this);">
+                    </div>
+                    <div class="col-9"></div>
+
+                    <!-- Id. S.Ante & Se cobra con iva -->
+                    <div class="field col-4">
+                        <div style="display: flex; gap: 20px; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="tarifaSAnte">Id. S.Ante</label>
+                                <input type="text" id="tarifaSAnte" name="s_ante" placeholder="Id anterior">
+                            </div>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="tarifaIva" name="se_cobra_iva">
+                                Se cobra con iva
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-8"></div>
+
+                    <!-- SENAE -->
+                    <div class="field col-6">
+                        <label for="tarifaSenaeCod">SENAE</label>
+                        <div class="input-group-combo">
+                            <input type="text" id="tarifaSenaeCod" name="senae_cod" class="input-combo-short" placeholder="Código">
+                            <input type="text" id="tarifaSenaeDesc" name="senae_desc" placeholder="Detalle SENAE">
+                        </div>
+                    </div>
+                    <div class="col-6"></div>
+                </div>
+
+                <!-- Calculations & Tickets Segmented Controls -->
+                <div class="flex-sections">
+                    <!-- Calculos -->
+                    <div class="sub-panel">
+                        <div class="sub-panel-title">Calculos</div>
+                        <div class="calc-row">
+                            <div class="calc-group">
+                                <span class="calc-group-label">Parámetro Principal</span>
+                                <div class="radio-box-container">
+                                    <label class="radio-option selected">
+                                        <input type="radio" name="calc_param" value="eslora" checked onchange="updateRadioSelection(this)">
+                                        Eslora
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="ton_bruto" onchange="updateRadioSelection(this)">
+                                        Ton.Bruto
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="t_neto" onchange="updateRadioSelection(this)">
+                                        T.Neto
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_param" value="otros" onchange="updateRadioSelection(this)">
+                                        Otros
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="calc-group">
+                                <span class="calc-group-label">Unidad de Cobro</span>
+                                <div class="radio-box-container">
+                                    <label class="radio-option selected">
+                                        <input type="radio" name="calc_unidad" value="dia" checked onchange="updateRadioSelection(this)">
+                                        Dia
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="horas" onchange="updateRadioSelection(this)">
+                                        Horas
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="cantidad" onchange="updateRadioSelection(this)">
+                                        Cantidad
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="calc_unidad" value="otros" onchange="updateRadioSelection(this)">
+                                        Otros
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tickets -->
+                    <div class="sub-panel">
+                        <div class="sub-panel-title">Tickets</div>
+                        <div class="calc-group">
+                            <span class="calc-group-label">Servicio Vinculado</span>
+                            <div class="radio-box-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <label class="radio-option" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="vehiculo" onchange="updateRadioSelection(this)">
+                                    Servicio de Vehiculo
+                                </label>
+                                <label class="radio-option" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="muelle" onchange="updateRadioSelection(this)">
+                                    Servicio de Muelle
+                                </label>
+                                <label class="radio-option selected" style="width: 100%;">
+                                    <input type="radio" name="ticket_srv" value="ninguno" checked onchange="updateRadioSelection(this)">
+                                    Ninguno
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- List Section -->
+        <section class="section">
+            <div class="section-title">Ultimas Tarifas creadas por Tasa</div>
+            <div class="table-wrap">
+                <table id="tarifasTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%">Tasa</th>
+                            <th style="width: 15%">Codigo</th>
+                            <th style="width: 60%">Tarifa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows populated with data matching screenshot details, plus extra data for the auto-fill feature -->
+                        <tr data-tarifa='{"id":"1", "codigo":"117", "activa":true, "tasa":"TASA CABOTAJE", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-01", "partida_desc":"Cobros de cabotaje", "formula":"(Eslora * 1.25) * Dia", "detalle":"Tarifa regulada para barcos pesqueros y de cabotaje", "valor":"0.1250", "s_ante":"10", "se_cobra_iva":false, "senae_cod":"S-99", "senae_desc":"Regulación nacional de cabotaje", "calc_param":"eslora", "calc_unidad":"dia", "ticket_srv":"ninguno"}'>
+                            <td>TASA CABOTAJE</td>
+                            <td>117</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                        <tr data-tarifa='{"id":"2", "codigo":"247", "activa":true, "tasa":"TASAS A LAS NAVES", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-08", "partida_desc":"Tasas portuarias generales", "formula":"(T.Neto * 2.50) * Horas", "detalle":"Tarifa portuaria naves mercantes internacionales", "valor":"0.5000", "s_ante":"15", "se_cobra_iva":true, "senae_cod":"S-102", "senae_desc":"Impuestos aduaneros generales", "calc_param":"t_neto", "calc_unidad":"horas", "ticket_srv":"muelle"}'>
+                            <td>TASAS A LAS NAVES</td>
+                            <td>247</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                        <tr data-tarifa='{"id":"3", "codigo":"339", "activa":false, "tasa":"TASAS ESPECIFICAS", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"P-15", "partida_desc":"Tasas por carga especial", "formula":"Cantidad * 0.85", "detalle":"Cobro por servicios específicos y especiales", "valor":"1.0000", "s_ante":"20", "se_cobra_iva":true, "senae_cod":"S-205", "senae_desc":"Tarifación aduanera específica", "calc_param":"otros", "calc_unidad":"cantidad", "ticket_srv":"vehiculo"}'>
+                            <td>TASAS ESPECIFICAS</td>
+                            <td>339</td>
+                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'bitacora/js/tarifario.js' %}"></script>
+{% endblock %}
