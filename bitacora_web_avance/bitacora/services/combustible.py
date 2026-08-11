@@ -181,7 +181,7 @@ def obtener_reporte_combustible(
             "reporte no tiene un formato válido."
         )
 
-    return _execute_procedure(
+    return execute_procedure(
         procedure,
         (
             ("@s_fechaInit", fecha_inicio),

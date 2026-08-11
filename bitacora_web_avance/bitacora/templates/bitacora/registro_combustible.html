@@ -15,12 +15,11 @@
     <link rel="stylesheet" href="{% static 'bitacora/css/combustible.css' %}">
 {% endblock %}
 
-
 {% block content %}
 
 <div class="report-shell">
 
-    <!-- Encabezado propio del reporte -->
+    <!-- Encabezado del reporte -->
     <section class="report-header">
 
         <div class="report-header-content">
@@ -33,6 +32,7 @@
             </div>
 
             <div class="report-header-text">
+
                 <div class="report-title">
                     AUTORIDAD PORTUARIA DE MANTA
                 </div>
@@ -44,6 +44,7 @@
                 <div class="report-small-title">
                     CONTROL DE INGRESO DE COMBUSTIBLE
                 </div>
+
             </div>
 
         </div>
@@ -62,18 +63,33 @@
     <!-- Información del reporte -->
     <section class="info-block">
 
-        {% if form.non_field_errors %}
-            {% for error in form.non_field_errors %}
-                <div class="message-banner error">
-                    {{ error }}
-                </div>
-            {% endfor %}
-        {% endif %}
+        <!-- Mensajes -->
+        <div id="report-messages">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-banner {{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                    <div class="message-banner error">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+        </div>
 
 
+        <!-- Fecha de emisión -->
         <div class="field-box">
 
             <div>
+
                 <div class="field-label">
                     Fecha de emisión
                 </div>
@@ -81,16 +97,19 @@
                 <div class="field-value">
                     Manta, {{ fecha_emision|date:"d/m/Y" }}
                 </div>
+
             </div>
 
         </div>
 
 
+        <!-- Fechas seleccionadas -->
         <div class="info-row">
 
             <div class="field-box">
 
                 <div>
+
                     <div class="field-label">
                         Fecha Desde
                     </div>
@@ -99,8 +118,13 @@
                         id="header-fecha-desde"
                         class="field-value"
                     >
-                        {{ fecha_desde|date:"d/m/Y" }}
+                        {% if fecha_desde %}
+                            {{ fecha_desde|date:"d/m/Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
                     </div>
+
                 </div>
 
             </div>
@@ -109,6 +133,7 @@
             <div class="field-box">
 
                 <div>
+
                     <div class="field-label">
                         Fecha Hasta
                     </div>
@@ -117,8 +142,13 @@
                         id="header-fecha-hasta"
                         class="field-value"
                     >
-                        {{ fecha_hasta|date:"d/m/Y" }}
+                        {% if fecha_hasta %}
+                            {{ fecha_hasta|date:"d/m/Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
                     </div>
+
                 </div>
 
             </div>
@@ -132,6 +162,7 @@
             <div class="date-range">
 
                 <label>
+
                     <span class="field-label">
                         F. Desde
                     </span>
@@ -143,10 +174,12 @@
                             {{ form.fecha_inicio.errors|join:", " }}
                         </span>
                     {% endif %}
+
                 </label>
 
 
                 <label>
+
                     <span class="field-label">
                         F. Hasta
                     </span>
@@ -158,6 +191,7 @@
                             {{ form.fecha_fin.errors|join:", " }}
                         </span>
                     {% endif %}
+
                 </label>
 
 
@@ -182,6 +216,7 @@
                     href="#"
                     data-export-url="{% url 'registro_combustible_exportar' %}"
                     data-validate-url="{% url 'registro_combustible_exportar_validar' %}"
+                    aria-disabled="true"
                 >
                     Exportar Excel
                 </a>
@@ -206,11 +241,13 @@
             Registro de combustible
         </div>
 
+
         <div class="table-wrapper">
 
             <table class="report-table">
 
                 <thead>
+
                     <tr>
                         <th>Fecha</th>
                         <th>Tickets</th>
@@ -223,7 +260,9 @@
                         <th>Galones</th>
                         <th>Motivo</th>
                     </tr>
+
                 </thead>
+
 
                 <tbody id="report-table-body">
 
