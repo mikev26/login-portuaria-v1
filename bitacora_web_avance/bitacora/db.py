@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import json
 from contextlib import closing
 from datetime import date, datetime
 from typing import Any, Iterable
@@ -372,14 +373,51 @@ def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
     Realiza una consulta directa a la tabla dbo.dim_partida.
     """
     if settings.DEMO_MODE:
-        return [
+        mock_partidas = [
             {
                 "idpartida": 1,
-                "codigo": "17.02.02.00.",
+                "codigo": "170202",
                 "partidafinanzas": "Rentas por Arrendamientos de Bienes",
-                "cedulafinanza": "170202",
+                "scpartida": "17.02.02.00.",
+                "activo": 1,
+            },
+            {
+                "idpartida": 2,
+                "codigo": "1302010100",
+                "partidafinanzas": "ACCESO AL PUERTO MARITIMO",
+                "scpartida": "13.02.01.01.00.",
+                "activo": 1,
+            },
+            {
+                "idpartida": 3,
+                "codigo": "1302010400",
+                "partidafinanzas": "PRACTICAJE",
+                "scpartida": "13.02.01.04.00.",
+                "activo": 1,
+            },
+            {
+                "idpartida": 4,
+                "codigo": "1401020300",
+                "partidafinanzas": "SERVICIOS LOGISTICOS PORTUARIOS",
+                "scpartida": "14.01.02.03.00.",
+                "activo": 1,
+            },
+            {
+                "idpartida": 5,
+                "codigo": "1402050100",
+                "partidafinanzas": "ALMACENAMIENTO TEMPORAL",
+                "scpartida": "14.02.05.01.00.",
                 "activo": 1,
             }
+        ]
+        codigo_str = str(codigo).strip().lower()
+        if not codigo_str:
+            return mock_partidas
+        return [
+            p for p in mock_partidas
+            if (codigo_str in p["scpartida"].lower() or 
+                codigo_str in p["codigo"].lower() or 
+                codigo_str in p["partidafinanzas"].lower())
         ]
 
     try:
@@ -408,7 +446,7 @@ def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
         raise
 
 
-def obtener_tasa_por_id(idtasa: int | str) -> list[dict[str, Any]]:
+def obtener_tasa_por_id(idtasa: int | str = "") -> list[dict[str, Any]]:
     """
     Realiza una consulta directa a la tabla dbo.dim_tasa.
     """
@@ -418,24 +456,40 @@ def obtener_tasa_por_id(idtasa: int | str) -> list[dict[str, Any]]:
             "7": "TASAS ESPECIFICAS",
             "2": "TASAS A LAS NAVES",
         }
-        tasa_desc = tasa_map.get(str(idtasa), "")
-        if tasa_desc:
-            return [{"idtasa": int(idtasa), "tasa": tasa_desc}]
-        return []
+        if not idtasa:
+            return [{"idtasa": int(k), "tasa": v} for k, v in tasa_map.items()]
+        
+        idtasa_str = str(idtasa).strip().lower()
+        return [
+            {"idtasa": int(k), "tasa": v}
+            for k, v in tasa_map.items()
+            if idtasa_str in k or idtasa_str in v.lower()
+        ]
 
     try:
         with closing(get_connection()) as connection:
             with closing(connection.cursor()) as cursor:
-                cursor.execute(
-                    """
-                    SELECT 
-                        idtasa,
-                        tasa
-                    FROM dbo.dim_tasa
-                    WHERE idtasa = ?
-                    """,
-                    int(idtasa) if str(idtasa).isdigit() else idtasa,
-                )
+                if idtasa:
+                    cursor.execute(
+                        """
+                        SELECT 
+                            idtasa,
+                            tasa
+                        FROM dbo.dim_tasa
+                        WHERE idtasa = ? OR tasa LIKE ?
+                        """,
+                        int(idtasa) if str(idtasa).isdigit() else idtasa,
+                        "%" + str(idtasa) + "%",
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT 
+                            idtasa,
+                            tasa
+                        FROM dbo.dim_tasa
+                        """
+                    )
                 rows = _rows_as_dicts(cursor)
                 return rows
     except Exception as exc:
@@ -446,7 +500,8 @@ def obtener_tasa_por_id(idtasa: int | str) -> list[dict[str, Any]]:
 
 def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
     """
-    Calcula el siguiente código secuencial para las tarifas asociadas a una tasa.
+    Calcula el siguiente código secuencial para las tarifas asociadas a una tasa
+    utilizando el procedimiento almacenado dbo.SPJ_Vista_TasasTarifas.
     """
     if settings.DEMO_MODE:
         tasa_next_map = {
@@ -457,21 +512,26 @@ def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
         return tasa_next_map.get(str(idtasa), 1)
 
     try:
+        try:
+            idtasa_int = int(idtasa)
+        except (ValueError, TypeError):
+            idtasa_int = 0
+
         with closing(get_connection()) as connection:
             with closing(connection.cursor()) as cursor:
                 cursor.execute(
                     """
-                    SELECT ISNULL(MAX(TRY_CAST(codigo AS INT)), 0) + 1 AS siguiente
-                    FROM dbo.dim_tarifa
-                    WHERE idtasa = ?
+                    DECLARE @out INT;
+                    EXEC dbo.SPJ_Vista_TasasTarifas @SidTasa = ?, @SidResulta = @out OUTPUT;
+                    SELECT @out AS siguiente;
                     """,
-                    idtasa,
+                    idtasa_int,
                 )
                 row = cursor.fetchone()
-                if row and row[0]:
+                if row and row[0] is not None:
                     return row[0]
                 
-                # Códigos base si no existen tarifas
+                # Códigos base si no retorna nada
                 base_codes = {
                     "5": 101,
                     "2": 201,
@@ -479,10 +539,127 @@ def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
                 }
                 return base_codes.get(str(idtasa), 1)
     except Exception:
-        # Fallback si falla la base de datos o no existe la tabla de tarifas aún
+        # Fallback si falla la base de datos o no existe el SP aún
         tasa_next_map = {
             "5": 118,
             "2": 248,
             "7": 340,
         }
         return tasa_next_map.get(str(idtasa), 1)
+
+
+def obtener_tarifas_existentes() -> list[dict[str, Any]]:
+    """
+    Ejecuta el procedimiento almacenado sp_v_tarifas 1 para obtener el listado de tarifas.
+    """
+    if settings.DEMO_MODE:
+        normalized = [
+            {
+                "id": "1",
+                "codigo": "117",
+                "activa": True,
+                "tasa": "TASA CABOTAJE",
+                "tasa_id": "5",
+                "tarifa": "USO DE FACILIDADES DE ACCESO DE BUQUES",
+                "partida_cod": "17.02.02.00.",
+                "partida_desc": "Rentas por Arrendamientos de Bienes",
+                "partida_cedula": "170202",
+                "formula": "(Eslora * 1.25) * Dia",
+                "detalle": "Tarifa regulada para barcos pesqueros y de cabotaje",
+                "valor": "0.13",
+                "s_ante": "10",
+                "se_cobra_iva": False,
+                "senae_cod": "S-99",
+                "senae_desc": "Regulación nacional de cabotaje",
+                "calc_param": "eslora",
+                "calc_unidad": "dia",
+                "ticket_srv": "ninguno"
+            },
+            {
+                "id": "2",
+                "codigo": "247",
+                "activa": True,
+                "tasa": "TASAS A LAS NAVES",
+                "tasa_id": "2",
+                "tarifa": "USO DE FACILIDADES DE ACCESO DE BUQUES",
+                "partida_cod": "13.02.01.01.00.",
+                "partida_desc": "ACCESO AL PUERTO MARITIMO",
+                "partida_cedula": "1302010100",
+                "formula": "(T.Neto * 2.50) * Horas",
+                "detalle": "Tarifa portuaria naves mercantes internacionales",
+                "valor": "0.50",
+                "s_ante": "15",
+                "se_cobra_iva": True,
+                "senae_cod": "S-102",
+                "senae_desc": "Impuestos aduaneros generales",
+                "calc_param": "t_neto",
+                "calc_unidad": "horas",
+                "ticket_srv": "muelle"
+            },
+            {
+                "id": "3",
+                "codigo": "339",
+                "activa": False,
+                "tasa": "TASAS ESPECIFICAS",
+                "tasa_id": "7",
+                "tarifa": "USO DE FACILIDADES DE ACCESO DE BUQUES",
+                "partida_cod": "13.02.01.04.00.",
+                "partida_desc": "PRACTICAJE",
+                "partida_cedula": "1302010400",
+                "formula": "Cantidad * 0.85",
+                "detalle": "Cobro por servicios específicos y especiales",
+                "valor": "1.00",
+                "s_ante": "20",
+                "se_cobra_iva": True,
+                "senae_cod": "S-205",
+                "senae_desc": "Tarifación aduanera específica",
+                "calc_param": "otros",
+                "calc_unidad": "cantidad",
+                "ticket_srv": "vehiculo"
+            }
+        ]
+        for t in normalized:
+            t["json_data"] = json.dumps(t)
+        return normalized
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute("EXEC dbo.sp_v_tarifas 1")
+                rows = _rows_as_dicts(cursor)
+                
+                normalized = []
+                for r in rows:
+                    def str_or_empty(val: Any, default: str = "") -> str:
+                        if val is None or str(val).strip().lower() == "none":
+                            return default
+                        return str(val).strip()
+
+                    t_val = {
+                        "id": str_or_empty(_first_value(r, ["idtarifa", "id", "id_tarifa"])),
+                        "codigo": str_or_empty(_first_value(r, ["codigo", "cod_tarifa", "cod"])),
+                        "activa": _bool_value(_first_value(r, ["activa", "activo", "estado"], True)),
+                        "tasa": str_or_empty(_first_value(r, ["tasa", "tasa_desc", "nombre_tasa"])),
+                        "tasa_id": str_or_empty(_first_value(r, ["tasa_id", "idtasa", "id_tasa"])),
+                        "tarifa": str_or_empty(_first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
+                        "partida_cod": str_or_empty(_first_value(r, ["partida_cod", "scpartida", "partida"])),
+                        "partida_desc": str_or_empty(_first_value(r, ["partida_desc", "nombreFinanza", "partidafinanzas"])),
+                        "partida_cedula": str_or_empty(_first_value(r, ["partida_cedula", "cedulaFinanza", "cedula"])),
+                        "formula": str_or_empty(_first_value(r, ["formula", "formula_calc"])),
+                        "detalle": str_or_empty(_first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
+                        "valor": str_or_empty(_first_value(r, ["valor", "monto", "precio"], "0.00")),
+                        "s_ante": str_or_empty(_first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
+                        "se_cobra_iva": _bool_value(_first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
+                        "senae_cod": str_or_empty(_first_value(r, ["senae_cod", "codigo_senae", "senae"])),
+                        "senae_desc": str_or_empty(_first_value(r, ["senae_desc", "detalle_senae"])),
+                        "calc_param": str_or_empty(_first_value(r, ["calc_param", "parametro", "param_principal"], "eslora")),
+                        "calc_unidad": str_or_empty(_first_value(r, ["calc_unidad", "unidad", "unidad_cobro"], "dia")),
+                        "ticket_srv": str_or_empty(_first_value(r, ["ticket_srv", "servicio", "servicio_vinculado"], "ninguno")),
+                    }
+                    t_val["json_data"] = json.dumps(t_val)
+                    normalized.append(t_val)
+                return normalized
+    except Exception as exc:
+        if _is_missing_object_error(exc):
+            return []
+        raise

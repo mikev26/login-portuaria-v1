@@ -417,6 +417,57 @@
             .session { text-align: left; }
             main { padding: 20px 17px 30px; }
         }
+
+        /* Autocomplete dropdown styles */
+        .autocomplete-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 380px;
+            max-height: 220px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(6, 45, 82, 0.15);
+            z-index: 1000;
+            padding: 4px 0;
+        }
+        .autocomplete-item {
+            padding: 9px 14px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            transition: all 0.15s ease;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background: rgba(29, 111, 159, 0.08);
+            color: var(--navy);
+        }
+        .autocomplete-item .item-code {
+            font-weight: 700;
+            font-size: 12.5px;
+            color: var(--navy);
+        }
+        .autocomplete-item .item-desc {
+            font-size: 11.5px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .autocomplete-no-results {
+            padding: 14px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -529,7 +580,10 @@
                     <div class="field col-6">
                         <label for="tarifaTasaId">Tasa (ID | Descripción)</label>
                         <div class="input-group-combo">
-                            <input type="text" id="tarifaTasaId" name="tasa_id" style="width: 80px; flex-shrink: 0;" placeholder="ID">
+                            <div style="position: relative; width: 80px; flex-shrink: 0;">
+                                <input type="text" id="tarifaTasaId" name="tasa_id" placeholder="ID" autocomplete="off" style="width: 100%;">
+                                <div id="tasaAutocompleteList" class="autocomplete-list" style="display: none; width: 320px;"></div>
+                            </div>
                             <input type="text" id="tarifaTasaDesc" name="tasa" placeholder="Descripción de la tasa" readonly>
                         </div>
                     </div>
@@ -546,7 +600,10 @@
                     <div class="field col-8">
                         <label for="tarifaPartidaCod">Partida (scpartida | Descripción | Cédula Finanza)</label>
                         <div class="input-group-combo">
-                            <input type="text" id="tarifaPartidaCod" name="partida_cod" style="width: 140px; flex-shrink: 0;" placeholder="scpartida (Ej: 17.02.02.00.)">
+                            <div style="position: relative; width: 180px; flex-shrink: 0;">
+                                <input type="text" id="tarifaPartidaCod" name="partida_cod" placeholder="scpartida (Ej: 17.02.02.00.)" autocomplete="off" style="width: 100%;">
+                                <div id="partidaAutocompleteList" class="autocomplete-list" style="display: none;"></div>
+                            </div>
                             <input type="text" id="tarifaPartidaDesc" name="partida_desc" placeholder="Descripción de la partida" readonly>
                             <input type="text" id="tarifaPartidaCedula" name="partida_cedula" style="width: 130px; flex-shrink: 0;" placeholder="Cédula Finanza" readonly>
                         </div>
@@ -570,7 +627,7 @@
                     <!-- Valor -->
                     <div class="field col-3">
                         <label for="tarifaValor">Valor</label>
-                        <input type="text" id="tarifaValor" name="valor" value="0.0000" style="text-align: right;" onfocus="if(this.value==='0.0000') this.value='';" onblur="formatDecimal(this);">
+                        <input type="text" id="tarifaValor" name="valor" value="0.00" style="text-align: right;" onfocus="if(this.value==='0.00') this.value='';" onblur="formatDecimal(this);">
                     </div>
                     <div class="col-9"></div>
 
@@ -676,39 +733,7 @@
             </form>
         </section>
 
-        <!-- List Section -->
-        <section class="section">
-            <div class="section-title">Ultimas Tarifas creadas por Tasa</div>
-            <div class="table-wrap">
-                <table id="tarifasTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 25%">Tasa</th>
-                            <th style="width: 15%">Codigo</th>
-                            <th style="width: 60%">Tarifa</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Rows populated with data matching screenshot details, plus extra data for the auto-fill feature -->
-                        <tr data-tarifa='{"id":"1", "codigo":"117", "activa":true, "tasa":"TASA CABOTAJE", "tasa_id":"5", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"17.02.02.00.", "partida_desc":"Rentas por Arrendamientos de Bienes", "partida_cedula":"170202", "formula":"(Eslora * 1.25) * Dia", "detalle":"Tarifa regulada para barcos pesqueros y de cabotaje", "valor":"0.1250", "s_ante":"10", "se_cobra_iva":false, "senae_cod":"S-99", "senae_desc":"Regulación nacional de cabotaje", "calc_param":"eslora", "calc_unidad":"dia", "ticket_srv":"ninguno"}'>
-                            <td>TASA CABOTAJE</td>
-                            <td>117</td>
-                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
-                        </tr>
-                        <tr data-tarifa='{"id":"2", "codigo":"247", "activa":true, "tasa":"TASAS A LAS NAVES", "tasa_id":"2", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"13.02.01.01.00.", "partida_desc":"ACCESO AL PUERTO MARITIMO", "partida_cedula":"1302010100", "formula":"(T.Neto * 2.50) * Horas", "detalle":"Tarifa portuaria naves mercantes internacionales", "valor":"0.5000", "s_ante":"15", "se_cobra_iva":true, "senae_cod":"S-102", "senae_desc":"Impuestos aduaneros generales", "calc_param":"t_neto", "calc_unidad":"horas", "ticket_srv":"muelle"}'>
-                            <td>TASAS A LAS NAVES</td>
-                            <td>247</td>
-                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
-                        </tr>
-                        <tr data-tarifa='{"id":"3", "codigo":"339", "activa":false, "tasa":"TASAS ESPECIFICAS", "tasa_id":"7", "tarifa":"USO DE FACILIDADES DE ACCESO DE BUQUES", "partida_cod":"13.02.01.04.00.", "partida_desc":"PRACTICAJE", "partida_cedula":"1302010400", "formula":"Cantidad * 0.85", "detalle":"Cobro por servicios específicos y especiales", "valor":"1.0000", "s_ante":"20", "se_cobra_iva":true, "senae_cod":"S-205", "senae_desc":"Tarifación aduanera específica", "calc_param":"otros", "calc_unidad":"cantidad", "ticket_srv":"vehiculo"}'>
-                            <td>TASAS ESPECIFICAS</td>
-                            <td>339</td>
-                            <td>USO DE FACILIDADES DE ACCESO DE BUQUES</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+
     </main>
 </div>
 
@@ -742,13 +767,13 @@
         }, 3500);
     }
 
-    // Format Valor field to 4 decimal places
+    // Format Valor field to 2 decimal places obligatorily
     function formatDecimal(input) {
         const val = parseFloat(input.value);
         if (isNaN(val)) {
-            input.value = "0.0000";
+            input.value = "0.00";
         } else {
-            input.value = val.toFixed(4);
+            input.value = val.toFixed(2);
         }
     }
 
@@ -778,7 +803,7 @@
         document.getElementById('tarifaPartidaCedula').value = "";
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
-        document.getElementById('tarifaValor').value = "0.0000";
+        document.getElementById('tarifaValor').value = "0.00";
         document.getElementById('tarifaSAnte').value = "";
         document.getElementById('tarifaIva').checked = false;
         document.getElementById('tarifaSenaeCod').value = "";
@@ -793,10 +818,46 @@
             updateRadioSelection(radio);
         });
 
-        // Remove active class from table rows
-        document.querySelectorAll('#tarifasTable tbody tr').forEach(row => {
-            row.style.background = "";
-        });
+
+    }
+
+    async function fetchTasaDescription(idtasa) {
+        if (!idtasa) return;
+        try {
+            const response = await fetch(`/api/buscar-tasa/?idtasa=${encodeURIComponent(idtasa)}`);
+            const data = await response.json();
+            if (data.success && data.data && data.data.length > 0) {
+                const match = data.data.find(t => String(t.idtasa) === String(idtasa)) || data.data[0];
+                document.getElementById('tarifaTasaDesc').value = match.tasa || '';
+            } else {
+                document.getElementById('tarifaTasaDesc').value = '';
+            }
+        } catch (e) {
+            console.error("Error fetching Tasa description:", e);
+            document.getElementById('tarifaTasaDesc').value = '';
+        }
+    }
+
+    async function fetchPartidaDetails(codigo) {
+        if (!codigo) return;
+        try {
+            const response = await fetch(`/api/buscar-partida/?codigo=${encodeURIComponent(codigo)}`);
+            const data = await response.json();
+            if (data.success && data.data && data.data.length > 0) {
+                const match = data.data.find(p => (p.scpartida || p.codigo) === codigo) || data.data[0];
+                const desc = match.partidafinanzas || match.descripcion || match.nombre || '';
+                const cedula = match.scpartida ? (match.codigo || '') : (match.cedulafinanza || match.cedulaFinanza || '');
+                document.getElementById('tarifaPartidaDesc').value = desc;
+                document.getElementById('tarifaPartidaCedula').value = cedula;
+            } else {
+                document.getElementById('tarifaPartidaDesc').value = '';
+                document.getElementById('tarifaPartidaCedula').value = '';
+            }
+        } catch (e) {
+            console.error("Error fetching Partida details:", e);
+            document.getElementById('tarifaPartidaDesc').value = '';
+            document.getElementById('tarifaPartidaCedula').value = '';
+        }
     }
 
     // Populate form with row data
@@ -804,15 +865,35 @@
         document.getElementById('tarifaId').value = data.id || "0";
         document.getElementById('tarifaCodigo').value = data.codigo || "";
         document.getElementById('tarifaActiva').checked = !!data.activa;
+        
         document.getElementById('tarifaTasaId').value = data.tasa_id || "";
-        document.getElementById('tarifaTasaDesc').value = data.tasa || "";
+        if (data.tasa) {
+            document.getElementById('tarifaTasaDesc').value = data.tasa;
+        } else if (data.tasa_id) {
+            document.getElementById('tarifaTasaDesc').value = "Cargando...";
+            fetchTasaDescription(data.tasa_id);
+        } else {
+            document.getElementById('tarifaTasaDesc').value = "";
+        }
+
         document.getElementById('tarifaName').value = data.tarifa || "";
+        
         document.getElementById('tarifaPartidaCod').value = data.partida_cod || "";
-        document.getElementById('tarifaPartidaDesc').value = data.partida_desc || "";
-        document.getElementById('tarifaPartidaCedula').value = data.partida_cedula || "";
+        if (data.partida_desc && data.partida_cedula) {
+            document.getElementById('tarifaPartidaDesc').value = data.partida_desc;
+            document.getElementById('tarifaPartidaCedula').value = data.partida_cedula;
+        } else if (data.partida_cod) {
+            document.getElementById('tarifaPartidaDesc').value = "Cargando...";
+            document.getElementById('tarifaPartidaCedula').value = "Cargando...";
+            fetchPartidaDetails(data.partida_cod);
+        } else {
+            document.getElementById('tarifaPartidaDesc').value = "";
+            document.getElementById('tarifaPartidaCedula').value = "";
+        }
         document.getElementById('tarifaFormula').value = data.formula || "";
         document.getElementById('tarifaDetalle').value = data.detalle || "";
-        document.getElementById('tarifaValor').value = data.valor || "0.0000";
+        const valNum = parseFloat(data.valor);
+        document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.00" : valNum.toFixed(2);
         document.getElementById('tarifaSAnte').value = data.s_ante || "";
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
         document.getElementById('tarifaSenaeCod').value = data.senae_cod || "";
@@ -865,7 +946,10 @@
                 clearForm();
             }
         } else if (action === 'list') {
-            showToast("Abriendo listado general de tarifas...");
+            const popup = window.open('/tarifa/listado/', 'ListadoTarifas', 'width=950,height=650,scrollbars=yes,resizable=yes');
+            if (popup) {
+                popup.focus();
+            }
         } else if (action === 'select') {
             showToast("Buscando registros en el sistema...");
         } else if (action === 'new') {
@@ -879,27 +963,6 @@
 
     // Setup interactive events
     document.addEventListener('DOMContentLoaded', () => {
-        // Table row click listener for auto-filling the form
-        const rows = document.querySelectorAll('#tarifasTable tbody tr');
-        rows.forEach(row => {
-            row.addEventListener('click', () => {
-                // Highlight selected row
-                rows.forEach(r => r.style.background = "");
-                row.style.background = "rgba(29, 111, 159, 0.08)";
-                
-                // Parse JSON data attribute
-                const rawData = row.dataset.tarifa;
-                if (rawData) {
-                    try {
-                        const data = JSON.parse(rawData);
-                        loadTarifaData(data);
-                        showToast(`Tarifa seleccionada: ${data.tasa} (Código ${data.codigo})`);
-                    } catch (e) {
-                        console.error("Error parsing row data:", e);
-                    }
-                }
-            });
-        });
 
         // Initialize radio styles
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
@@ -923,13 +986,68 @@
         // --- AUTOCOMPLETADO DE PARTIDA ---
         const inputCod = document.getElementById('tarifaPartidaCod');
         const inputDesc = document.getElementById('tarifaPartidaDesc');
+        const inputCedula = document.getElementById('tarifaPartidaCedula');
+        const autocompleteList = document.getElementById('partidaAutocompleteList');
 
-        if (inputCod && inputDesc) {
+        if (inputCod && inputDesc && autocompleteList) {
             let debounceTimer;
+            let currentFocus = -1;
 
-            async function cargarPartida(codigo) {
+            // Hide list when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== inputCod && e.target !== autocompleteList && !autocompleteList.contains(e.target)) {
+                    hideList();
+                }
+            });
+
+            function showList() {
+                autocompleteList.style.display = 'block';
+            }
+
+            function hideList() {
+                autocompleteList.style.display = 'none';
+                currentFocus = -1;
+            }
+
+            function addActive(x) {
+                if (!x) return false;
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                x[currentFocus].classList.add("active");
+                x[currentFocus].scrollIntoView({ block: 'nearest' });
+            }
+
+            function removeActive(x) {
+                for (let i = 0; i < x.length; i++) {
+                    x[i].classList.remove("active");
+                }
+            }
+
+            // Keyboard navigation
+            inputCod.addEventListener('keydown', function(e) {
+                let x = autocompleteList.getElementsByClassName("autocomplete-item");
+                if (e.key === "ArrowDown") {
+                    currentFocus++;
+                    addActive(x);
+                } else if (e.key === "ArrowUp") {
+                    currentFocus--;
+                    addActive(x);
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        if (x[currentFocus]) x[currentFocus].click();
+                    }
+                } else if (e.key === "Escape") {
+                    hideList();
+                }
+            });
+
+            async function buscarPartidas(codigo) {
                 if (!codigo) {
+                    hideList();
                     inputDesc.value = '';
+                    inputCedula.value = '';
                     return;
                 }
 
@@ -937,53 +1055,216 @@
                     const response = await fetch(`/api/buscar-partida/?codigo=${encodeURIComponent(codigo)}`);
                     const data = await response.json();
 
-                    if (data.success && data.data.length > 0) {
-                        const partida = data.data[0];
-                        inputDesc.value = partida.descripcion || partida.partidafinanzas || partida.nombre || partida.detalle || '';
-                        document.getElementById('tarifaPartidaCedula').value = partida.cedulafinanza || partida.cedulaFinanza || '';
+                    autocompleteList.innerHTML = '';
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        // Buscar coincidencia exacta
+                        const exactMatch = data.data.find(p => {
+                            const pCod = (p.scpartida || p.codigo || '').trim().toLowerCase();
+                            return pCod === codigo.trim().toLowerCase();
+                        });
+
+                        if (exactMatch) {
+                            const desc = exactMatch.partidafinanzas || exactMatch.descripcion || exactMatch.nombre || exactMatch.detalle || '';
+                            const cedula = exactMatch.scpartida ? (exactMatch.codigo || '') : (exactMatch.cedulafinanza || exactMatch.cedulaFinanza || '');
+                            inputDesc.value = desc;
+                            inputCedula.value = cedula;
+                            hideList();
+                            return; // Coincidencia exacta encontrada, no es necesario listar
+                        } else {
+                            // Limpiar si se está escribiendo algo no coincidente aún
+                            inputDesc.value = '';
+                            inputCedula.value = '';
+                        }
+
+                        data.data.forEach((partida) => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+                            
+                            const scpartida = partida.scpartida || partida.codigo || '';
+                            const desc = partida.partidafinanzas || partida.descripcion || partida.nombre || partida.detalle || '';
+                            const cedula = partida.scpartida ? (partida.codigo || '') : (partida.cedulafinanza || partida.cedulaFinanza || '');
+
+                            item.innerHTML = `
+                                <div class="item-code">${scpartida}</div>
+                                <div class="item-desc">${desc}</div>
+                            `;
+
+                            item.addEventListener('click', function() {
+                                inputCod.value = scpartida;
+                                inputDesc.value = desc;
+                                inputCedula.value = cedula;
+                                hideList();
+                            });
+
+                            autocompleteList.appendChild(item);
+                        });
+                        showList();
                     } else {
                         inputDesc.value = '';
-                        document.getElementById('tarifaPartidaCedula').value = '';
+                        inputCedula.value = '';
+                        const noResult = document.createElement('div');
+                        noResult.className = 'autocomplete-no-results';
+                        noResult.textContent = 'No se encontraron partidas';
+                        autocompleteList.appendChild(noResult);
+                        showList();
                     }
                 } catch (error) {
-                    console.error('Error al consultar la partida:', error);
+                    console.error('Error al consultar las partidas:', error);
                 }
             }
 
             inputCod.addEventListener('input', function() {
                 clearTimeout(debounceTimer);
                 const valor = this.value.trim();
+                if (!valor) {
+                    hideList();
+                    inputDesc.value = '';
+                    inputCedula.value = '';
+                    return;
+                }
                 debounceTimer = setTimeout(() => {
-                    cargarPartida(valor || '1');
-                }, 300);
+                    buscarPartidas(valor);
+                }, 250);
+            });
+
+            // Re-open list on focus/click if it has value
+            inputCod.addEventListener('focus', function() {
+                const valor = this.value.trim();
+                if (valor) {
+                    buscarPartidas(valor);
+                }
             });
         }
 
         // --- AUTOCOMPLETADO DE TASA ---
         const inputTasaId = document.getElementById('tarifaTasaId');
         const inputTasaDesc = document.getElementById('tarifaTasaDesc');
+        const tasaAutocompleteList = document.getElementById('tasaAutocompleteList');
 
-        if (inputTasaId && inputTasaDesc) {
+        if (inputTasaId && inputTasaDesc && tasaAutocompleteList) {
             let debounceTasaTimer;
+            let currentTasaFocus = -1;
 
-            async function cargarTasa(idtasa) {
-                if (!idtasa) {
-                    inputTasaDesc.value = '';
-                    return;
+            async function fetchSiguienteCodigo(idtasa) {
+                if (!idtasa) return;
+                // Solo cargar si es una nueva tarifa (Id es "0")
+                const currentId = document.getElementById('tarifaId').value;
+                if (currentId !== "0") return;
+
+                try {
+                    const response = await fetch(`/api/siguiente-codigo-tarifa/?idtasa=${encodeURIComponent(idtasa)}`);
+                    const data = await response.json();
+                    if (data.success && data.siguiente) {
+                        document.getElementById('tarifaCodigo').value = data.siguiente;
+                    }
+                } catch (e) {
+                    console.error("Error al obtener el siguiente código:", e);
                 }
+            }
 
+            // Hide list when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== inputTasaId && e.target !== tasaAutocompleteList && !tasaAutocompleteList.contains(e.target)) {
+                    hideTasaList();
+                }
+            });
+
+            function showTasaList() {
+                tasaAutocompleteList.style.display = 'block';
+            }
+
+            function hideTasaList() {
+                tasaAutocompleteList.style.display = 'none';
+                currentTasaFocus = -1;
+            }
+
+            function addTasaActive(x) {
+                if (!x) return false;
+                removeTasaActive(x);
+                if (currentTasaFocus >= x.length) currentTasaFocus = 0;
+                if (currentTasaFocus < 0) currentTasaFocus = (x.length - 1);
+                x[currentTasaFocus].classList.add("active");
+                x[currentTasaFocus].scrollIntoView({ block: 'nearest' });
+            }
+
+            // Keyboard navigation
+            inputTasaId.addEventListener('keydown', function(e) {
+                let x = tasaAutocompleteList.getElementsByClassName("autocomplete-item");
+                if (e.key === "ArrowDown") {
+                    currentTasaFocus++;
+                    addTasaActive(x);
+                } else if (e.key === "ArrowUp") {
+                    currentTasaFocus--;
+                    addTasaActive(x);
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (currentTasaFocus > -1) {
+                        if (x[currentTasaFocus]) x[currentTasaFocus].click();
+                    }
+                } else if (e.key === "Escape") {
+                    hideTasaList();
+                }
+            });
+
+            function removeTasaActive(x) {
+                for (let i = 0; i < x.length; i++) {
+                    x[i].classList.remove("active");
+                }
+            }
+
+            async function buscarTasas(idtasa) {
                 try {
                     const response = await fetch(`/api/buscar-tasa/?idtasa=${encodeURIComponent(idtasa)}`);
                     const data = await response.json();
 
-                    if (data.success && data.data.length > 0) {
-                        const tasaObj = data.data[0];
-                        inputTasaDesc.value = tasaObj.tasa || '';
+                    tasaAutocompleteList.innerHTML = '';
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        // Buscar coincidencia exacta por ID de tasa
+                        const exactMatch = data.data.find(t => String(t.idtasa).trim() === String(idtasa).trim());
+                        if (exactMatch) {
+                            inputTasaDesc.value = exactMatch.tasa || '';
+                            hideTasaList();
+                            fetchSiguienteCodigo(exactMatch.idtasa);
+                            return; // Coincidencia exacta encontrada, no es necesario listar
+                        } else {
+                            // Limpiar si se está escribiendo algo no coincidente aún
+                            inputTasaDesc.value = '';
+                        }
+
+                        data.data.forEach((tasaObj) => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+
+                            const id = tasaObj.idtasa || '';
+                            const desc = tasaObj.tasa || '';
+
+                            item.innerHTML = `
+                                <div class="item-code">ID: ${id}</div>
+                                <div class="item-desc">${desc}</div>
+                            `;
+
+                            item.addEventListener('click', function() {
+                                inputTasaId.value = id;
+                                inputTasaDesc.value = desc;
+                                hideTasaList();
+                                fetchSiguienteCodigo(id);
+                            });
+
+                            tasaAutocompleteList.appendChild(item);
+                        });
+                        showTasaList();
                     } else {
                         inputTasaDesc.value = '';
+                        const noResult = document.createElement('div');
+                        noResult.className = 'autocomplete-no-results';
+                        noResult.textContent = 'No se encontraron tasas';
+                        tasaAutocompleteList.appendChild(noResult);
+                        showTasaList();
                     }
                 } catch (error) {
-                    console.error('Error al consultar la tasa:', error);
+                    console.error('Error al consultar las tasas:', error);
                 }
             }
 
@@ -991,8 +1272,22 @@
                 clearTimeout(debounceTasaTimer);
                 const valor = this.value.trim();
                 debounceTasaTimer = setTimeout(() => {
-                    cargarTasa(valor);
-                }, 300);
+                    buscarTasas(valor);
+                }, 250);
+            });
+
+            // Focus triggers search with current value (or empty value to list all)
+            inputTasaId.addEventListener('focus', function() {
+                const valor = this.value.trim();
+                buscarTasas(valor);
+            });
+
+            // Manual change triggers next sequential code calculation
+            inputTasaId.addEventListener('change', function() {
+                const valor = this.value.trim();
+                if (valor) {
+                    fetchSiguienteCodigo(valor);
+                }
             });
         }
     });

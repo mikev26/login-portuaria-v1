@@ -17,6 +17,7 @@ from .db import (
     obtener_partidas,
     obtener_tasa_por_id,
     obtener_siguiente_codigo_tarifa,
+    obtener_tarifas_existentes,
 )
 
 logger = logging.getLogger(__name__)
@@ -155,8 +156,29 @@ def tarifa_view(request):
         },
     )
 
+
+@never_cache
+@require_http_methods(["GET"])
+def tarifa_listado_view(request):
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    try:
+        tarifas = obtener_tarifas_existentes()
+    except Exception as exc:
+        logger.exception("Error al obtener tarifas existentes")
+        tarifas = []
+
+    return render(
+        request,
+        "bitacora/tarifa_listado.html",
+        {
+            "tarifas": tarifas,
+        },
+    )
+
 from django.http import JsonResponse
-# ... tus imports anteriores ...
 
 
 @never_cache
@@ -189,8 +211,6 @@ def api_buscar_tasa(request):
         return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
 
     idtasa = request.GET.get("idtasa", "").strip()
-    if not idtasa:
-        return JsonResponse({"success": True, "data": []})
 
     try:
         resultados = obtener_tasa_por_id(idtasa)
