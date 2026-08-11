@@ -110,3 +110,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 # Solo para mostrar el avance sin depender de la red institucional.
 # Debe permanecer en False cuando se conecte a la base real.
 DEMO_MODE = env_bool("DEMO_MODE", False)
+
+# Ruta a la plantilla institucional para exportación a Excel.
+# Dejar vacía por defecto; configurar en el .env o aquí cuando se disponga.
+RUTA_PLANTILLA_EXCEL = os.getenv("RUTA_PLANTILLA_EXCEL", "").strip()
