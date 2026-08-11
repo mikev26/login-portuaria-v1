@@ -17,7 +17,7 @@ print('COMBUSTIBLE_TABLE:', os.getenv('COMBUSTIBLE_TABLE', 'dbo.dimm_con_maestro
 
 try:
     django.setup()
-    from bitacora.db import obtener_registros_combustible
+    from bitacora.services.combustible import obtener_registros_combustible
     rows = obtener_registros_combustible()
     print('ROWS:', len(rows))
     for i, row in enumerate(rows[:5], 1):

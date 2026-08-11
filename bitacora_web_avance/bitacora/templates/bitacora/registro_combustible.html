@@ -1,684 +1,349 @@
+{% extends "bitacora/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Combustible</title>
-    <style>
-        :root {
-            --page-bg: #f1f1f1;
-            --paper: #ffffff;
-            --text: #1e2832;
-            --muted: #5d6b78;
-            --border: #c6c8cc;
-            --line: #3b4a60;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--page-bg);
-            font-family: Arial, Helvetica, sans-serif;
-            color: var(--text);
-        }
-        .report-shell {
-            max-width: 860px;
-            width: min(860px, 100%);
-            margin: 24px auto;
-            padding: 24px 24px;
-            background: var(--paper);
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 18px;
-        }
-        .top-bar .left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .logo {
-            width: 72px;
-            min-width: 72px;
-        }
-        .logo img {
-            width: 100%;
-            display: block;
-        }
-        .page-label {
-            font-size: 12px;
-            color: var(--text);
-            text-transform: uppercase;
-            letter-spacing: .8px;
-        }
-        .page-label strong {
-            display: block;
-            font-size: 16px;
-            margin-top: 8px;
-        }
-        .header-content {
-            text-align: center;
-            margin: 0 auto;
-            padding-top: 4px;
-        }
-        .header-content .title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        .header-content .subtitle {
-            margin: 4px 0 0;
-            font-size: 12px;
-            letter-spacing: .9px;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-        .header-content .small-title {
-            margin-top: 6px;
-            font-size: 12px;
-            letter-spacing: .9px;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-        .section-line {
-            height: 1px;
-            background: var(--border);
-            margin: 16px 0 18px;
-        }
-        .info-block {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            margin-bottom: 16px;
-            font-size: 13px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-        }
-        .field-box {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            align-items: center;
-            gap: 10px;
-            border: 1px solid var(--border);
-            padding: 12px 14px;
-            border-radius: 5px;
-            background: #fbfbfb;
-        }
-        .field-label {
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            font-size: 11px;
-        }
-        .field-value {
-            font-size: 14px;
-            color: var(--text);
-            white-space: nowrap;
-        }
-        .field-empty {
-            min-width: 180px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-            color: transparent;
-        }
-        .date-range {
-            display: flex;
-            gap: 24px;
-            align-items: flex-end;
-            font-size: 13px;
-            color: var(--text);
-            margin-top: 6px;
-        }
-        .date-range label {
-            display: grid;
-            gap: 6px;
-            font-size: 12px;
-            color: var(--text);
-        }
-        .date-range input[type="date"] {
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 8px 10px;
-            background: #fff;
-            color: var(--text);
-            font-size: 13px;
-        }
-        .date-range .field-error {
-            color: #c0392b;
-            font-size: 11px;
-            margin-top: 4px;
-        }
-        .date-range-form {
-            width: 100%;
-        }
-        .search-button {
-            border: none;
-            background: #1e2832;
-            color: #fff;
-            border-radius: 5px;
-            padding: 11px 18px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: background .2s ease;
-            min-height: 44px;
-        }
-        .search-button:hover {
-            background: #16202a;
-        }
-        .message-banner {
-            margin-bottom: 18px;
-            padding: 14px 16px;
-            border: 1px solid #c6c8cc;
-            background: #fdf7e3;
-            color: #5d6b78;
-            border-radius: 8px;
-            font-size: 13px;
-        }
-        .message-banner.error {
-            border-color: #e0b4b4;
-            background: #fff0f0;
-            color: #9c2a2a;
-        }
-        .message-banner.info {
-            border-color: #b3cff5;
-            background: #eef5ff;
-            color: #1f497d;
-        }
-        #export-message {
-            min-height: 24px;
-            display: flex;
-            align-items: center;
-        }
-        #export-message .message-banner {
-            margin-bottom: 0;
-            padding: 8px 10px;
-            font-size: 11px;
-            border-radius: 5px;
-            line-height: 1.3;
-            max-width: 320px;
-            white-space: normal;
-        }
-        @media print {
-            body {
-                background: #fff;
-                color: #000;
-            }
-            .report-shell {
-                margin: 0;
-                padding: 18px 20px;
-                border: none;
-                box-shadow: none;
-            }
-            .date-range-form,
-            .search-button,
-            .message-banner {
-                display: none !important;
-            }
-            .report-table th,
-            .report-table td,
-            .field-box,
-            .signature {
-                color: #000;
-                border-color: #000;
-            }
-        }
-        .date-range span {
-            display: inline-block;
-            min-width: 120px;
-        }
-        .date-range strong {
-            font-weight: 700;
-            margin-right: 6px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            font-size: 11px;
-        }
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-        .report-table {
-            width: 100%;
-            table-layout: fixed;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .report-table th,
-        .report-table td {
-            border: 1px solid var(--border);
-            padding: 10px 10px;
-            font-size: 12px;
-            line-height: 1.35;
-            white-space: normal;
-            word-break: break-word;
-            overflow-wrap: break-word;
-        }
-        .report-table th {
-            background: #f4f5f6;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-        }
-        .report-table td {
-            background: #fff;
-            min-width: 0;
-        }
-        .report-table tbody tr:nth-child(even) td {
-            background: #fbfbfb;
-        }
-        .table-placeholder td {
-            padding: 24px 10px;
-            text-align: center;
-            color: var(--muted);
-            font-style: italic;
-        }
-        .signatures {
-            display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            margin-top: 30px;
-            align-items: flex-end;
-        }
-        .signature {
-            width: 48%;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .signature-left,
-        .signature-right {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 11px;
-        }
-        .signature-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 100%;
-        }
-        .signature-title,
-        .signature-label {
-            font-size: 11px;
-            color: #2d3946;
-            text-transform: uppercase;
-            letter-spacing: .7px;
-        }
-        .signature-name {
-            font-size: 11px;
-            color: #2d3946;
-            font-weight: 700;
-            text-align: center;
-            max-width: 190px;
-            width: 100%;
-            white-space: normal;
-            word-break: break-word;
-        }
-        .signature-line {
-            display: block;
-            width: 220px;
-            max-width: 80%;
-            height: 1px;
-            background: #2d3946;
-            opacity: .85;
-        }
-        .signature-right .signature-wrapper {
-            align-items: center;
-        }
-        .signature-right .signature-line {
-            margin-top: 0;
-        }
-        .footer-notes {
-            margin-top: 12px;
-            font-size: 11px;
-            color: var(--muted);
-        }
-        @media (max-width: 760px) {
-            .report-shell { padding: 60px; }
-            .top-bar { flex-direction: column; align-items: stretch; }
-            .info-row, .signatures { flex-direction: column; }
-            .field-box { width: 100%; }
-            .report-table { min-width: 100%; }
-        }
-    </style>
-</head>
-<body>
+
+{% block title %}Reporte de Combustible{% endblock %}
+
+{% block header_title %}
+    CONTROL DE INGRESO DE COMBUSTIBLE
+{% endblock %}
+
+{% block body_class %}
+    report-page combustible-page
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'bitacora/css/combustible.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
 <div class="report-shell">
-    <div class="top-bar">
-        <div class="left">
-            <div class="logo">
-                <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo Manta">
+
+    <!-- Encabezado propio del reporte -->
+    <section class="report-header">
+
+        <div class="report-header-content">
+
+            <div class="report-logo">
+                <img
+                    src="{% static 'bitacora/img/logo_manta.png' %}"
+                    alt="Logo institucional"
+                >
             </div>
-            <div class="header-content">
-                <div class="title">AUTORIDAD PORTUARIA DE MANTA</div>
-                <div class="subtitle">DPTO. DE OPERACIONES - TERMINAL PESQUERO Y CABOTAJE</div>
-                <div class="small-title">CONTROL DE INGRESO DE COMBUSTIBLE</div>
+
+            <div class="report-header-text">
+                <div class="report-title">
+                    AUTORIDAD PORTUARIA DE MANTA
+                </div>
+
+                <div class="report-subtitle">
+                    DPTO. DE OPERACIONES - TERMINAL PESQUERO Y CABOTAJE
+                </div>
+
+                <div class="report-small-title">
+                    CONTROL DE INGRESO DE COMBUSTIBLE
+                </div>
             </div>
+
         </div>
+
         <div class="page-label">
             Página<br>
             <strong>1</strong>
         </div>
-    </div>
+
+    </section>
+
 
     <div class="section-line"></div>
 
-    <div class="info-block">
-        <div id="report-messages">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="message-banner {{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-            {% if form.non_field_errors %}
-                {% for error in form.non_field_errors %}
-                    <div class="message-banner error">{{ error }}</div>
-                {% endfor %}
-            {% endif %}
-        </div>
+
+    <!-- Información del reporte -->
+    <section class="info-block">
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <div class="message-banner error">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+
         <div class="field-box">
+
             <div>
-                <div class="field-label">Fecha de emisión</div>
-                <div class="field-value">Manta, {{ fecha_emision|date:"d/m/Y" }}</div>
+                <div class="field-label">
+                    Fecha de emisión
+                </div>
+
+                <div class="field-value">
+                    Manta, {{ fecha_emision|date:"d/m/Y" }}
+                </div>
             </div>
-            <div class="field-empty">&nbsp;</div>
+
         </div>
+
+
         <div class="info-row">
+
             <div class="field-box">
+
                 <div>
-                    <div class="field-label">Fecha Desde</div>
-                    <div id="header-fecha-desde" class="field-value">{{ fecha_desde|date:"d/m/Y" }}</div>
+                    <div class="field-label">
+                        Fecha Desde
+                    </div>
+
+                    <div
+                        id="header-fecha-desde"
+                        class="field-value"
+                    >
+                        {{ fecha_desde|date:"d/m/Y" }}
+                    </div>
                 </div>
+
             </div>
+
+
             <div class="field-box">
+
                 <div>
-                    <div class="field-label">Fecha Hasta</div>
-                    <div id="header-fecha-hasta" class="field-value">{{ fecha_hasta|date:"d/m/Y" }}</div>
+                    <div class="field-label">
+                        Fecha Hasta
+                    </div>
+
+                    <div
+                        id="header-fecha-hasta"
+                        class="field-value"
+                    >
+                        {{ fecha_hasta|date:"d/m/Y" }}
+                    </div>
                 </div>
+
             </div>
+
         </div>
+
+
+        <!-- Filtros -->
         <form method="get" class="date-range-form">
+
             <div class="date-range">
+
                 <label>
-                    <span class="field-label">F.Desde</span>
+                    <span class="field-label">
+                        F. Desde
+                    </span>
+
                     {{ form.fecha_inicio }}
+
                     {% if form.fecha_inicio.errors %}
-                        <span class="field-error">{{ form.fecha_inicio.errors|join:", " }}</span>
+                        <span class="field-error">
+                            {{ form.fecha_inicio.errors|join:", " }}
+                        </span>
                     {% endif %}
                 </label>
+
+
                 <label>
-                    <span class="field-label">F.Hasta</span>
+                    <span class="field-label">
+                        F. Hasta
+                    </span>
+
                     {{ form.fecha_fin }}
+
                     {% if form.fecha_fin.errors %}
-                        <span class="field-error">{{ form.fecha_fin.errors|join:", " }}</span>
+                        <span class="field-error">
+                            {{ form.fecha_fin.errors|join:", " }}
+                        </span>
                     {% endif %}
                 </label>
-                <input type="hidden" name="buscar" value="1">
-                <button type="submit" class="search-button">Buscar</button>
-                <a id="export-link" class="search-button" style="margin-left:8px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;" data-export-url="{% url 'registro_combustible_exportar' %}" data-validate-url="{% url 'registro_combustible_exportar_validar' %}">Exportar Excel</a>
-                <div id="export-message" style="margin-left:12px; align-self:center;"></div>
+
+
+                <input
+                    type="hidden"
+                    name="buscar"
+                    value="1"
+                >
+
+
+                <button
+                    type="submit"
+                    class="search-button"
+                >
+                    Buscar
+                </button>
+
+
+                <a
+                    id="export-link"
+                    class="search-button"
+                    href="#"
+                    data-export-url="{% url 'registro_combustible_exportar' %}"
+                    data-validate-url="{% url 'registro_combustible_exportar_validar' %}"
+                >
+                    Exportar Excel
+                </a>
+
+
+                <div
+                    id="export-message"
+                    class="export-message"
+                ></div>
+
             </div>
+
         </form>
-    </div>
 
-    <div class="table-wrapper">
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tickets</th>
-                    <th>Guía</th>
-                    <th>Placa</th>
-                    <th>Chofer</th>
-                    <th>CodBuque</th>
-                    <th>Barco</th>
-                    <th>Matrícula</th>
-                    <th>Galones</th>
-                    <th>Motivo</th>
-                </tr>
-            </thead>
-            <tbody id="report-table-body">
-            {% if registros %}
-                {% for registro in registros %}
+    </section>
+
+
+    <!-- Resultados -->
+    <section class="section report-results">
+
+        <div class="section-title">
+            Registro de combustible
+        </div>
+
+        <div class="table-wrapper">
+
+            <table class="report-table">
+
+                <thead>
                     <tr>
-                        <td>{{ registro.fecha_ingresa }}</td>
-                        <td>{{ registro.c_tikect }}</td>
-                        <td>{{ registro.guia }}</td>
-                        <td>{{ registro.idplaca }}</td>
-                        <td>{{ registro.chofer }}</td>
-                        <td>{{ registro.codbuque }}</td>
-                        <td>{{ registro.buque }}</td>
-                        <td>{{ registro.matricula }}</td>
-                        <td>{{ registro.galones }}</td>
-                        <td>{{ registro.motivo }}</td>
+                        <th>Fecha</th>
+                        <th>Tickets</th>
+                        <th>Guía</th>
+                        <th>Placa</th>
+                        <th>Chofer</th>
+                        <th>CodBuque</th>
+                        <th>Barco</th>
+                        <th>Matrícula</th>
+                        <th>Galones</th>
+                        <th>Motivo</th>
                     </tr>
-                {% endfor %}
-            {% else %}
-                <tr class="table-placeholder">
-                    <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-        </table>
-    </div>
+                </thead>
 
-    <div class="signatures">
+                <tbody id="report-table-body">
+
+                    {% if registros %}
+
+                        {% for registro in registros %}
+
+                            <tr>
+
+                                <td>
+                                    {{ registro.fecha_ingresa }}
+                                </td>
+
+                                <td>
+                                    {{ registro.c_tikect }}
+                                </td>
+
+                                <td>
+                                    {{ registro.guia }}
+                                </td>
+
+                                <td>
+                                    {{ registro.idplaca }}
+                                </td>
+
+                                <td>
+                                    {{ registro.chofer }}
+                                </td>
+
+                                <td>
+                                    {{ registro.codbuque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.buque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.matricula }}
+                                </td>
+
+                                <td>
+                                    {{ registro.galones }}
+                                </td>
+
+                                <td>
+                                    {{ registro.motivo }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr class="table-placeholder">
+
+                            <td colspan="10">
+                                No hay datos disponibles.
+                                Seleccione fechas y presione Buscar.
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- Firmas -->
+    <section class="signatures">
+
         <div class="signature signature-left">
+
             <div class="signature-wrapper">
-                <span class="signature-title">Preparado por:</span>
+
+                <span class="signature-title">
+                    Preparado por:
+                </span>
+
                 <span class="signature-line"></span>
-                <span class="signature-name">{{ usuario_nombre }}</span>
+
+                <span class="signature-name">
+                    {{ usuario_nombre }}
+                </span>
+
             </div>
+
         </div>
+
+
         <div class="signature signature-right">
+
             <div class="signature-wrapper">
+
                 <span class="signature-line"></span>
-                <span class="signature-label">Revisado</span>
+
+                <span class="signature-label">
+                    Revisado
+                </span>
+
             </div>
+
         </div>
-    </div>
+
+    </section>
+
 </div>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const form = document.querySelector(".date-range-form");
-        const tableBody = document.querySelector("#report-table-body");
-        const messagesContainer = document.querySelector("#report-messages");
-        const fechaDesdeElement = document.querySelector("#header-fecha-desde");
-        const fechaHastaElement = document.querySelector("#header-fecha-hasta");
-        const submitButton = form.querySelector("button[type=submit]");
-        const exportLink = document.querySelector("#export-link");
-        const exportMessage = document.querySelector('#export-message');
 
-        function clearExportMessage() {
-            if (exportMessage) {
-                exportMessage.innerHTML = '';
-            }
-        }
+{% endblock %}
 
-        function setExportEnabled(enabled) {
-            if (!exportLink) return;
-            exportLink.dataset.enabled = enabled ? 'true' : 'false';
-            exportLink.style.opacity = enabled ? '1' : '0.55';
-            exportLink.style.pointerEvents = enabled ? 'auto' : 'none';
-            exportLink.style.cursor = enabled ? 'pointer' : 'not-allowed';
-            exportLink.setAttribute('aria-disabled', String(!enabled));
-            if (enabled) {
-                exportLink.href = exportLink.dataset.exportUrl || exportLink.getAttribute('data-export-url');
-            } else {
-                exportLink.href = '#';
-            }
-        }
 
-        if (exportLink) {
-            setExportEnabled(false);
-            exportLink.addEventListener("click", async function (ev) {
-                ev.preventDefault();
-                if (exportLink.dataset.enabled !== 'true') {
-                    if (exportMessage) {
-                        exportMessage.innerHTML = '<div class="message-banner info">Primero debe realizar una búsqueda para exportar la información.</div>';
-                    }
-                    return;
-                }
+{% block extra_js %}
+    {{ block.super }}
 
-                const exportUrl = exportLink.dataset.exportUrl || exportLink.getAttribute('data-export-url');
-                const validateUrl = exportLink.dataset.validateUrl || exportLink.getAttribute('data-validate-url');
-                if (!validateUrl) {
-                    clearExportMessage();
-                    return;
-                }
-
-                try {
-                    const resp = await fetch(validateUrl, {
-                        method: 'GET',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    });
-                    if (!resp.ok) throw new Error('Network');
-                    const data = await resp.json();
-                    if (data.ok) {
-                        clearExportMessage();
-                        window.location.href = exportUrl;
-                    } else {
-                        const cls = data.level === 'error' ? 'error' : 'info';
-                        if (exportMessage) {
-                            exportMessage.innerHTML = `<div class="message-banner ${cls}">${data.message}</div>`;
-                        }
-                    }
-                } catch (err) {
-                    if (exportMessage) {
-                        exportMessage.innerHTML = '<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>';
-                    }
-                }
-            });
-        }
-
-        form.querySelectorAll('input').forEach(function (input) {
-            input.addEventListener('input', function () {
-                clearExportMessage();
-                setExportEnabled(false);
-            });
-        });
-
-        if (exportLink && tableBody.querySelectorAll('tr').length && !tableBody.querySelector('tr.table-placeholder')) {
-            setExportEnabled(true);
-        }
-
-        function formatIsoDate(value) {
-            if (!value) {
-                return "";
-            }
-            const dateValue = new Date(value);
-            if (Number.isNaN(dateValue.getTime())) {
-                return value;
-            }
-            const day = String(dateValue.getDate()).padStart(2, "0");
-            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
-            const year = dateValue.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
-        function buildMessageHtml(messages) {
-            return messages
-                .map(msg => `<div class="message-banner ${msg.tags}">${msg.text}</div>`)
-                .join("");
-        }
-
-        function buildTableRows(rows) {
-            if (!rows || !rows.length) {
-                return `
-                    <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
-                    </tr>
-                `;
-            }
-
-            return rows
-                .map(row => `
-                    <tr>
-                        <td>${row.fecha_ingresa}</td>
-                        <td>${row.c_tikect}</td>
-                        <td>${row.guia}</td>
-                        <td>${row.idplaca}</td>
-                        <td>${row.chofer}</td>
-                        <td>${row.codbuque}</td>
-                        <td>${row.buque}</td>
-                        <td>${row.matricula}</td>
-                        <td>${row.galones}</td>
-                        <td>${row.motivo}</td>
-                    </tr>
-                `)
-                .join("");
-        }
-
-        form.addEventListener("submit", async function (event) {
-            event.preventDefault();
-            clearExportMessage();
-            const originalText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = "Buscando...";
-
-            const formData = new FormData(form);
-            formData.set("buscar", "1");
-            const params = new URLSearchParams(formData);
-            const url = `${window.location.pathname}?${params.toString()}`;
-
-            try {
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest",
-                        "Accept": "application/json",
-                    },
-                });
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
-                }
-                const data = await response.json();
-
-                messagesContainer.innerHTML = buildMessageHtml(data.messages);
-                fechaDesdeElement.textContent = formatIsoDate(data.fecha_desde);
-                fechaHastaElement.textContent = formatIsoDate(data.fecha_hasta);
-                tableBody.innerHTML = buildTableRows(data.rows);
-
-                if (exportLink) {
-                    const rowsExist = data.rows && data.rows.length;
-                    if (rowsExist) {
-                        setExportEnabled(true);
-                        clearExportMessage();
-                    } else {
-                        setExportEnabled(false);
-                        clearExportMessage();
-                    }
-                }
-            } catch (error) {
-                messagesContainer.innerHTML = `<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>`;
-                tableBody.innerHTML = `
-                    <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
-                    </tr>
-                `;
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = originalText;
-            }
-        });
-    });
-</script>
-</body>
-</html>
+    <script src="{% static 'bitacora/js/combustible.js' %}"></script>
+{% endblock %}
