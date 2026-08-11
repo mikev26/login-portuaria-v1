@@ -125,6 +125,131 @@ class ProjectSmokeTest(TestCase):
 
         response = self.client.get("/tarifa/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Listado de Tarifas Existentes")
-        self.assertContains(response, "TASA CABOTAJE")
-        self.assertContains(response, "117")
+
+        response_popup = self.client.get("/tarifa/listado/")
+        self.assertEqual(response_popup.status_code, 200)
+        self.assertContains(response_popup, "Listado de Tarifas Existentes")
+        self.assertContains(response_popup, "TASA CABOTAJE")
+        self.assertContains(response_popup, "117")
+
+    @patch("bitacora.views.guardar_tarifa")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_guardar_tarifa_view_calls_sp_and_returns_success(self, mock_validar, mock_turnos, mock_guardar):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        mock_guardar.return_value = 1
+        
+        # Authenticate via mocked login
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+        
+        response = self.client.post(
+            "/tarifa/guardar/",
+            {
+                "codigo": "118",
+                "tarifa": "TARIFA DE PRUEBA UNITARIA",
+                "valor": "12.34",
+                "partida_cod": "17.02.02.00.",
+                "partida_id": "49",
+                "tasa_id": "5",
+                "formula": "TARIFA * 1.5",
+                "detalle": "Prueba unitaria del guardado",
+                "calc_unidad": "dia",
+                "calc_param": "eslora",
+                "iva": "1",
+                "ticket_srv": "ninguno",
+                "activa": "1",
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertTrue(json_data["success"])
+        self.assertEqual(json_data["resul"], 1)
+        mock_guardar.assert_called_once_with(
+            codigo="118",
+            tarifa="TARIFA DE PRUEBA UNITARIA",
+            valor="12.34",
+            partida_cod="17.02.02.00.",
+            partida_id="49",
+            tasa_id="5",
+            formula="TARIFA * 1.5",
+            detalle="Prueba unitaria del guardado",
+            hora_dia=1,
+            eslora_tneto=1,
+            iva=1,
+            ticket=0,
+            activo=1,
+        )
+
+    @patch("bitacora.views.anular_tarifa")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_anular_tarifa_view_calls_db_and_returns_success(self, mock_validar, mock_turnos, mock_anular):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        mock_anular.return_value = True
+
+        # Authenticate via mocked login
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        response = self.client.post(
+            "/tarifa/anular/",
+            {"id": "42"}
+        )
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertTrue(json_data["success"])
+        mock_anular.assert_called_once_with("42")
+
+    @patch("bitacora.views.obtener_tarifas_existentes")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_exportar_tarifas_view_generates_excel(self, mock_validar, mock_turnos, mock_tarifas):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        mock_tarifas.return_value = [
+            {
+                "codigo": "01",
+                "tarifa": "USO DE MUELLES",
+                "valor": "0.16",
+                "formula": "TARIFA x ESLORA",
+                "detalle": "Detalle de prueba",
+                "partida_cod": "13.02.04.",
+                "partida_desc": "PARTIDA DE PRUEBA",
+            }
+        ]
+
+        # Authenticate via mocked login
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        response = self.client.get("/tarifa/exportar/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        self.assertIn("attachment", response["Content-Disposition"])

@@ -526,10 +526,6 @@
                         <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
                         Listado
                     </button>
-                    <button class="btn-tool" id="btnSelect" onclick="triggerAction('select')">
-                        <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 7H11v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1z"/></svg>
-                        Seleccionar
-                    </button>
                 </div>
                 <div class="toolbar-label">Mostrar</div>
             </div>
@@ -553,12 +549,9 @@
         <section class="section">
             <div class="section-title">Datos del Tarifario</div>
             <form id="tarifaForm" onsubmit="event.preventDefault();">
+                <input type="hidden" id="tarifaPartidaId" name="partida_id" value="">
+                <input type="hidden" id="tarifaId" name="id" value="0">
                 <div class="grid-form">
-                    <!-- ID -->
-                    <div class="field col-2">
-                        <label for="tarifaId">Id</label>
-                        <input type="text" id="tarifaId" name="id" value="0" readonly>
-                    </div>
 
                     <!-- Código & Activa -->
                     <div class="field col-4">
@@ -613,14 +606,14 @@
                     <!-- Fórmula -->
                     <div class="field col-6">
                         <label for="tarifaFormula">Fórmula</label>
-                        <input type="text" id="tarifaFormula" name="formula" placeholder="Ingrese fórmula de cálculo">
+                        <input type="text" id="tarifaFormula" name="formula" maxlength="50" placeholder="Ingrese fórmula de cálculo">
                     </div>
                     <div class="col-6"></div>
 
                     <!-- Detalle -->
                     <div class="field col-6">
                         <label for="tarifaDetalle">Detalle</label>
-                        <input type="text" id="tarifaDetalle" name="detalle" placeholder="Observaciones o especificaciones de cobro">
+                        <input type="text" id="tarifaDetalle" name="detalle" maxlength="252" placeholder="Observaciones o especificaciones de cobro">
                     </div>
                     <div class="col-6"></div>
 
@@ -631,30 +624,14 @@
                     </div>
                     <div class="col-9"></div>
 
-                    <!-- Id. S.Ante & Se cobra con iva -->
+                    <!-- Se cobra con iva -->
                     <div class="field col-4">
-                        <div style="display: flex; gap: 20px; align-items: flex-end;">
-                            <div style="flex-grow: 1;">
-                                <label for="tarifaSAnte">Id. S.Ante</label>
-                                <input type="text" id="tarifaSAnte" name="s_ante" placeholder="Id anterior">
-                            </div>
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="tarifaIva" name="se_cobra_iva">
-                                Se cobra con iva
-                            </label>
-                        </div>
+                        <label class="checkbox-container" style="margin-top: 25px;">
+                            <input type="checkbox" id="tarifaIva" name="se_cobra_iva">
+                            Se cobra con iva
+                        </label>
                     </div>
                     <div class="col-8"></div>
-
-                    <!-- SENAE -->
-                    <div class="field col-6">
-                        <label for="tarifaSenaeCod">SENAE</label>
-                        <div class="input-group-combo">
-                            <input type="text" id="tarifaSenaeCod" name="senae_cod" class="input-combo-short" placeholder="Código">
-                            <input type="text" id="tarifaSenaeDesc" name="senae_desc" placeholder="Detalle SENAE">
-                        </div>
-                    </div>
-                    <div class="col-6"></div>
                 </div>
 
                 <!-- Calculations & Tickets Segmented Controls -->
@@ -801,13 +778,11 @@
         document.getElementById('tarifaPartidaCod').value = "";
         document.getElementById('tarifaPartidaDesc').value = "";
         document.getElementById('tarifaPartidaCedula').value = "";
+        document.getElementById('tarifaPartidaId').value = "";
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
         document.getElementById('tarifaValor').value = "0.00";
-        document.getElementById('tarifaSAnte').value = "";
         document.getElementById('tarifaIva').checked = false;
-        document.getElementById('tarifaSenaeCod').value = "";
-        document.getElementById('tarifaSenaeDesc').value = "";
 
         // Reset radio choices
         document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
@@ -849,14 +824,17 @@
                 const cedula = match.scpartida ? (match.codigo || '') : (match.cedulafinanza || match.cedulaFinanza || '');
                 document.getElementById('tarifaPartidaDesc').value = desc;
                 document.getElementById('tarifaPartidaCedula').value = cedula;
+                document.getElementById('tarifaPartidaId').value = match.idpartida || '';
             } else {
                 document.getElementById('tarifaPartidaDesc').value = '';
                 document.getElementById('tarifaPartidaCedula').value = '';
+                document.getElementById('tarifaPartidaId').value = '';
             }
         } catch (e) {
             console.error("Error fetching Partida details:", e);
             document.getElementById('tarifaPartidaDesc').value = '';
             document.getElementById('tarifaPartidaCedula').value = '';
+            document.getElementById('tarifaPartidaId').value = '';
         }
     }
 
@@ -879,6 +857,7 @@
         document.getElementById('tarifaName').value = data.tarifa || "";
         
         document.getElementById('tarifaPartidaCod').value = data.partida_cod || "";
+        document.getElementById('tarifaPartidaId').value = data.partida_id || "";
         if (data.partida_desc && data.partida_cedula) {
             document.getElementById('tarifaPartidaDesc').value = data.partida_desc;
             document.getElementById('tarifaPartidaCedula').value = data.partida_cedula;
@@ -894,10 +873,7 @@
         document.getElementById('tarifaDetalle').value = data.detalle || "";
         const valNum = parseFloat(data.valor);
         document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.00" : valNum.toFixed(2);
-        document.getElementById('tarifaSAnte').value = data.s_ante || "";
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
-        document.getElementById('tarifaSenaeCod').value = data.senae_cod || "";
-        document.getElementById('tarifaSenaeDesc').value = data.senae_desc || "";
 
         // Check correct radio buttons
         const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);
@@ -921,37 +897,102 @@
 
     // Trigger action bar buttons
     function triggerAction(action) {
-        if (action === 'save') {
-            const code = document.getElementById('tarifaCodigo').value.trim();
-            const desc = document.getElementById('tarifaName').value.trim();
-            if (!code || !desc) {
-                showToast("Por favor complete los campos obligatorios (Codigo y Tarifa).", "warning");
+        if (action === 'save' || action === 'saveNew') {
+            const codigo = document.getElementById('tarifaCodigo').value.trim();
+            const tarifa = document.getElementById('tarifaName').value.trim();
+            const tasa_id = document.getElementById('tarifaTasaId').value.trim();
+
+            if (!codigo || !tarifa || !tasa_id) {
+                showToast("Por favor complete los campos obligatorios (Código, Tarifa y Tasa).", "warning");
                 return;
             }
-            showToast(`¡Tarifa [${code}] guardada correctamente en el sistema!`);
-        } else if (action === 'saveNew') {
-            const code = document.getElementById('tarifaCodigo').value.trim();
-            if (!code) {
-                showToast("Por favor ingrese al menos el Código para guardar.", "warning");
-                return;
-            }
-            showToast(`¡Guardado exitoso! Preparando nueva entrada.`);
-            clearForm();
+
+            const valor = document.getElementById('tarifaValor').value.trim();
+            const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
+            const partida_id = document.getElementById('tarifaPartidaId').value.trim();
+            const formula = document.getElementById('tarifaFormula').value.trim();
+            const detalle = document.getElementById('tarifaDetalle').value.trim();
+            
+            const calc_unidad = document.querySelector('input[name="calc_unidad"]:checked')?.value || 'cantidad';
+            const calc_param = document.querySelector('input[name="calc_param"]:checked')?.value || 'otros';
+            const ticket_srv = document.querySelector('input[name="ticket_srv"]:checked')?.value || 'ninguno';
+            
+            const iva = document.getElementById('tarifaIva').checked ? '1' : '0';
+            const activa = document.getElementById('tarifaActiva').checked ? '1' : '0';
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            formData.append('codigo', codigo);
+            formData.append('tarifa', tarifa);
+            formData.append('valor', valor);
+            formData.append('partida_cod', partida_cod);
+            formData.append('partida_id', partida_id);
+            formData.append('tasa_id', tasa_id);
+            formData.append('formula', formula);
+            formData.append('detalle', detalle);
+            formData.append('calc_unidad', calc_unidad);
+            formData.append('calc_param', calc_param);
+            formData.append('iva', iva);
+            formData.append('ticket_srv', ticket_srv);
+            formData.append('activa', activa);
+
+            fetch('/tarifa/guardar/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`¡Tarifa [${codigo}] guardada correctamente en el sistema!`);
+                    if (action === 'saveNew') {
+                        clearForm();
+                    }
+                } else {
+                    showToast(`Error al guardar: ${data.error}`, "warning");
+                }
+            })
+            .catch(error => {
+                console.error("Error al guardar:", error);
+                showToast("Error de conexión al guardar la tarifa.", "warning");
+            });
         } else if (action === 'cancel') {
             const id = document.getElementById('tarifaId').value;
             if (id === "0") {
                 showToast("No se puede anular un registro nuevo sin guardar.", "warning");
             } else {
-                showToast(`Registro ID ${id} anulado correctamente de los registros.`, "warning");
-                clearForm();
+                if (!confirm("¿Está seguro que desea anular esta tarifa? El estado cambiará a inactivo (código 7).")) {
+                    return;
+                }
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const formData = new FormData();
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                formData.append('id', id);
+
+                fetch('/tarifa/anular/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`¡Registro ID ${id} anulado correctamente en el sistema!`);
+                        clearForm();
+                    } else {
+                        showToast(`Error al anular: ${data.error}`, "warning");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error al anular:", error);
+                    showToast("Error de conexión al anular la tarifa.", "warning");
+                });
             }
         } else if (action === 'list') {
             const popup = window.open('/tarifa/listado/', 'ListadoTarifas', 'width=950,height=650,scrollbars=yes,resizable=yes');
             if (popup) {
                 popup.focus();
             }
-        } else if (action === 'select') {
-            showToast("Buscando registros en el sistema...");
         } else if (action === 'new') {
             showToast("Formulario limpio para ingreso de nuevos datos.");
             clearForm();
@@ -1069,12 +1110,14 @@
                             const cedula = exactMatch.scpartida ? (exactMatch.codigo || '') : (exactMatch.cedulafinanza || exactMatch.cedulaFinanza || '');
                             inputDesc.value = desc;
                             inputCedula.value = cedula;
+                            document.getElementById('tarifaPartidaId').value = exactMatch.idpartida || '';
                             hideList();
                             return; // Coincidencia exacta encontrada, no es necesario listar
                         } else {
                             // Limpiar si se está escribiendo algo no coincidente aún
                             inputDesc.value = '';
                             inputCedula.value = '';
+                            document.getElementById('tarifaPartidaId').value = '';
                         }
 
                         data.data.forEach((partida) => {
@@ -1094,6 +1137,7 @@
                                 inputCod.value = scpartida;
                                 inputDesc.value = desc;
                                 inputCedula.value = cedula;
+                                document.getElementById('tarifaPartidaId').value = partida.idpartida || '';
                                 hideList();
                             });
 

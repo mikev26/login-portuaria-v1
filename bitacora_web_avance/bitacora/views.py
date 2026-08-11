@@ -14,10 +14,14 @@ from .db import (
     obtener_buques_industriales,
     obtener_turnos_usuario,
     validar_usuario,
+)
+from .tarifario import (
     obtener_partidas,
     obtener_tasa_por_id,
     obtener_siguiente_codigo_tarifa,
     obtener_tarifas_existentes,
+    guardar_tarifa,
+    anular_tarifa,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,7 +182,7 @@ def tarifa_listado_view(request):
         },
     )
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 
 
 @never_cache
@@ -244,3 +248,159 @@ def api_siguiente_codigo(request):
         return JsonResponse(
             {"success": False, "error": "No se pudo calcular el siguiente código."}, status=500
         )
+
+
+@never_cache
+@require_http_methods(["POST"])
+def guardar_tarifa_view(request):
+    """API Endpoint para guardar una tarifa nueva utilizando el SPJ_insert_Tarifas."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    codigo = request.POST.get("codigo", "").strip()
+    tarifa = request.POST.get("tarifa", "").strip()
+    valor = request.POST.get("valor", "0.00").strip()
+    partida_cod = request.POST.get("partida_cod", "").strip()
+    partida_id = request.POST.get("partida_id", "").strip()
+    tasa_id = request.POST.get("tasa_id", "").strip()
+    formula = request.POST.get("formula", "").strip()
+    detalle = request.POST.get("detalle", "").strip()
+    calc_unidad = request.POST.get("calc_unidad", "").strip()
+    calc_param = request.POST.get("calc_param", "").strip()
+    iva = request.POST.get("iva", "0").strip()
+    ticket_srv = request.POST.get("ticket_srv", "").strip()
+    activa = request.POST.get("activa", "1").strip()
+
+    if not codigo or not tarifa or not tasa_id:
+        return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tarifa o Tasa)"})
+
+    if len(formula) > 50:
+        return JsonResponse({"success": False, "error": "La Fórmula no puede superar los 50 caracteres."})
+
+    if len(detalle) > 252:
+        return JsonResponse({"success": False, "error": "El Detalle no puede superar los 252 caracteres."})
+
+    # Mapeo de parámetros del frontend a enteros esperados por el SP
+    calc_unidad_map = {"dia": 1, "horas": 2}
+    hora_dia = calc_unidad_map.get(calc_unidad, 3) # default a 3 (cantidad/otros)
+
+    calc_param_map = {"eslora": 1, "t_neto": 2}
+    eslora_tneto = calc_param_map.get(calc_param, 3) # default a 3 (otros)
+
+    ticket_srv_map = {"vehiculo": 1, "muelle": 2}
+    ticket = ticket_srv_map.get(ticket_srv, 0) # default a 0 (ninguno)
+
+    try:
+        resul = guardar_tarifa(
+            codigo=codigo,
+            tarifa=tarifa,
+            valor=valor,
+            partida_cod=partida_cod,
+            partida_id=partida_id,
+            tasa_id=tasa_id,
+            formula=formula,
+            detalle=detalle,
+            hora_dia=hora_dia,
+            eslora_tneto=eslora_tneto,
+            iva=1 if iva in ["1", "true", "True"] else 0,
+            ticket=ticket,
+            activo=1 if activa in ["1", "true", "True"] else 0,
+        )
+        return JsonResponse({"success": True, "resul": resul})
+    except Exception as exc:
+        logger.exception("Error al ejecutar guardado de tarifa")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@never_cache
+@require_http_methods(["POST"])
+def anular_tarifa_view(request):
+    """API Endpoint para anular una tarifa estableciendo idestado = 7 y activo = 0."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    idtarifa = request.POST.get("id", "").strip()
+    if not idtarifa or idtarifa == "0":
+        return JsonResponse({"success": False, "error": "Debe seleccionar una tarifa guardada para poder anularla."})
+
+    try:
+        anular_tarifa(idtarifa)
+        return JsonResponse({"success": True, "message": f"Tarifa con ID {idtarifa} anulada correctamente."})
+    except Exception as exc:
+        logger.exception("Error al anular tarifa")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@never_cache
+@require_http_methods(["GET"])
+def exportar_tarifas_view(request):
+    """Genera un archivo Excel con el listado de tarifas cargando la plantilla excel/Tarifas_J.xlsx."""
+    import os
+    import openpyxl
+    
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return HttpResponse("No autorizado", status=401)
+
+    try:
+        # 1. Obtener todas las tarifas existentes
+        tarifas = obtener_tarifas_existentes()
+
+        # 2. Ruta a la plantilla
+        template_path = os.path.join(settings.BASE_DIR, "excel", "Tarifas_J.xlsx")
+        if not os.path.exists(template_path):
+            return HttpResponse(f"No se encontró la plantilla de Excel en: {template_path}", status=404)
+
+        # 3. Cargar el libro y la hoja activa
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
+
+        # Descombinar celdas combinadas de la fila 8 en adelante para evitar errores de escritura
+        for r in list(ws.merged_cells.ranges):
+            if r.min_row >= 8:
+                ws.unmerge_cells(str(r))
+
+        # Escribir la fecha de emisión en la celda A4
+        from datetime import datetime
+        current_date_str = datetime.now().strftime("%d/%m/%Y")
+        ws.cell(row=4, column=1, value=f"Fecha de Emisión : {current_date_str}")
+
+        # 4. Escribir los datos en el excel a partir de la fila 8
+        # Las columnas correspondientes son:
+        # Col 1: Cod.tarifa (sctarifa / codigo)
+        # Col 2: Tarifa (tarifa)
+        # Col 3: Valor (valor)
+        # Col 4: Formula (formula)
+        # Col 5: Detalle (detalle)
+        # Col 6: Cod.partida (partida_cod / scpartida)
+        # Col 7: Partida (partida_desc)
+        start_row = 8
+        for idx, t in enumerate(tarifas):
+            row_num = start_row + idx
+            
+            try:
+                val_num = float(t.get("valor", "0.00"))
+            except (ValueError, TypeError):
+                val_num = 0.00
+
+            ws.cell(row=row_num, column=1, value=t.get("codigo", ""))
+            ws.cell(row=row_num, column=2, value=t.get("tarifa", ""))
+            ws.cell(row=row_num, column=3, value=val_num)
+            ws.cell(row=row_num, column=4, value=t.get("formula", ""))
+            ws.cell(row=row_num, column=5, value=t.get("detalle", ""))
+            ws.cell(row=row_num, column=6, value=t.get("partida_cod", ""))
+            ws.cell(row=row_num, column=7, value=t.get("partida_desc", ""))
+
+        # 5. Generar respuesta HTTP para la descarga
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = 'attachment; filename="Tarifas_Reporte.xlsx"'
+        wb.save(response)
+        return response
+
+    except Exception as exc:
+        logger.exception("Error al exportar tarifas a excel")
+        return HttpResponse(f"Error interno al exportar Excel: {str(exc)}", status=500)
