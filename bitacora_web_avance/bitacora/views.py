@@ -346,6 +346,7 @@ def exportar_excel(request):
     try:
         try:
             import openpyxl
+            from openpyxl.styles import Font, Alignment
         except Exception:
             messages.error(request, "La dependencia 'openpyxl' para generar Excel no está instalada.")
             return redirect("registro_combustible")
@@ -399,6 +400,12 @@ def exportar_excel(request):
                         return val
             return ""
 
+        # Limpiar celdas combinadas de la plantilla a partir de la fila 8 hacia abajo
+        # para evitar solapamientos y distorsión al escribir los registros.
+        for rng in list(ws.merged_cells.ranges):
+            if rng.min_row >= 8:
+                ws.unmerge_cells(str(rng))
+
         start_row = 8
         for idx, reg in enumerate(registros, start=start_row):
             fila = [
@@ -419,6 +426,57 @@ def exportar_excel(request):
 
             for col_idx, value in enumerate(fila, start=1):
                 safe_write_cell(ws, idx, col_idx, value)
+
+        # Determinar la última fila escrita y calcular el inicio del bloque de firmas
+        last_data_row = start_row + len(registros) - 1
+        sig_start = last_data_row + 3  # Dejar 2 filas vacías de separación
+
+        # Lado Izquierdo: PREPARADO POR:
+        ws.merge_cells(start_row=sig_start, start_column=2, end_row=sig_start, end_column=5)
+        cell_prep = ws.cell(row=sig_start, column=2)
+        cell_prep.value = "PREPARADO POR:"
+        cell_prep.font = Font(name="Calibri", size=11, bold=False)
+        cell_prep.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Líneas de firmas en fila sig_start + 2
+        # Izquierda (B a E)
+        ws.merge_cells(start_row=sig_start+2, start_column=2, end_row=sig_start+2, end_column=5)
+        cell_line_left = ws.cell(row=sig_start+2, column=2)
+        cell_line_left.value = "________________________________________"
+        cell_line_left.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Derecha (I a L)
+        ws.merge_cells(start_row=sig_start+2, start_column=9, end_row=sig_start+2, end_column=12)
+        cell_line_right = ws.cell(row=sig_start+2, column=9)
+        cell_line_right.value = "________________________________________"
+        cell_line_right.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_right.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Nombres/cargos en fila sig_start + 3
+        # Izquierda (B a E) - Nombre dinámico de la sesión
+        ws.merge_cells(start_row=sig_start+3, start_column=2, end_row=sig_start+3, end_column=5)
+        cell_name_left = ws.cell(row=sig_start+3, column=2)
+        cell_name_left.value = request.session.get("usuario_nombre", "")
+        cell_name_left.font = Font(name="Calibri", size=11, bold=True)
+        cell_name_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Derecha (I a L) - "REVISADO"
+        ws.merge_cells(start_row=sig_start+3, start_column=9, end_row=sig_start+3, end_column=12)
+        cell_name_right = ws.cell(row=sig_start+3, column=9)
+        cell_name_right.value = "REVISADO"
+        cell_name_right.font = Font(name="Calibri", size=11, bold=True)
+        cell_name_right.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Remover rangos de celdas fusionadas que estén por debajo del bloque de firmas
+        for rng in list(ws.merged_cells.ranges):
+            if rng.min_row > sig_start + 3:
+                ws.unmerge_cells(str(rng))
+
+        # Limpiar filas sobrantes por debajo en la plantilla si existen
+        max_r = ws.max_row
+        if max_r > sig_start + 3:
+            ws.delete_rows(sig_start + 4, max_r - (sig_start + 3))
 
         output = io.BytesIO()
         wb.save(output)
