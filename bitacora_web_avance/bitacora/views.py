@@ -153,6 +153,14 @@ def registro_combustible_home(request):
         "messages": [],
     }
 
+    if form.is_valid():
+        fecha_desde = form.cleaned_data.get("fecha_inicio")
+        fecha_hasta = form.cleaned_data.get("fecha_fin")
+        if fecha_desde:
+            ajax_response["fecha_desde"] = fecha_desde.isoformat()
+        if fecha_hasta:
+            ajax_response["fecha_hasta"] = fecha_hasta.isoformat()
+
     if request.GET.get("buscar") == "1":
         if form.is_valid():
             try:
@@ -169,8 +177,6 @@ def registro_combustible_home(request):
                         registro["c_ticket"] = registro["c_tikect"]
                     elif "c_tikect" in registro:
                         registro["c_ticket"] = registro.get("c_tikect", "")
-                fecha_desde = form.cleaned_data["fecha_inicio"]
-                fecha_hasta = form.cleaned_data["fecha_fin"]
                 # Guardar último resultado de búsqueda en sesión para la exportación.
                 try:
                     def _serialize_value(v):
@@ -189,15 +195,13 @@ def registro_combustible_home(request):
                         for reg in registros
                     ]
                     request.session["reporte_combustible_last"] = {
-                        "fecha_desde": fecha_desde.isoformat(),
-                        "fecha_hasta": fecha_hasta.isoformat(),
+                        "fecha_desde": fecha_desde.isoformat() if fecha_desde else "",
+                        "fecha_hasta": fecha_hasta.isoformat() if fecha_hasta else "",
                         "registros": session_rows,
                     }
                 except Exception:
                     # No bloquear la búsqueda si la sesión no puede serializarse.
                     logger.exception("No fue posible guardar el resultado en sesión para exportación")
-                ajax_response["fecha_desde"] = fecha_desde.isoformat()
-                ajax_response["fecha_hasta"] = fecha_hasta.isoformat()
                 if not registros:
                     msg = "No existen registros para el rango de fechas seleccionado."
                     messages.info(request, msg)
@@ -256,18 +260,67 @@ def registro_combustible_home(request):
     )
 
 
+def _obtener_datos_exportacion(request):
+    """Obtiene los registros y rango de fechas para exportación.
+    
+    Primero consulta la sesión. Si no existe pero la petición contiene
+    los parámetros GET (fecha_inicio y fecha_fin), vuelve a ejecutar la búsqueda.
+    """
+    last = request.session.get("reporte_combustible_last")
+    if last and last.get("registros"):
+        return last
+
+    form = RegistroCombustibleFilterForm(request.GET or None)
+    if form.is_valid():
+        try:
+            fecha_inicio = form.cleaned_data["fecha_inicio"]
+            fecha_fin = form.cleaned_data["fecha_fin"]
+            registros = obtener_reporte_combustible(fecha_inicio, fecha_fin)
+            for registro in registros:
+                if "fecha_ingresa" in registro:
+                    registro["fecha_ingresa"] = registro.get("fecha_ingresa", "")
+                    registro["fecha"] = registro["fecha_ingresa"]
+                if "tikect" in registro:
+                    registro["c_tikect"] = registro.get("tikect", "")
+                    registro["c_ticket"] = registro["c_tikect"]
+                elif "c_tikect" in registro:
+                    registro["c_ticket"] = registro.get("c_tikect", "")
+
+            def _serialize_value(v):
+                if v is None:
+                    return ""
+                if hasattr(v, "isoformat"):
+                    try:
+                        return v.isoformat()
+                    except Exception:
+                        pass
+                return str(v)
+
+            session_rows = [
+                {k: _serialize_value(v) for k, v in reg.items()}
+                for reg in registros
+            ]
+            datos = {
+                "fecha_desde": fecha_inicio.isoformat(),
+                "fecha_hasta": fecha_fin.isoformat(),
+                "registros": session_rows,
+            }
+            request.session["reporte_combustible_last"] = datos
+            return datos
+        except Exception:
+            logger.exception("Error al recuperar registros de exportación vía parámetros GET")
+            pass
+
+    return last
+
+
 @require_http_methods(["GET"])
 def exportar_excel(request):
-    """Exporta a Excel el último resultado de búsqueda almacenado en sesión.
-
-    La función reutiliza los datos previamente obtenidos durante la búsqueda
-    (no re-ejecuta el procedimiento almacenado). La ruta de la plantilla se
-    configura en `bitacora_web.settings.RUTA_PLANTILLA_EXCEL`.
-    """
+    """Exporta a Excel el último resultado de búsqueda almacenado en sesión o parámetros GET."""
     if not request.session.get("usuario_id"):
         return redirect("login")
 
-    last = request.session.get("reporte_combustible_last")
+    last = _obtener_datos_exportacion(request)
     if not last:
         messages.error(request, "Primero debe realizar una búsqueda para exportar la información.")
         return redirect("registro_combustible")
@@ -278,11 +331,15 @@ def exportar_excel(request):
         return redirect("registro_combustible")
 
     # Verificar plantilla
-    template_path = getattr(settings, "RUTA_PLANTILLA_EXCEL", "") or ""
+    template_path = (
+        getattr(settings, "RUTA_PLANTILLA_EXCEL", "")
+        or os.getenv("RUTA_PLANTILLA_EXCEL", "")
+        or ""
+    ).strip()
     if not template_path or not os.path.exists(template_path):
         messages.error(
             request,
-            "Plantilla de Excel no encontrada. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
+            f"Plantilla de Excel no encontrada. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
         )
         return redirect("registro_combustible")
 
@@ -290,46 +347,60 @@ def exportar_excel(request):
         try:
             import openpyxl
         except Exception:
-            messages.error(request, "La dependencia para generar Excel no está instalada.")
+            messages.error(request, "La dependencia 'openpyxl' para generar Excel no está instalada.")
             return redirect("registro_combustible")
 
-        wb = openpyxl.load_workbook(template_path)
-        ws = wb.active
+        with open(template_path, "rb") as f:
+            template_bytes = io.BytesIO(f.read())
 
-        # Encabezados y orden deseado
-        headers = [
-            "Fecha",
-            "Tickets",
-            "Guía",
-            "Placa",
-            "Chofer",
-            "Licencia",
-            "CodBuque",
-            "Barco",
-            "Matrícula",
-            "Galones",
-            "Motivo",
-            "Estado",
-            "Tipo_Carro",
-        ]
+        wb = openpyxl.load_workbook(template_bytes)
+        ws = wb["controlcombustible"] if "controlcombustible" in wb.sheetnames else wb.active
 
-        # Buscar primera fila vacía para escribir (si la plantilla ya tiene encabezados,
-        # asumimos que los datos comienzan en la fila siguiente a la primera fila no vacía).
-        start_row = ws.max_row + 1
+        def safe_write_cell(ws, r, c, val):
+            cell = ws.cell(row=r, column=c)
+            if cell.__class__.__name__ != "MergedCell":
+                cell.value = val
 
-        # Si la hoja está vacía, escribir encabezados en la primera fila.
-        if ws.max_row == 0 or all(cell.value is None for cell in ws[1]):
-            for col_idx, header in enumerate(headers, start=1):
-                ws.cell(row=1, column=col_idx, value=header)
-            start_row = 2
+        # Escribir fecha de emisión en Celda A4
+        fecha_emision_str = date.today().strftime("%d/%m/%Y")
+        safe_write_cell(ws, 4, 1, f"Fecha de Emisión : Manta, {fecha_emision_str}")
+
+        # Formatear fechas desde y hasta para Celda A5
+        def _fmt_fecha(val):
+            if not val:
+                return "—"
+            if hasattr(val, "strftime"):
+                return val.strftime("%d/%m/%Y")
+            val_str = str(val).split("T")[0]
+            parts = val_str.split("-")
+            if len(parts) == 3 and len(parts[0]) == 4:
+                return f"{parts[2]}/{parts[1]}/{parts[0]}"
+            return str(val)
+
+        f_desde_str = _fmt_fecha(last.get("fecha_desde"))
+        f_hasta_str = _fmt_fecha(last.get("fecha_hasta"))
+
+        safe_write_cell(
+            ws,
+            5,
+            1,
+            f"F.Desde: {f_desde_str}               F.Hasta :      {f_hasta_str}",
+        )
 
         def first_value(row, keys):
-            for key in keys:
-                if key in row and row.get(key, "") != "":
-                    return row.get(key, "")
+            if isinstance(row, dict):
+                for key in keys:
+                    val = row.get(key)
+                    if val is not None and str(val).strip() != "":
+                        return val
+            elif isinstance(row, (list, tuple)):
+                for val in row:
+                    if val is not None and str(val).strip() != "":
+                        return val
             return ""
 
-        for i, reg in enumerate(registros, start=start_row):
+        start_row = 8
+        for idx, reg in enumerate(registros, start=start_row):
             fila = [
                 first_value(reg, ("fecha_ingresa", "fecha", "fecha_registro", "fecha_mov")),
                 first_value(reg, ("c_tikect", "c_ticket", "tikect", "ticket", "tickets")),
@@ -343,44 +414,45 @@ def exportar_excel(request):
                 first_value(reg, ("galones", "cantidad_litros", "litros")),
                 first_value(reg, ("motivo",)),
                 first_value(reg, ("estado",)),
-                first_value(reg, ("tipo_carro", "tipo carro", "tipo",)),
+                first_value(reg, ("tipo_carro", "tipo carro", "tipo")),
             ]
 
             for col_idx, value in enumerate(fila, start=1):
-                ws.cell(row=i, column=col_idx, value=value)
+                safe_write_cell(ws, idx, col_idx, value)
 
-        # Guardar en memoria y devolver como attachment
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)
 
-        filename = f"ReporteCombustible_{last.get('fecha_desde')}_{last.get('fecha_hasta')}.xlsx"
+        # Sanitizar nombre de archivo a caracteres ASCII puros para evitar errores en Content-Disposition
+        clean_desde = f_desde_str.replace("/", "-").replace("—", "sin_fecha").strip()
+        clean_hasta = f_hasta_str.replace("/", "-").replace("—", "sin_fecha").strip()
+        raw_filename = f"ReporteCombustible_{clean_desde}_{clean_hasta}.xlsx"
+        filename_ascii = "".join(c if c.isalnum() or c in "._-" else "_" for c in raw_filename)
+
         response = HttpResponse(
             output.read(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Disposition"] = f'attachment; filename="{filename_ascii}"'
         return response
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Error al generar el archivo Excel")
         messages.error(
             request,
-            "Ocurrió un error al generar el archivo Excel. Consulte al administrador.",
+            f"Ocurrió un error al generar el archivo Excel: {exc}",
         )
         return redirect("registro_combustible")
 
 
 @require_http_methods(["GET"])
 def exportar_excel_validar(request):
-    """Valida via AJAX si la exportación puede ejecutarse.
-
-    Responde JSON con { ok: bool, message: str, level: 'info'|'error' }.
-    """
+    """Valida via AJAX si la exportación puede ejecutarse."""
     if not request.session.get("usuario_id"):
-        return JsonResponse({"ok": False, "message": "Debe iniciar sesión.", "level": "error"})
+        return JsonResponse({"ok": False, "message": "Debe iniciar sesión para exportar.", "level": "error"})
 
-    last = request.session.get("reporte_combustible_last")
+    last = _obtener_datos_exportacion(request)
     if not last:
         return JsonResponse({
             "ok": False,
@@ -392,11 +464,15 @@ def exportar_excel_validar(request):
     if not registros:
         return JsonResponse({"ok": False, "message": "No existen registros para exportar.", "level": "info"})
 
-    template_path = getattr(settings, "RUTA_PLANTILLA_EXCEL", "") or ""
+    template_path = (
+        getattr(settings, "RUTA_PLANTILLA_EXCEL", "")
+        or os.getenv("RUTA_PLANTILLA_EXCEL", "")
+        or ""
+    ).strip()
     if not template_path or not os.path.exists(template_path):
         return JsonResponse({
             "ok": False,
-            "message": "Plantilla de Excel no encontrada. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
+            "message": f"Plantilla de Excel no encontrada en '{template_path}'. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
             "level": "error",
         })
 
