@@ -1,9 +1,9 @@
-"""Configuración del proyecto de Bitácora Portuaria."""
-
 import os
 from pathlib import Path
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 
 def _load_local_env(path: Path) -> None:
@@ -82,8 +82,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "bitacora_web.wsgi.application"
 
-# Django usa sesiones firmadas en cookie para no depender de una base local.
-# La lógica institucional y los datos de bitácora permanecen en SQL Server.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -107,10 +105,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
-# Solo para mostrar el avance sin depender de la red institucional.
-# Debe permanecer en False cuando se conecte a la base real.
+
 DEMO_MODE = env_bool("DEMO_MODE", False)
 
-# Ruta a la plantilla institucional para exportación a Excel.
-# Dejar vacía por defecto; configurar en el .env o aquí cuando se disponga.
-RUTA_PLANTILLA_EXCEL = os.getenv("RUTA_PLANTILLA_EXCEL", "").strip()
+RUTA_PLANTILLA_INEC = (
+    BASE_DIR / "plantilla" / "plantilla.xlsx"
+)

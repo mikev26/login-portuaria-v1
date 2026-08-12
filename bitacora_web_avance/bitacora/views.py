@@ -1,7 +1,5 @@
 import logging
-import csv
 from datetime import datetime
-
 from django.http import HttpResponse
 from datetime import date
 import io
@@ -59,8 +57,7 @@ def login_view(request):
                 if not datos_usuario:
                     messages.error(request, "Usuario o contraseña incorrectos.")
                 else:
-                    # La segunda condición de acceso es aparecer en el procedimiento
-                    # de turnos activos: fecha_s NULL, activo <> 7 y bitacora = 1.
+
                     turnos = obtener_turnos_usuario(datos_usuario["idusuario"])
                     if not turnos:
                         messages.error(
@@ -155,79 +152,476 @@ def tarifa_view(request):
         },
     )
 
+def exportar_reporte_inec_excel(
+    rows,
+    fecha_inicio,
+    fecha_fin,
+):
+    try:
+        import openpyxl
+    except ImportError as exc:
+        raise RuntimeError(
+            "La dependencia openpyxl no está instalada."
+        ) from exc
+
+    template_path = getattr(
+        settings,
+        "RUTA_PLANTILLA_INEC",
+        "",
+    )
+
+    if not template_path:
+        raise FileNotFoundError(
+            "No se ha configurado RUTA_PLANTILLA_INEC."
+        )
+
+    template_path = os.fspath(template_path)
+
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(
+            f"No se encontró la plantilla Excel: {template_path}"
+        )
+
+    workbook = openpyxl.load_workbook(
+        template_path
+    )
+
+    if "Hoja3" in workbook.sheetnames:
+        worksheet = workbook["Hoja3"]
+    else:
+        worksheet = workbook.active
+
+    worksheet["A5"] = (
+        f"Fecha de Emisión : "
+        f"{datetime.now().strftime('%d/%m/%Y')}"
+    )
+
+    worksheet["A6"] = (
+        f"F.Desde : {fecha_inicio.strftime('%d/%m/%Y')}"
+        f"           "
+        f"F.Hasta: {fecha_fin.strftime('%d/%m/%Y')}"
+    )
+
+    START_ROW = 9
+
+    columnas = [
+        "idregistro",
+        "idbuqye",
+        "matricula",
+        "buque",
+        "tipo_nave",
+        "Trafico",
+        "arribo",
+        "zarpe",
+        "bandera",
+        "TRB",
+        "TRN",
+        "Pasajeros _e",
+        "Pasajeros_s",
+        "agencia",
+        "Eslora",
+        "Calado",
+        "tipo_contrato",
+        "p_bruto",
+        "p_neto",
+        "estado",
+        "usuario",
+        "scregistro",
+        "mes",
+        "tonelada",
+    ]
+
+    def normalizar_clave(valor):
+        if valor is None:
+            return ""
+
+        return (
+            str(valor)
+            .strip()
+            .lower()
+            .replace(" ", "_")
+        )
+
+    def preparar_registro(registro):
+        resultado = {}
+
+        for key, value in registro.items():
+            clave = normalizar_clave(key)
+            resultado[clave] = value
+
+        return resultado
+
+    aliases = {
+        "idregistro": [
+            "idregistro",
+            "id_registro",
+        ],
+
+        "idbuqye": [
+            "idbuqye",
+            "idbuque",
+            "id_buque",
+        ],
+
+        "matricula": [
+            "matricula",
+            "matrícula",
+        ],
+
+        "buque": [
+            "buque",
+            "nombre_buque",
+        ],
+
+        "tipo_nave": [
+            "tipo_nave",
+            "tiponave",
+            "tipo_navegacion",
+        ],
+
+        "Trafico": [
+            "trafico",
+            "tráfico",
+        ],
+
+        "arribo": [
+            "arribo",
+            "fecha_arribo",
+        ],
+
+        "zarpe": [
+            "zarpe",
+            "fecha_zarpe",
+        ],
+
+        "bandera": [
+            "bandera",
+        ],
+
+        "TRB": [
+            "trb",
+        ],
+
+        "TRN": [
+            "trn",
+        ],
+
+        "Pasajeros _e": [
+            "pasajeros_e",
+            "pasajeros_e",
+            "pasajeros_entrada",
+            "pasajeros_e",
+        ],
+
+        "Pasajeros_s": [
+            "pasajeros_s",
+            "pasajeros_salida",
+        ],
+
+        "agencia": [
+            "agencia",
+            "agencia_naviera",
+        ],
+
+        "Eslora": [
+            "eslora",
+        ],
+
+        "Calado": [
+            "calado",
+        ],
+
+        "tipo_contrato": [
+            "tipo_contrato",
+            "tipocontrato",
+        ],
+
+        "p_bruto": [
+            "p_bruto",
+            "peso_bruto",
+            "peso_bruto_total",
+        ],
+
+        "p_neto": [
+            "p_neto",
+            "peso_neto",
+            "peso_neto_total",
+        ],
+
+        "estado": [
+            "estado",
+        ],
+
+        "usuario": [
+            "usuario",
+            "usuario_registro",
+        ],
+
+        "scregistro": [
+            "scregistro",
+            "sc_registro",
+        ],
+
+        "mes": [
+            "mes",
+        ],
+
+        "tonelada": [
+            "tonelada",
+            "toneladas",
+        ],
+    }
+
+    def obtener_valor(registro, campo):
+
+        posibles = aliases.get(
+            campo,
+            [campo],
+        )
+
+        for posible in posibles:
+            clave = normalizar_clave(posible)
+
+            if clave in registro:
+                valor = registro.get(clave)
+
+                if valor is not None:
+                    return valor
+
+        return ""
+
+    for numero_fila, registro_original in enumerate(
+        rows,
+        start=START_ROW,
+    ):
+
+        registro = preparar_registro(
+            registro_original
+        )
+
+        for numero_columna, campo in enumerate(
+            columnas,
+            start=1,
+        ):
+
+            valor = obtener_valor(
+                registro,
+                campo,
+            )
+
+            if hasattr(valor, "date"):
+                try:
+                    valor = valor
+                except Exception:
+                    pass
+
+            worksheet.cell(
+                row=numero_fila,
+                column=numero_columna,
+                value=valor,
+            )
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    filename = (
+        f"Reporte_INEC_"
+        f"{fecha_inicio.strftime('%Y-%m-%d')}_"
+        f"a_"
+        f"{fecha_fin.strftime('%Y-%m-%d')}.xlsx"
+    )
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+    )
+
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+
+    return response
 
 @require_http_methods(["GET", "POST"])
 def reporte_inec_view(request):
-    """Página para consultar y exportar el reporte INEC por rango de fechas."""
+
     if not request.session.get("usuario_id"):
         return redirect("login")
 
-    if request.method == "POST":
-        inicio = request.POST.get("inicio")
-        fin = request.POST.get("fin")
-        export = request.POST.get("export")
+    contexto_base = {
+        "usuario_nombre": request.session.get(
+            "usuario_nombre",
+            "",
+        ),
+        "usuario_login": request.session.get(
+            "usuario_login",
+            "",
+        ),
+        "usuario_cargo": request.session.get(
+            "usuario_cargo",
+            "",
+        ),
+        "demo_mode": settings.DEMO_MODE,
+    }
 
-        try:
-            fecha_inicio = datetime.strptime(inicio, "%Y-%m-%d").date()
-            fecha_fin = datetime.strptime(fin, "%Y-%m-%d").date()
-        except Exception:
-            messages.error(request, "Formato de fecha inválido.")
-            return render(
-                request,
-                "bitacora/ReporteInec.html",
-                {
-                    "usuario_nombre": request.session.get("usuario_nombre"),
-                    "usuario_login": request.session.get("usuario_login"),
-                    "usuario_cargo": request.session.get("usuario_cargo"),
-                    "demo_mode": settings.DEMO_MODE,
-                },
-            )
+    if request.method == "GET":
 
-        try:
-            rows = obtener_reporte_inec(fecha_inicio, fecha_fin)
+        return render(
+            request,
+            "bitacora/ReporteInec.html",
+            contexto_base,
+        )
 
-        except Exception as exc:
-            logger.exception("Error al obtener reporte INEC")
-            messages.error(request, str(exc))
-            rows = []
+    inicio = request.POST.get("inicio")
+    fin = request.POST.get("fin")
 
-        if export:
-            # Exportar CSV
-            response = HttpResponse(content_type="text/csv; charset=utf-8")
-            response["Content-Disposition"] = (
-                f"attachment; filename=Reporte_INEC_{inicio}_a_{fin}.csv"
-            )
-            writer = csv.writer(response)
-            if rows:
-                headers = list(rows[0].keys())
-                writer.writerow(headers)
-                for r in rows:
-                    writer.writerow([r.get(h, "") for h in headers])
-            return response
+    export = request.POST.get("export")
+
+    try:
+
+        fecha_inicio = datetime.strptime(
+            inicio,
+            "%Y-%m-%d",
+        ).date()
+
+        fecha_fin = datetime.strptime(
+            fin,
+            "%Y-%m-%d",
+        ).date()
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+
+        messages.error(
+            request,
+            "Formato de fecha inválido.",
+        )
 
         return render(
             request,
             "bitacora/ReporteInec.html",
             {
-                "rows": rows,
+                **contexto_base,
                 "inicio": inicio,
                 "fin": fin,
-                "usuario_nombre": request.session.get("usuario_nombre"),
-                "usuario_login": request.session.get("usuario_login"),
-                "usuario_cargo": request.session.get("usuario_cargo"),
-                "demo_mode": settings.DEMO_MODE,
             },
         )
 
-    # GET
+    if fecha_inicio > fecha_fin:
+
+        fecha_inicio, fecha_fin = (
+            fecha_fin,
+            fecha_inicio,
+        )
+
+    try:
+
+        rows = obtener_reporte_inec(
+            fecha_inicio,
+            fecha_fin,
+        )
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+
+        logger.exception(
+            "Error de configuración "
+            "al obtener reporte INEC"
+        )
+
+        messages.error(
+            request,
+            str(exc),
+        )
+
+        rows = []
+
+    except Exception:
+
+        logger.exception(
+            "Error inesperado "
+            "al obtener reporte INEC"
+        )
+
+        messages.error(
+            request,
+            (
+                "No fue posible obtener "
+                "el reporte INEC desde SQL Server."
+            ),
+        )
+
+        rows = []
+    if export:
+
+        if not rows:
+
+            messages.warning(
+                request,
+                "No existen datos para exportar "
+                "en el rango seleccionado.",
+            )
+
+            return render(
+                request,
+                "bitacora/ReporteInec.html",
+                {
+                    **contexto_base,
+                    "rows": rows,
+                    "inicio": fecha_inicio.isoformat(),
+                    "fin": fecha_fin.isoformat(),
+                },
+            )
+
+        try:
+
+            return exportar_reporte_inec_excel(
+                rows,
+                fecha_inicio,
+                fecha_fin,
+            )
+
+        except FileNotFoundError as exc:
+
+            logger.exception(
+                "No se encontró la plantilla INEC"
+            )
+
+            messages.error(
+                request,
+                str(exc),
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error al generar Excel INEC"
+            )
+
+            messages.error(
+                request,
+                (
+                    "Ocurrió un error al generar "
+                    "el archivo Excel."
+                ),
+            )
+            
     return render(
         request,
         "bitacora/ReporteInec.html",
         {
-            "usuario_nombre": request.session.get("usuario_nombre"),
-            "usuario_login": request.session.get("usuario_login"),
-            "usuario_cargo": request.session.get("usuario_cargo"),
-            "demo_mode": settings.DEMO_MODE,
+            **contexto_base,
+            "rows": rows,
+            "inicio": fecha_inicio.isoformat(),
+            "fin": fecha_fin.isoformat(),
         },
     )
 
