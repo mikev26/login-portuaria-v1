@@ -301,7 +301,7 @@ def _login_desde_vista_turno(usuario: str, clave: str) -> dict[str, Any] | None:
                 SELECT TOP 1 idusuario, usuario, nombre, cargo
                 FROM {login_view}
                 WHERE usuario = ?
-                  AND ClaveBitacora = ?
+                  AND ClaveBitacora COLLATE Latin1_General_100_BIN2 = ?
                   AND fecha_s IS NULL
                   AND activo <> 7
                   AND bitacora = 1
@@ -463,23 +463,53 @@ def obtener_buques_industriales() -> list[dict[str, Any]]:
             "industrial",
         )
 
-    try:
-        procedure = _validated_procedure("SP_BUQUES_INDUSTRIALES")
-        return _normalize_ship_rows(_execute_procedure(procedure), "industrial")
-    except Exception as exc:
-        if _is_missing_object_error(exc):
-            return []
-        raise
+    with closing(get_connection()) as connection:
+        with closing(connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    scregistro AS scbuque,
+                    buque AS nombre,
+                    n_matricula,
+                    fecha_arrivo,
+                    0 AS cabo,
+                    idbuque,
+                    idregistro
+                FROM dbo.dim_con_maestro_registro_lista
+                WHERE fecha_zarpe IS NULL
+                  AND idestado <> 7
+                ORDER BY buque
+                """
+            )
+
+            rows = _rows_as_dicts(cursor)
+
+    return _normalize_ship_rows(rows, "industrial")
 
 
 def obtener_buques_artesanales() -> list[dict[str, Any]]:
     if settings.DEMO_MODE:
         return []
 
-    try:
-        procedure = _validated_procedure("SP_BUQUES_ARTESANALES")
-        return _normalize_ship_rows(_execute_procedure(procedure), "artesanal")
-    except Exception as exc:
-        if _is_missing_object_error(exc):
-            return []
-        raise
+    with closing(get_connection()) as connection:
+        with closing(connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    scregistro AS scbuque,
+                    buque AS nombre,
+                    n_matricula,
+                    fecha_ing AS fecha_arrivo,
+                    0 AS cabo,
+                    idbuque,
+                    scregistro AS idregistro
+                FROM dbo.dim_con_maestro_registro_cabotaje
+                WHERE fecha_salida IS NULL
+                  AND idestado <> 7
+                ORDER BY buque
+                """
+            )
+
+            rows = _rows_as_dicts(cursor)
+
+    return _normalize_ship_rows(rows, "artesanal")
