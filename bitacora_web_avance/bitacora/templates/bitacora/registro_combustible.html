@@ -68,11 +68,9 @@
 
             {% if messages %}
                 {% for message in messages %}
-                    <div class="message-banner {{ message.tags }}">
-                        {{ message }}
-                    </div>
+                    <div class="message-banner {{ message.tags }}">{{ message }}</div>
                 {% endfor %}
-
+                {% for _ in messages %}{% endfor %}  <!-- limpia los mensajes -->
             {% endif %}
 
             {% if form.non_field_errors %}
