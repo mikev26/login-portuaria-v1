@@ -1,10 +1,13 @@
 :root {
-            --page-bg: #f1f1f1;
+            --page-bg: #f3f4f6;
             --paper: #ffffff;
-            --text: #1e2832;
-            --muted: #5d6b78;
-            --border: #c6c8cc;
-            --line: #3b4a60;
+            --text: #1f2a37;
+            --muted: #4b5563;
+            --border: #cbd5e1;
+            --line: #20374d;
+            --header-bg: #eef2f7;
+            --header-text: #1f2937;
+            --accent: #1f4e79;
         }
         * { box-sizing: border-box; }
         body {
@@ -15,13 +18,77 @@
             color: var(--text);
         }
         .report-shell {
-            max-width: 860px;
-            width: min(860px, 100%);
+            max-width: 900px;
+            width: min(900px, 100%);
             margin: 24px auto;
             padding: 24px 24px;
             background: var(--paper);
             border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
             overflow: hidden;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .report-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .report-logo {
+            width: 64px;
+            min-width: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .report-logo img {
+            width: 100%;
+            display: block;
+            object-fit: contain;
+        }
+
+        .report-header-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .report-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--header-text);
+        }
+
+        .report-subtitle {
+            font-size: 12px;
+            letter-spacing: .9px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .report-small-title {
+            font-size: 12px;
+            letter-spacing: .9px;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 700;
         }
         .top-bar {
             display: flex;
@@ -43,20 +110,16 @@
             display: block;
         }
         .page-label {
-            font-size: 12px;
-            color: var(--text);
-            text-transform: uppercase;
-            letter-spacing: .8px;
-        }
-        .page-label strong {
-            display: block;
-            font-size: 16px;
-            margin-top: 8px;
+            display: none;
         }
         .header-content {
             text-align: center;
             margin: 0 auto;
             padding-top: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         .header-content .title {
             margin: 0;
@@ -64,6 +127,7 @@
             font-weight: 700;
             letter-spacing: 1px;
             text-transform: uppercase;
+            color: var(--header-text);
         }
         .header-content .subtitle {
             margin: 4px 0 0;
@@ -77,11 +141,12 @@
             font-size: 12px;
             letter-spacing: .9px;
             text-transform: uppercase;
-            color: var(--muted);
+            color: var(--accent);
+            font-weight: 700;
         }
         .section-line {
             height: 1px;
-            background: var(--border);
+            background: linear-gradient(90deg, var(--accent), var(--border));
             margin: 16px 0 18px;
         }
         .info-block {
@@ -104,12 +169,13 @@
             gap: 10px;
             border: 1px solid var(--border);
             padding: 12px 14px;
-            border-radius: 5px;
-            background: #fbfbfb;
+            border-radius: 6px;
+            background: #f8fafc;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
         }
         .field-label {
             font-weight: 700;
-            color: var(--muted);
+            color: var(--accent);
             text-transform: uppercase;
             letter-spacing: .6px;
             font-size: 11px;
@@ -118,6 +184,7 @@
             font-size: 14px;
             color: var(--text);
             white-space: nowrap;
+            font-weight: 600;
         }
         .field-empty {
             min-width: 180px;
@@ -157,17 +224,22 @@
         }
         .search-button {
             border: none;
-            background: #1e2832;
+            background: var(--accent);
             color: #fff;
             border-radius: 5px;
             padding: 11px 18px;
             font-size: 13px;
             cursor: pointer;
-            transition: background .2s ease;
+            transition: background .2s ease, transform .2s ease;
             min-height: 44px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .search-button:hover {
-            background: #16202a;
+            background: #173a57;
+            transform: translateY(-1px);
         }
         .message-banner {
             margin-bottom: 18px;
@@ -259,17 +331,23 @@
             overflow-wrap: break-word;
         }
         .report-table th {
-            background: #f4f5f6;
+            background: var(--header-bg);
+            color: var(--header-text);
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .6px;
+            border-bottom: 2px solid var(--accent);
         }
         .report-table td {
             background: #fff;
             min-width: 0;
+            color: var(--text);
         }
         .report-table tbody tr:nth-child(even) td {
-            background: #fbfbfb;
+            background: #f8fafc;
+        }
+        .report-table tbody tr:hover td {
+            background: #eef4f8;
         }
         .table-placeholder td {
             padding: 24px 10px;
