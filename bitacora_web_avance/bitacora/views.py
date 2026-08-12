@@ -260,7 +260,7 @@ def guardar_tarifa_view(request):
 
     codigo = request.POST.get("codigo", "").strip()
     tarifa = request.POST.get("tarifa", "").strip()
-    valor = request.POST.get("valor", "0.00").strip()
+    valor = request.POST.get("valor", "0.0000").strip()
     partida_cod = request.POST.get("partida_cod", "").strip()
     partida_id = request.POST.get("partida_id", "").strip()
     tasa_id = request.POST.get("tasa_id", "").strip()
@@ -271,6 +271,12 @@ def guardar_tarifa_view(request):
     iva = request.POST.get("iva", "0").strip()
     ticket_srv = request.POST.get("ticket_srv", "").strip()
     activa = request.POST.get("activa", "1").strip()
+    permitir_cambio_valor = request.POST.get("permitir_cambio_valor", "0").strip()
+    idtarifa_raw = request.POST.get("id", "0").strip()
+    try:
+        idtarifa = int(idtarifa_raw)
+    except (ValueError, TypeError):
+        idtarifa = 0
 
     if not codigo or not tarifa or not tasa_id:
         return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tarifa o Tasa)"})
@@ -293,6 +299,7 @@ def guardar_tarifa_view(request):
 
     try:
         resul = guardar_tarifa(
+            idtarifa=idtarifa,
             codigo=codigo,
             tarifa=tarifa,
             valor=valor,
@@ -306,7 +313,15 @@ def guardar_tarifa_view(request):
             iva=1 if iva in ["1", "true", "True"] else 0,
             ticket=ticket,
             activo=1 if activa in ["1", "true", "True"] else 0,
+            cambio_factura=1 if permitir_cambio_valor in ["1", "true", "True"] else 0,
         )
+        if resul == 3:
+            return JsonResponse({"success": False, "error": "El código de tarifa ya existe para esta tasa."})
+        elif resul == 4:
+            return JsonResponse({"success": False, "error": "El nombre de tarifa ya existe para esta tasa o hay conflicto."})
+        elif resul == -1:
+            return JsonResponse({"success": False, "error": "Error interno en la base de datos al guardar la tarifa."})
+
         return JsonResponse({"success": True, "resul": resul})
     except Exception as exc:
         logger.exception("Error al ejecutar guardado de tarifa")
@@ -349,7 +364,7 @@ def exportar_tarifas_view(request):
         tarifas = obtener_tarifas_existentes()
 
         # 2. Ruta a la plantilla
-        template_path = os.path.join(settings.BASE_DIR, "excel", "Tarifas_J.xlsx")
+        template_path = os.path.join(settings.BASE_DIR, "excel", "F003_GSW_TARI.xlsx")
         if not os.path.exists(template_path):
             return HttpResponse(f"No se encontró la plantilla de Excel en: {template_path}", status=404)
 
@@ -381,7 +396,7 @@ def exportar_tarifas_view(request):
             row_num = start_row + idx
             
             try:
-                val_num = float(t.get("valor", "0.00"))
+                val_num = float(t.get("valor", "0.0000"))
             except (ValueError, TypeError):
                 val_num = 0.00
 

@@ -618,11 +618,19 @@
                     <div class="col-6"></div>
 
                     <!-- Valor -->
-                    <div class="field col-3">
-                        <label for="tarifaValor">Valor</label>
-                        <input type="text" id="tarifaValor" name="valor" value="0.00" style="text-align: right;" onfocus="if(this.value==='0.00') this.value='';" onblur="formatDecimal(this);">
+                    <div class="field col-6">
+                        <div style="display: flex; gap: 20px; align-items: flex-end;">
+                            <div style="flex-grow: 1;">
+                                <label for="tarifaValor">Valor</label>
+                                <input type="text" id="tarifaValor" name="valor" value="0.0000" style="text-align: right;" onfocus="if(this.value==='0.0000' || this.value==='0.00') this.value='';" onblur="formatDecimal(this);">
+                            </div>
+                            <label class="checkbox-container" style="white-space: nowrap;">
+                                <input type="checkbox" id="tarifaPermitirCambio" name="permitir_cambio_valor">
+                                Permitir cambio en valor factura
+                            </label>
+                        </div>
                     </div>
-                    <div class="col-9"></div>
+                    <div class="col-6"></div>
 
                     <!-- Se cobra con iva -->
                     <div class="field col-4">
@@ -744,13 +752,13 @@
         }, 3500);
     }
 
-    // Format Valor field to 2 decimal places obligatorily
+    // Format Valor field to 4 decimal places obligatorily
     function formatDecimal(input) {
         const val = parseFloat(input.value);
         if (isNaN(val)) {
-            input.value = "0.00";
+            input.value = "0.0000";
         } else {
-            input.value = val.toFixed(2);
+            input.value = val.toFixed(4);
         }
     }
 
@@ -781,8 +789,9 @@
         document.getElementById('tarifaPartidaId').value = "";
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
-        document.getElementById('tarifaValor').value = "0.00";
+        document.getElementById('tarifaValor').value = "0.0000";
         document.getElementById('tarifaIva').checked = false;
+        document.getElementById('tarifaPermitirCambio').checked = false;
 
         // Reset radio choices
         document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
@@ -872,8 +881,9 @@
         document.getElementById('tarifaFormula').value = data.formula || "";
         document.getElementById('tarifaDetalle').value = data.detalle || "";
         const valNum = parseFloat(data.valor);
-        document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.00" : valNum.toFixed(2);
+        document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.0000" : valNum.toFixed(4);
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
+        document.getElementById('tarifaPermitirCambio').checked = !!data.permitir_cambio_valor;
 
         // Check correct radio buttons
         const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);
@@ -907,6 +917,7 @@
                 return;
             }
 
+            const id = document.getElementById('tarifaId').value;
             const valor = document.getElementById('tarifaValor').value.trim();
             const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
             const partida_id = document.getElementById('tarifaPartidaId').value.trim();
@@ -919,11 +930,13 @@
             
             const iva = document.getElementById('tarifaIva').checked ? '1' : '0';
             const activa = document.getElementById('tarifaActiva').checked ? '1' : '0';
+            const permitir_cambio_valor = document.getElementById('tarifaPermitirCambio').checked ? '1' : '0';
 
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             const formData = new FormData();
             formData.append('csrfmiddlewaretoken', csrfToken);
+            formData.append('id', id);
             formData.append('codigo', codigo);
             formData.append('tarifa', tarifa);
             formData.append('valor', valor);
@@ -937,6 +950,7 @@
             formData.append('iva', iva);
             formData.append('ticket_srv', ticket_srv);
             formData.append('activa', activa);
+            formData.append('permitir_cambio_valor', permitir_cambio_valor);
 
             fetch('/tarifa/guardar/', {
                 method: 'POST',
@@ -994,11 +1008,9 @@
                 popup.focus();
             }
         } else if (action === 'new') {
-            showToast("Formulario limpio para ingreso de nuevos datos.");
-            clearForm();
+            window.open('/tarifa/', '_blank');
         } else if (action === 'refresh') {
-            showToast("Formulario restaurado y actualizado.");
-            clearForm();
+            window.location.reload();
         }
     }
 

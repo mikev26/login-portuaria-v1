@@ -9,7 +9,7 @@ from bitacora.db import get_connection
 
 conn = get_connection()
 with closing(conn.cursor()) as cursor:
-    for proc_name in ["SPJ_insert_Tarifas", "SPJ_Insert_Tarifa"]:
+    for proc_name in ["SPJ_insert_Tarifas"]:
         print(f"\n=== Parameters for {proc_name} ===")
         cursor.execute("""
             SELECT 

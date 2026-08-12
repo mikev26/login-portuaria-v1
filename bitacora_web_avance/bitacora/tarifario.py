@@ -216,14 +216,15 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "partida_cedula": "170202",
                 "formula": "(Eslora * 1.25) * Dia",
                 "detalle": "Tarifa regulada para barcos pesqueros y de cabotaje",
-                "valor": "0.13",
+                "valor": "0.1300",
                 "s_ante": "10",
                 "se_cobra_iva": False,
                 "senae_cod": "S-99",
                 "senae_desc": "Regulación nacional de cabotaje",
                 "calc_param": "eslora",
                 "calc_unidad": "dia",
-                "ticket_srv": "ninguno"
+                "ticket_srv": "ninguno",
+                "permitir_cambio_valor": False
             },
             {
                 "id": "2",
@@ -237,14 +238,15 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "partida_cedula": "1302010100",
                 "formula": "(T.Neto * 2.50) * Horas",
                 "detalle": "Tarifa portuaria naves mercantes internacionales",
-                "valor": "0.50",
+                "valor": "0.5000",
                 "s_ante": "15",
                 "se_cobra_iva": True,
                 "senae_cod": "S-102",
                 "senae_desc": "Impuestos aduaneros generales",
                 "calc_param": "t_neto",
                 "calc_unidad": "horas",
-                "ticket_srv": "muelle"
+                "ticket_srv": "muelle",
+                "permitir_cambio_valor": False
             },
             {
                 "id": "3",
@@ -258,14 +260,15 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "partida_cedula": "1302010400",
                 "formula": "Cantidad * 0.85",
                 "detalle": "Cobro por servicios específicos y especiales",
-                "valor": "1.00",
+                "valor": "1.0000",
                 "s_ante": "20",
                 "se_cobra_iva": True,
                 "senae_cod": "S-205",
                 "senae_desc": "Tarifación aduanera específica",
                 "calc_param": "otros",
                 "calc_unidad": "cantidad",
-                "ticket_srv": "vehiculo"
+                "ticket_srv": "vehiculo",
+                "permitir_cambio_valor": True
             }
         ]
         for t in normalized:
@@ -304,7 +307,7 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                         "partida_id": str_or_empty(_first_value(r, ["idpartida", "partida_id"], "")),
                         "formula": str_or_empty(_first_value(r, ["formula", "formula_calc"])),
                         "detalle": str_or_empty(_first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
-                        "valor": str_or_empty(_first_value(r, ["valor", "monto", "precio"], "0.00")),
+                        "valor": str_or_empty(_first_value(r, ["valor", "monto", "precio"], "0.0000")),
                         "s_ante": str_or_empty(_first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
                         "se_cobra_iva": _bool_value(_first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
                         "senae_cod": str_or_empty(_first_value(r, ["senae_cod", "codigo_senae", "senae"])),
@@ -312,6 +315,7 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                         "calc_param": "eslora" if _first_value(r, ["eslora_toneto"]) == 1 else ("t_neto" if _first_value(r, ["eslora_toneto"]) == 2 else "otros"),
                         "calc_unidad": "dia" if _first_value(r, ["dia_hora"]) == 1 else ("horas" if _first_value(r, ["dia_hora"]) == 2 else "cantidad"),
                         "ticket_srv": "vehiculo" if _first_value(r, ["tikect"]) == 1 else ("muelle" if _first_value(r, ["tikect"]) == 2 else "ninguno"),
+                        "permitir_cambio_valor": _bool_value(_first_value(r, ["cambiofacturacion", "cambio_facturacion", "permitir_cambio_valor"], False)),
                     }
                     t_val["json_data"] = json.dumps(t_val)
                     normalized.append(t_val)
@@ -323,6 +327,7 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
 
 
 def guardar_tarifa(
+    idtarifa: int,
     codigo: str,
     tarifa: str,
     valor: str | float,
@@ -336,12 +341,14 @@ def guardar_tarifa(
     iva: int,
     ticket: int,
     activo: int,
+    cambio_factura: int,
 ) -> int:
     """
-    Guarda una tarifa llamando al stored procedure dbo.SPJ_insert_Tarifas.
+    Guarda o actualiza una tarifa en la base de datos usando el procedimiento adecuado.
     """
     if settings.DEMO_MODE:
-        return 1
+        # Retorna 20 (éxito de actualización) si es edición, o 1 si es inserción
+        return 20 if idtarifa > 0 else 1
 
     try:
         try:
@@ -351,40 +358,86 @@ def guardar_tarifa(
 
         with closing(get_connection()) as connection:
             with closing(connection.cursor()) as cursor:
-                cursor.execute(
-                    """
-                    DECLARE @res INT;
-                    EXEC dbo.SPJ_insert_Tarifas 
-                        @sctarifa = ?, 
-                        @starifa = ?, 
-                        @svalor = ?, 
-                        @scpartida = ?, 
-                        @sidpartida = ?, 
-                        @sidtasa = ?, 
-                        @sformula = ?, 
-                        @sdetalle = ?, 
-                        @shora_dia = ?, 
-                        @seslora_tneto = ?, 
-                        @siva = ?, 
-                        @stikect = ?, 
-                        @sactivo = ?, 
-                        @sresul = @res OUTPUT;
-                    SELECT @res AS resul;
-                    """,
-                    codigo,
-                    tarifa,
-                    valor_dec,
-                    partida_cod,
-                    partida_id,
-                    int(tasa_id),
-                    formula,
-                    detalle,
-                    int(hora_dia),
-                    int(eslora_tneto),
-                    int(iva),
-                    int(ticket),
-                    int(activo),
-                )
+                if idtarifa > 0:
+                    cursor.execute(
+                        """
+                        DECLARE @res INT;
+                        EXEC dbo.SPJ_Update_Tarifas 
+                            @sidtarifa = ?,
+                            @sctarifa = ?, 
+                            @starifa = ?, 
+                            @svalor = ?, 
+                            @scpartida = ?, 
+                            @sidpartida = ?, 
+                            @sidtasa = ?, 
+                            @sformula = ?, 
+                            @sdetalle = ?, 
+                            @sidante = ?,
+                            @shora_dia = ?, 
+                            @seslora_tneto = ?, 
+                            @siva = ?, 
+                            @stikect = ?, 
+                            @sidsenae = ?,
+                            @sactivo = ?, 
+                            @scambioFactura = ?, 
+                            @sresul = @res OUTPUT;
+                        SELECT @res AS resul;
+                        """,
+                        idtarifa,
+                        codigo,
+                        tarifa,
+                        valor_dec,
+                        partida_cod,
+                        partida_id,
+                        int(tasa_id),
+                        formula,
+                        detalle,
+                        None,  # @sidante
+                        int(hora_dia),
+                        int(eslora_tneto),
+                        int(iva),
+                        int(ticket),
+                        None,  # @sidsenae
+                        int(activo),
+                        int(cambio_factura),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        DECLARE @res INT;
+                        EXEC dbo.SPJ_insert_Tarifas 
+                            @sctarifa = ?, 
+                            @starifa = ?, 
+                            @svalor = ?, 
+                            @scpartida = ?, 
+                            @sidpartida = ?, 
+                            @sidtasa = ?, 
+                            @sformula = ?, 
+                            @sdetalle = ?, 
+                            @shora_dia = ?, 
+                            @seslora_tneto = ?, 
+                            @siva = ?, 
+                            @stikect = ?, 
+                            @sactivo = ?, 
+                            @scambioFactura = ?, 
+                            @sresul = @res OUTPUT;
+                        SELECT @res AS resul;
+                        """,
+                        codigo,
+                        tarifa,
+                        valor_dec,
+                        partida_cod,
+                        partida_id,
+                        int(tasa_id),
+                        formula,
+                        detalle,
+                        int(hora_dia),
+                        int(eslora_tneto),
+                        int(iva),
+                        int(ticket),
+                        int(activo),
+                        int(cambio_factura),
+                    )
                 row = cursor.fetchone()
                 if row:
                     return row[0]
