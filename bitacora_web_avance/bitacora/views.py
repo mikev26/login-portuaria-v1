@@ -16,6 +16,7 @@ from .db import (
     DatabaseContractError,
     obtener_buques_artesanales,
     obtener_buques_industriales,
+    obtener_historial_turno,
     obtener_reporte_combustible,
     obtener_turnos_usuario,
     validar_usuario,
@@ -104,6 +105,8 @@ def bitacora_home(request):
 
         industriales = obtener_buques_industriales()
         artesanales = obtener_buques_artesanales()
+        for turno in turnos:
+            turno["novedades"] = obtener_historial_turno(turno["idturno"])
 
     except (DatabaseConfigurationError, DatabaseContractError) as exc:
         logger.exception("Error de configuración al abrir la bitácora")
