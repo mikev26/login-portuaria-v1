@@ -440,9 +440,6 @@
         <div id="turnoPanel{{ forloop.counter }}" class="panel-turno{% if forloop.first %} visible{% endif %}">
             <section class="section">
                 <div class="section-title">Registrar novedad</div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="idturno" value="{{ turno.idturno }}">
                 <div class="row">
                     <div class="field">
                         <label for="fecha{{ forloop.counter }}">Fecha</label>
@@ -454,10 +451,7 @@
                     </div>
                     <div class="field grow">
                         <label for="tipo{{ forloop.counter }}">Tipo de novedad</label>
-                        <select id="tipo{{ forloop.counter }}"
-                                name="tipo_novedad"
-                                class="novelty-type"
-                                data-ship-select="buque{{ forloop.counter }}">
+                        <select id="tipo{{ forloop.counter }}" class="novelty-type" data-ship-select="buque{{ forloop.counter }}">
                             <option value="inicio">Inicia turno</option>
                             <option value="industrial">Buque industrial</option>
                             <option value="artesanal">Buque artesanal</option>
@@ -468,31 +462,23 @@
                 <div class="row" style="margin-top:16px;">
                     <div class="field grow">
                         <label for="buque{{ forloop.counter }}">Registro de buque</label>
-                        <select id="buque{{ forloop.counter }}"
-                                name="idregistro"
-                                class="ship-select"
-                                disabled>
+                        <select id="buque{{ forloop.counter }}" class="ship-select" disabled>
                             <option value="">No aplica para este tipo de novedad</option>
                         </select>
-                        <input type="hidden"
-                               name="idbuque"
-                               class="selected-ship-id">
                         <div class="ship-help" id="buque{{ forloop.counter }}Help"></div>
                     </div>
                 </div>
 
                 <div class="field" style="margin-top:16px;">
                     <label for="detalle{{ forloop.counter }}">Detalle de novedades</label>
-                    <textarea id="detalle{{ forloop.counter }}"
-                              name="detalle"
-                              placeholder="Describa la novedad observada..."></textarea>
+                    <textarea id="detalle{{ forloop.counter }}" placeholder="Describa la novedad observada..."></textarea>
                 </div>
 
                 <div class="actions">
                     <button type="button" class="primary" disabled>Guardar novedad</button>
                 </div>
-                </form>
-            </section> 
+                <div class="pending">El guardado se habilitará cuando se confirme el procedimiento almacenado que registra las novedades.</div>
+            </section>
 
             <section class="section">
                 <div class="section-title">Historial del turno</div>
