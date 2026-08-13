@@ -3,6 +3,7 @@
 from .auth_service import validar_usuario, obtener_turnos_usuario
 from .ship_service import obtener_buques_industriales, obtener_buques_artesanales
 from .report_service import obtener_reporte_inec
+from .tarifario import (obtener_tarifas_existentes, obtener_partidas, obtener_tasa_por_id, obtener_siguiente_codigo_tarifa, guardar_tarifa, anular_tarifa,)
 from .combustible import obtener_reporte_combustible
 from .db_connection import (
     DatabaseConfigurationError,
@@ -20,4 +21,10 @@ __all__ = [
     "DatabaseConfigurationError",
     "DatabaseContractError",
     "get_connection",
+    "obtener_tarifas_existentes",
+    "obtener_partidas",
+    "obtener_tasa_por_id",
+    "obtener_siguiente_codigo_tarifa",
+    "guardar_tarifa",
+    "anular_tarifa",
 ]

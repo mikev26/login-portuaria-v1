@@ -114,3 +114,6 @@ RUTA_PLANTILLA_INEC = (
 RUTA_PLANTILLA_COMB = (
     BASE_DIR / "plantilla" / "plantilla_combustible.xlsx"
 )
+RUTA_PLANTILLA_TARI = (
+    BASE_DIR / "plantilla" / "plantilla_tarifas.xlsx"
+)

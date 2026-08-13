@@ -22,12 +22,10 @@ from .services import (
     obtener_turnos_usuario,
     validar_usuario,
     obtener_reporte_inec,
-)
-from .tarifario import (
+    obtener_tarifas_existentes,
     obtener_partidas,
     obtener_tasa_por_id,
     obtener_siguiente_codigo_tarifa,
-    obtener_tarifas_existentes,
     guardar_tarifa,
     anular_tarifa,
 )
@@ -1822,9 +1820,23 @@ def exportar_tarifas_view(request):
         tarifas = obtener_tarifas_existentes()
 
         # 2. Ruta a la plantilla
-        template_path = os.path.join(settings.BASE_DIR, "excel", "F003_GSW_TARI.xlsx")
+        template_path = getattr(
+            settings,
+            "RUTA_PLANTILLA_TARI",
+            "",
+        )
+
+        if not template_path:
+            raise FileNotFoundError(
+                "No se ha configurado RUTA_PLANTILLA_TARI."
+            )
+
+        template_path = os.fspath(template_path)
+
         if not os.path.exists(template_path):
-            return HttpResponse(f"No se encontró la plantilla de Excel en: {template_path}", status=404)
+            raise FileNotFoundError(
+                f"No se encontró la plantilla Excel: {template_path}"
+        )
 
         # 3. Cargar el libro y la hoja activa
         wb = openpyxl.load_workbook(template_path)
