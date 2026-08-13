@@ -109,5 +109,8 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 DEMO_MODE = env_bool("DEMO_MODE", False)
 
 RUTA_PLANTILLA_INEC = (
-    BASE_DIR / "plantilla" / "plantilla.xlsx"
+    BASE_DIR / "plantilla" / "plantillaInec.xlsx"
+)
+RUTA_PLANTILLA_COMB = (
+    BASE_DIR / "plantilla" / "plantilla_combustible.xlsx"
 )
