@@ -368,8 +368,6 @@ def obtener_buques_artesanales() -> list[dict[str, Any]]:
             return []
         raise
 
-<<<<<<< HEAD
-=======
 
 def obtener_reporte_inec(fecha_inicio: date, fecha_fin: date) -> list[dict[str, Any]]:
     """Obtiene el reporte INEC llamando al procedimiento por año y filtrando por rango.
