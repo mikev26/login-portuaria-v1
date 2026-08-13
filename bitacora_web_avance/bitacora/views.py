@@ -856,16 +856,6 @@ def registro_combustible_home(request):
         if fecha_hasta:
             ajax_response["fecha_hasta"] = fecha_hasta.isoformat()
 
-    return render(request, "bitacora/registro_combustible.html", {
-    "usuario_nombre": request.session.get("usuario_nombre"),
-    "usuario_cargo": request.session.get("usuario_cargo"),
-    "usuario_login": request.session.get("usuario_login"),
-    "form": form,
-    "registros": registros,
-    "ajax_response": ajax_response,
-    })
-       
-
     if request.GET.get("buscar") == "1":
         if form.is_valid():
             try:
