@@ -43,6 +43,164 @@
             color: white;
             background: linear-gradient(120deg, var(--navy-deep), var(--navy));
         }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .menu-button {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border: 1px solid rgba(255,255,255,.38);
+            border-radius: 8px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            cursor: pointer;
+            transition: background .2s ease, transform .2s ease;
+        }
+        .menu-button:hover {
+            background: rgba(255,255,255,.16);
+        }
+        .menu-button:active {
+            transform: scale(.96);
+        }
+        .menu-button span {
+            width: 20px;
+            height: 2px;
+            border-radius: 4px;
+            background: currentColor;
+        }
+        body.menu-open {
+            overflow: hidden;
+        }
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(6, 28, 49, .50);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .22s ease, visibility .22s ease;
+        }
+        .menu-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .side-menu {
+            position: fixed;
+            inset: 0 auto 0 0;
+            z-index: 1001;
+            width: min(330px, 88vw);
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            box-shadow: 12px 0 35px rgba(6,45,82,.22);
+            transform: translateX(-105%);
+            transition: transform .25s ease;
+        }
+        .side-menu.open {
+            transform: translateX(0);
+        }
+        .side-menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 20px;
+            color: white;
+            background: linear-gradient(135deg, var(--navy-deep), var(--navy));
+        }
+        .side-menu-title {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: .4px;
+        }
+        .side-menu-subtitle {
+            margin: 4px 0 0;
+            font-size: 11.5px;
+            opacity: .78;
+        }
+        .menu-close {
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 7px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            font-size: 23px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .menu-navigation {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+        .menu-label {
+            padding: 4px 12px 8px;
+            color: var(--muted);
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 46px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background .18s ease, color .18s ease, transform .18s ease;
+        }
+        .menu-link:hover {
+            background: #edf5fa;
+            color: var(--navy);
+            transform: translateX(2px);
+        }
+        .menu-link.active {
+            background: #e3f0f8;
+            color: var(--navy-deep);
+            box-shadow: inset 4px 0 0 var(--blue);
+        }
+        .menu-link.disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .menu-icon {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            background: #edf4f8;
+            color: var(--navy);
+            font-size: 15px;
+        }
+        .menu-footer {
+            margin-top: auto;
+            padding: 14px 20px 18px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
         .brand { display: flex; align-items: center; gap: 14px; }
         .brand img { width: 58px; background: white; border-radius: 7px; padding: 4px; }
         .brand h1 { margin: 0; font-size: 22px; letter-spacing: .4px; }
@@ -163,10 +321,20 @@
         .panel-turno.visible { display: block; }
         .no-turns { padding: 25px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
         @media (max-width: 700px) {
+<<<<<<< HEAD
             header { align-items: flex-start; flex-direction: column; }
             .nav-links { margin-top: 10px; margin-bottom: 5px; width: 100%; justify-content: flex-start; gap: 4px; }
             .nav-link { padding: 6px 10px; font-size: 13px; }
             .session { text-align: left; }
+=======
+            header { align-items: stretch; flex-direction: column; }
+            .header-left { width: 100%; }
+            .brand { min-width: 0; }
+            .brand h1 { font-size: 18px; }
+            .brand p { font-size: 11.5px; }
+            .brand img { width: 50px; }
+            .session { text-align: left; padding-left: 58px; }
+>>>>>>> origin/reporte
             main { padding: 20px 17px 30px; }
             .row { flex-direction: column; align-items: stretch; }
             .field, .field.grow, .turn-select { min-width: 0; width: 100%; }
@@ -174,13 +342,80 @@
     </style>
 </head>
 <body>
+<div id="menuOverlay" class="menu-overlay" aria-hidden="true"></div>
+
+<aside id="sideMenu" class="side-menu" aria-hidden="true" aria-label="Menú principal">
+    <div class="side-menu-header">
+        <div>
+            <h2 class="side-menu-title">Menú de interfaces</h2>
+            <p class="side-menu-subtitle">Autoridad Portuaria de Manta</p>
+        </div>
+        <button id="menuClose" class="menu-close" type="button" aria-label="Cerrar menú">&times;</button>
+    </div>
+
+    <nav class="menu-navigation">
+        <div class="menu-label">Navegación</div>
+
+        <!--
+            IMPORTANTE:
+            Cambia los valores de href por las rutas reales de las vistas
+            que están desarrollando tus compañeros.
+        -->
+        <a class="menu-link active" href="/">
+            <span class="menu-icon" aria-hidden="true">▣</span>
+            <span>Bitácora electrónica</span>
+        </a>
+
+        <!--
+            Estos enlaces quedan deshabilitados mientras las interfaces
+            de tus compañeros todavía están en ramas separadas.
+            Cuando sus ramas se integren, se reemplaza href="#" por
+            la ruta real de Django y se elimina la clase disabled.
+        -->
+        <a class="menu-link disabled" href="#" aria-disabled="true">
+            <span class="menu-icon" aria-hidden="true">⚓</span>
+            <span>Interfaz 1 — Próximamente</span>
+        </a>
+
+        <a class="menu-link disabled" href="#" aria-disabled="true">
+            <span class="menu-icon" aria-hidden="true">▤</span>
+            <span>Interfaz 2 — Próximamente</span>
+        </a>
+
+        <a class="menu-link disabled" href="#" aria-disabled="true">
+            <span class="menu-icon" aria-hidden="true">⌕</span>
+            <span>Interfaz  3 — Próximamente</span>
+        </a>
+    </nav>
+
+    <div class="menu-footer">
+        Sesión iniciada como:<br>
+        <strong>{{ usuario_nombre }}</strong>
+    </div>
+</aside>
+
 <div class="shell">
     <header>
-        <div class="brand">
-            <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
-            <div>
-                <h1>BITÁCORA ELECTRÓNICA</h1>
-                <p>Autoridad Portuaria de Manta</p>
+        <div class="header-left">
+            <button
+                id="menuButton"
+                class="menu-button"
+                type="button"
+                aria-label="Abrir menú de interfaces"
+                aria-controls="sideMenu"
+                aria-expanded="false"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="brand">
+                <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
+                <div>
+                    <h1>BITÁCORA ELECTRÓNICA</h1>
+                    <p>Autoridad Portuaria de Manta</p>
+                </div>
             </div>
         </div>
         <nav class="nav-links">
@@ -364,7 +599,39 @@
         document.querySelectorAll('.current-time').forEach((input) => input.value = `${hh}:${min}`);
     }
 
+    function setMenuState(isOpen) {
+        const menu = document.getElementById('sideMenu');
+        const overlay = document.getElementById('menuOverlay');
+        const button = document.getElementById('menuButton');
+
+        if (!menu || !overlay || !button) return;
+
+        menu.classList.toggle('open', isOpen);
+        overlay.classList.toggle('visible', isOpen);
+        document.body.classList.toggle('menu-open', isOpen);
+
+        menu.setAttribute('aria-hidden', String(!isOpen));
+        overlay.setAttribute('aria-hidden', String(!isOpen));
+        button.setAttribute('aria-expanded', String(isOpen));
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        const menuButton = document.getElementById('menuButton');
+        const menuClose = document.getElementById('menuClose');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        if (menuButton) menuButton.addEventListener('click', () => setMenuState(true));
+        if (menuClose) menuClose.addEventListener('click', () => setMenuState(false));
+        if (menuOverlay) menuOverlay.addEventListener('click', () => setMenuState(false));
+
+        document.querySelectorAll('.menu-link').forEach((link) => {
+            link.addEventListener('click', () => setMenuState(false));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') setMenuState(false);
+        });
+
         const turnSelect = document.getElementById('turnoSelect');
         if (turnSelect) turnSelect.addEventListener('change', refreshTurn);
         document.querySelectorAll('.novelty-type').forEach((select) => {

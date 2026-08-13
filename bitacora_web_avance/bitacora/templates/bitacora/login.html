@@ -132,6 +132,15 @@
                 {% endfor %}
             {% endif %}
 
+            {% if demo_mode %}
+                <div class="demo" style="margin-left: 0; margin-right: 0; margin-bottom: 15px;">
+                    <strong>Modo demostración activo</strong><br>
+                    Para ingresar use:<br>
+                    • Usuario: <code>inspector.demo</code><br>
+                    • Contraseña: <code>Demo1234</code>
+                </div>
+            {% endif %}
+
             <form method="post" action="{% url 'login' %}" autocomplete="off">
                 {% csrf_token %}
                 <div class="field">

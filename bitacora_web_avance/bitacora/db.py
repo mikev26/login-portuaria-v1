@@ -368,3 +368,98 @@ def obtener_buques_artesanales() -> list[dict[str, Any]]:
             return []
         raise
 
+<<<<<<< HEAD
+=======
+
+def obtener_reporte_inec(fecha_inicio: date, fecha_fin: date) -> list[dict[str, Any]]:
+    """Obtiene el reporte INEC llamando al procedimiento por año y filtrando por rango.
+
+    El procedimiento debe aceptar un parámetro año. El nombre del procedimiento y
+    del parámetro se configura en las variables de entorno `SP_REPORTE_INEC` y
+    `SP_REPORTE_INEC_ANIO_PARAM`.
+    """
+    if fecha_inicio > fecha_fin:
+        fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
+
+    procedure = os.getenv("SP_REPORTE_INEC", "dbo.SP_Reporte_INEC").strip()
+    anio_param = os.getenv("SP_REPORTE_INEC_ANIO_PARAM", "@anio").strip()
+
+    if not _IDENTIFIER_RE.fullmatch(procedure):
+        raise DatabaseConfigurationError("SP_REPORTE_INEC debe tener formato esquema.procedimiento")
+
+    resultados: list[dict[str, Any]] = []
+    # Intentar llamar al procedimiento por año. Si el SP informa que espera
+    # otro nombre de parámetro (por ejemplo '@s_ano'), lo extraemos del
+    # mensaje de error y reintentamos con ese nombre.
+    missing_param_re = re.compile(r"['\"](@[A-Za-z0-9_]+)['\"]")
+    for anio in range(fecha_inicio.year, fecha_fin.year + 1):
+        try:
+            rows = _execute_procedure(procedure, [(anio_param, anio)])
+        except Exception as exc:
+            # Si falta el procedimiento, continuar con el siguiente año.
+            if _is_missing_object_error(exc):
+                continue
+
+            # Detectar error de parámetro faltante y reintentar con el nombre
+            # de parámetro que apareció en el mensaje (p.ej. '@s_ano').
+            msg = str(exc)
+            if pyodbc is not None and isinstance(exc, pyodbc.ProgrammingError):
+                lower = msg.lower()
+                if "esperaba el parámetro" in lower or "expected parameter" in lower:
+                    m = missing_param_re.search(msg)
+                    if m:
+                        nuevo_param = m.group(1)
+                        if _PARAMETER_RE.fullmatch(nuevo_param):
+                            anio_param = nuevo_param
+                            # reintentar la misma iteración con el nuevo nombre
+                            rows = _execute_procedure(procedure, [(anio_param, anio)])
+                        else:
+                            raise DatabaseConfigurationError(
+                                "Nombre de parámetro inesperado en SP_REPORTE_INEC_ANIO_PARAM"
+                            ) from exc
+                    else:
+                        raise
+                else:
+                    raise
+            else:
+                raise
+
+        for row in rows:
+            resultados.append(row)
+
+    # Intentar detectar la columna de fecha para filtrar
+    date_key = None
+    if resultados:
+        keys = list(resultados[0].keys())
+        for k in keys:
+            if "fecha" in k or "date" in k or "dia" in k:
+                date_key = k
+                break
+
+    def _to_date(val: Any) -> date | None:
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val.date()
+        if isinstance(val, date):
+            return val
+        s = str(val).strip()
+        for fmt in ("%d/%m/%Y %H:%M", "%d/%m/%Y", "%Y-%m-%d", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except Exception:
+                continue
+        return None
+
+    if date_key:
+        filtrados: list[dict[str, Any]] = []
+        for row in resultados:
+            d = _to_date(row.get(date_key))
+            if d is None:
+                continue
+            if fecha_inicio <= d <= fecha_fin:
+                filtrados.append(row)
+        return filtrados
+
+    return resultados
+>>>>>>> origin/reporte

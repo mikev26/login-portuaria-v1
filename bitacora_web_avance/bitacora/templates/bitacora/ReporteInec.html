@@ -1,0 +1,59 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reporte INEC</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #1d2d3d; }
+    form { display:flex; gap:12px; align-items:center; margin-bottom:18px; }
+    input[type=date] { padding:8px; border-radius:4px; }
+    button { padding:8px 12px; border-radius:6px; background:#17689d; color:white; border:0; }
+    table { border-collapse: collapse; width:100%; margin-top:16px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left; }
+    th { background:#f0f4f8; }
+  </style>
+</head>
+<body>
+  <h1>Reporte INEC</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div style="color: red;">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <label>Desde <input type="date" name="inicio" value="{{ inicio|default:'' }}" required></label>
+    <label>Hasta <input type="date" name="fin" value="{{ fin|default:'' }}" required></label>
+    <button type="submit" name="show" value="1">Mostrar</button>
+    <button type="submit" name="export" value="1">Exportar CSV</button>
+  </form>
+
+  {% if rows %}
+    <table>
+      <thead>
+        <tr>
+          {% for h in rows.0.keys %}
+            <th>{{ h }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            {% for v in r.values %}
+              <td>{{ v }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay datos a mostrar.</p>
+  {% endif %}
+
+</body>
+</html>
