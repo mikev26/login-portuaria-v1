@@ -156,9 +156,12 @@ def exportar_reporte_inec_excel(
     rows,
     fecha_inicio,
     fecha_fin,
+    usuario_nombre="",
+    usuario_cargo="",
 ):
     try:
         import openpyxl
+        from openpyxl.styles import Font, Alignment
     except ImportError as exc:
         raise RuntimeError(
             "La dependencia openpyxl no está instalada."
@@ -232,6 +235,7 @@ def exportar_reporte_inec_excel(
     ]
 
     def normalizar_clave(valor):
+
         if valor is None:
             return ""
 
@@ -243,10 +247,13 @@ def exportar_reporte_inec_excel(
         )
 
     def preparar_registro(registro):
+
         resultado = {}
 
         for key, value in registro.items():
+
             clave = normalizar_clave(key)
+
             resultado[clave] = value
 
         return resultado
@@ -308,9 +315,7 @@ def exportar_reporte_inec_excel(
 
         "Pasajeros _e": [
             "pasajeros_e",
-            "pasajeros_e",
             "pasajeros_entrada",
-            "pasajeros_e",
         ],
 
         "Pasajeros_s": [
@@ -380,9 +385,11 @@ def exportar_reporte_inec_excel(
         )
 
         for posible in posibles:
+
             clave = normalizar_clave(posible)
 
             if clave in registro:
+
                 valor = registro.get(clave)
 
                 if valor is not None:
@@ -409,20 +416,206 @@ def exportar_reporte_inec_excel(
                 campo,
             )
 
-            if hasattr(valor, "date"):
-                try:
-                    valor = valor
-                except Exception:
-                    pass
-
             worksheet.cell(
                 row=numero_fila,
                 column=numero_columna,
                 value=valor,
             )
 
+    if rows:
+        ultima_fila_datos = (
+            START_ROW
+            + len(rows)
+            - 1
+        )
+    else:
+        ultima_fila_datos = START_ROW
+
+    sig_start = ultima_fila_datos + 3
+
+    worksheet.merge_cells(
+        start_row=sig_start,
+        start_column=2,
+        end_row=sig_start,
+        end_column=5,
+    )
+
+    cell_prep = worksheet.cell(
+        row=sig_start,
+        column=2,
+    )
+
+    cell_prep.value = "PREPARADO POR:"
+
+    cell_prep.font = Font(
+        name="Calibri",
+        size=11,
+        bold=False,
+    )
+
+    cell_prep.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start + 2,
+        start_column=2,
+        end_row=sig_start + 2,
+        end_column=5,
+    )
+
+    cell_line_left = worksheet.cell(
+        row=sig_start + 2,
+        column=2,
+    )
+
+    cell_line_left.value = (
+        "________________________________________"
+    )
+
+    cell_line_left.font = Font(
+        name="Calibri",
+        size=11,
+        bold=False,
+    )
+
+    cell_line_left.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start + 2,
+        start_column=9,
+        end_row=sig_start + 2,
+        end_column=12,
+    )
+
+    cell_line_right = worksheet.cell(
+        row=sig_start + 2,
+        column=9,
+    )
+
+    cell_line_right.value = (
+        "________________________________________"
+    )
+
+    cell_line_right.font = Font(
+        name="Calibri",
+        size=11,
+        bold=False,
+    )
+
+    cell_line_right.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start + 3,
+        start_column=2,
+        end_row=sig_start + 3,
+        end_column=5,
+    )
+
+    cell_name_left = worksheet.cell(
+        row=sig_start + 3,
+        column=2,
+    )
+
+    cell_name_left.value = usuario_nombre or ""
+
+    cell_name_left.font = Font(
+        name="Calibri",
+        size=11,
+        bold=True,
+    )
+
+    cell_name_left.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start + 4,
+        start_column=2,
+        end_row=sig_start + 4,
+        end_column=5,
+    )
+
+    cell_cargo_left = worksheet.cell(
+        row=sig_start + 4,
+        column=2,
+    )
+
+    cell_cargo_left.value = usuario_cargo or ""
+
+    cell_cargo_left.font = Font(
+        name="Calibri",
+        size=10,
+        bold=False,
+    )
+
+    cell_cargo_left.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start,
+        start_column=9,
+        end_row=sig_start,
+        end_column=12,
+    )
+
+    cell_revisado = worksheet.cell(
+        row=sig_start,
+        column=9,
+    )
+
+    cell_revisado.value = "REVISADO"
+
+    cell_revisado.font = Font(
+        name="Calibri",
+        size=11,
+        bold=False,
+    )
+
+    cell_revisado.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+    worksheet.merge_cells(
+        start_row=sig_start + 3,
+        start_column=9,
+        end_row=sig_start + 3,
+        end_column=12,
+    )
+
+    cell_name_right = worksheet.cell(
+        row=sig_start + 3,
+        column=9,
+    )
+
+    cell_name_right.value = "REVISADO"
+
+    cell_name_right.font = Font(
+        name="Calibri",
+        size=11,
+        bold=True,
+    )
+
+    cell_name_right.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
     output = io.BytesIO()
+
     workbook.save(output)
+
     output.seek(0)
 
     filename = (
@@ -587,6 +780,14 @@ def reporte_inec_view(request):
                 rows,
                 fecha_inicio,
                 fecha_fin,
+                usuario_nombre=request.session.get(
+                    "usuario_nombre",
+                    "",
+                ),
+                usuario_cargo=request.session.get(
+                    "usuario_cargo",
+                    "",
+                ),
             )
 
         except FileNotFoundError as exc:
@@ -613,7 +814,7 @@ def reporte_inec_view(request):
                     "el archivo Excel."
                 ),
             )
-            
+
     return render(
         request,
         "bitacora/ReporteInec.html",
@@ -757,6 +958,7 @@ def registro_combustible_home(request):
             "form": form,
             "registros": registros,
             "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
             "fecha_emision": fecha_emision,
             "fecha_desde": fecha_desde,
             "fecha_hasta": fecha_hasta,
@@ -765,11 +967,7 @@ def registro_combustible_home(request):
 
 
 def _obtener_datos_exportacion(request):
-    """Obtiene los registros y rango de fechas para exportación.
-    
-    Primero consulta la sesión. Si no existe pero la petición contiene
-    los parámetros GET (fecha_inicio y fecha_fin), vuelve a ejecutar la búsqueda.
-    """
+
     last = request.session.get("reporte_combustible_last")
     if last and last.get("registros"):
         return last
@@ -820,201 +1018,537 @@ def _obtener_datos_exportacion(request):
 
 @require_http_methods(["GET"])
 def exportar_excel(request):
-    """Exporta a Excel el último resultado de búsqueda almacenado en sesión o parámetros GET."""
+
     if not request.session.get("usuario_id"):
         return redirect("login")
 
     last = _obtener_datos_exportacion(request)
+
     if not last:
-        messages.error(request, "Primero debe realizar una búsqueda para exportar la información.")
+        messages.error(
+            request,
+            "Primero debe realizar una búsqueda para exportar la información."
+        )
         return redirect("registro_combustible")
 
     registros = last.get("registros", [])
-    if not registros:
-        messages.info(request, "No existen registros para exportar.")
-        return redirect("registro_combustible")
 
-    # Verificar plantilla
-    template_path = (
-        getattr(settings, "RUTA_PLANTILLA_EXCEL", "")
-        or os.getenv("RUTA_PLANTILLA_EXCEL", "")
-        or ""
-    ).strip()
-    if not template_path or not os.path.exists(template_path):
-        messages.error(
+    if not registros:
+        messages.info(
             request,
-            f"Plantilla de Excel no encontrada. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
+            "No existen registros para exportar."
         )
         return redirect("registro_combustible")
 
     try:
-        try:
-            import openpyxl
-            from openpyxl.styles import Font, Alignment
-        except Exception:
-            messages.error(request, "La dependencia 'openpyxl' para generar Excel no está instalada.")
-            return redirect("registro_combustible")
+        import openpyxl
+        from openpyxl.styles import Font, Alignment
+    except ImportError:
+        messages.error(
+            request,
+            "La dependencia 'openpyxl' para generar Excel no está instalada."
+        )
+        return redirect("registro_combustible")
 
+    template_path = getattr(
+        settings,
+        "RUTA_PLANTILLA_COMB",
+        "",
+    )
+
+    if not template_path:
+        raise FileNotFoundError(
+            "No se ha configurado RUTA_PLANTILLA_COMB."
+        )
+
+    template_path = os.fspath(template_path)
+
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(
+            f"No se encontró la plantilla Excel: {template_path}"
+        )
+
+    try:
         with open(template_path, "rb") as f:
             template_bytes = io.BytesIO(f.read())
 
         wb = openpyxl.load_workbook(template_bytes)
-        ws = wb["controlcombustible"] if "controlcombustible" in wb.sheetnames else wb.active
+
+        if "controlcombustible" in wb.sheetnames:
+            ws = wb["controlcombustible"]
+        elif "Hoja2" in wb.sheetnames:
+            ws = wb["Hoja2"]
+        else:
+            ws = wb.active
 
         def safe_write_cell(ws, r, c, val):
             cell = ws.cell(row=r, column=c)
+
             if cell.__class__.__name__ != "MergedCell":
                 cell.value = val
 
-        # Escribir fecha de emisión en Celda A4
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
-        safe_write_cell(ws, 4, 1, f"Fecha de Emisión : Manta, {fecha_emision_str}")
 
-        # Formatear fechas desde y hasta para Celda A5
+        safe_write_cell(
+            ws,
+            4,
+            1,
+            f"Fecha de Emisión : Manta, {fecha_emision_str}"
+        )
+
         def _fmt_fecha(val):
             if not val:
                 return "—"
+
             if hasattr(val, "strftime"):
                 return val.strftime("%d/%m/%Y")
+
             val_str = str(val).split("T")[0]
             parts = val_str.split("-")
+
             if len(parts) == 3 and len(parts[0]) == 4:
                 return f"{parts[2]}/{parts[1]}/{parts[0]}"
+
             return str(val)
 
-        f_desde_str = _fmt_fecha(last.get("fecha_desde"))
-        f_hasta_str = _fmt_fecha(last.get("fecha_hasta"))
+        f_desde_str = _fmt_fecha(
+            last.get("fecha_desde")
+        )
+
+        f_hasta_str = _fmt_fecha(
+            last.get("fecha_hasta")
+        )
 
         safe_write_cell(
             ws,
             5,
             1,
-            f"F.Desde: {f_desde_str}               F.Hasta :      {f_hasta_str}",
+            (
+                f"F.Desde: {f_desde_str}"
+                f"               "
+                f"F.Hasta :      {f_hasta_str}"
+            ),
         )
 
         def first_value(row, keys):
+
             if isinstance(row, dict):
+
                 for key in keys:
                     val = row.get(key)
-                    if val is not None and str(val).strip() != "":
+
+                    if (
+                        val is not None
+                        and str(val).strip() != ""
+                    ):
                         return val
+
             elif isinstance(row, (list, tuple)):
+
                 for val in row:
-                    if val is not None and str(val).strip() != "":
+
+                    if (
+                        val is not None
+                        and str(val).strip() != ""
+                    ):
                         return val
+
             return ""
 
-        # Limpiar celdas combinadas de la plantilla a partir de la fila 8 hacia abajo
-        # para evitar solapamientos y distorsión al escribir los registros.
         for rng in list(ws.merged_cells.ranges):
+
             if rng.min_row >= 8:
                 ws.unmerge_cells(str(rng))
 
         start_row = 8
-        for idx, reg in enumerate(registros, start=start_row):
+
+        for idx, reg in enumerate(
+            registros,
+            start=start_row,
+        ):
+
             fila = [
-                first_value(reg, ("fecha_ingresa", "fecha", "fecha_registro", "fecha_mov")),
-                first_value(reg, ("c_tikect", "c_ticket", "tikect", "ticket", "tickets")),
-                first_value(reg, ("guia", "guia_r", "guia_no")),
-                first_value(reg, ("idplaca", "placa")),
-                first_value(reg, ("chofer", "conductor")),
-                first_value(reg, ("licencia", "licencia_conductor", "licencia_no")),
-                first_value(reg, ("codbuque", "cod_buque", "scbuque")),
-                first_value(reg, ("buque", "nombre")),
-                first_value(reg, ("matricula", "n_matricula")),
-                first_value(reg, ("galones", "cantidad_litros", "litros")),
-                first_value(reg, ("motivo",)),
-                first_value(reg, ("estado",)),
-                first_value(reg, ("tipo_carro", "tipo carro", "tipo")),
+                first_value(
+                    reg,
+                    (
+                        "fecha_ingresa",
+                        "fecha",
+                        "fecha_registro",
+                        "fecha_mov",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "c_tikect",
+                        "c_ticket",
+                        "tikect",
+                        "ticket",
+                        "tickets",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "guia",
+                        "guia_r",
+                        "guia_no",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "idplaca",
+                        "placa",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "chofer",
+                        "conductor",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "licencia",
+                        "licencia_conductor",
+                        "licencia_no",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "codbuque",
+                        "cod_buque",
+                        "scbuque",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "buque",
+                        "nombre",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "matricula",
+                        "n_matricula",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "galones",
+                        "cantidad_litros",
+                        "litros",
+                    ),
+                ),
+
+                first_value(
+                    reg,
+                    ("motivo",),
+                ),
+
+                first_value(
+                    reg,
+                    ("estado",),
+                ),
+
+                first_value(
+                    reg,
+                    (
+                        "tipo_carro",
+                        "tipo carro",
+                        "tipo",
+                    ),
+                ),
             ]
 
-            for col_idx, value in enumerate(fila, start=1):
-                safe_write_cell(ws, idx, col_idx, value)
+            for col_idx, value in enumerate(
+                fila,
+                start=1,
+            ):
+                safe_write_cell(
+                    ws,
+                    idx,
+                    col_idx,
+                    value,
+                )
 
-        # Determinar la última fila escrita y calcular el inicio del bloque de firmas
-        last_data_row = start_row + len(registros) - 1
-        sig_start = last_data_row + 3  # Dejar 2 filas vacías de separación
+        last_data_row = (
+            start_row
+            + len(registros)
+            - 1
+        )
 
-        # Lado Izquierdo: PREPARADO POR:
-        ws.merge_cells(start_row=sig_start, start_column=2, end_row=sig_start, end_column=5)
-        cell_prep = ws.cell(row=sig_start, column=2)
+        sig_start = last_data_row + 3
+
+        ws.merge_cells(
+            start_row=sig_start,
+            start_column=2,
+            end_row=sig_start,
+            end_column=5,
+        )
+
+        cell_prep = ws.cell(
+            row=sig_start,
+            column=2,
+        )
+
         cell_prep.value = "PREPARADO POR:"
-        cell_prep.font = Font(name="Calibri", size=11, bold=False)
-        cell_prep.alignment = Alignment(horizontal="center", vertical="center")
+        cell_prep.font = Font(
+            name="Calibri",
+            size=11,
+            bold=False,
+        )
+        cell_prep.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
 
-        # Líneas de firmas en fila sig_start + 2
-        # Izquierda (B a E)
-        ws.merge_cells(start_row=sig_start+2, start_column=2, end_row=sig_start+2, end_column=5)
-        cell_line_left = ws.cell(row=sig_start+2, column=2)
-        cell_line_left.value = "________________________________________"
-        cell_line_left.font = Font(name="Calibri", size=11, bold=False)
-        cell_line_left.alignment = Alignment(horizontal="center", vertical="center")
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=2,
+            end_row=sig_start + 2,
+            end_column=5,
+        )
 
-        # Derecha (I a L)
-        ws.merge_cells(start_row=sig_start+2, start_column=9, end_row=sig_start+2, end_column=12)
-        cell_line_right = ws.cell(row=sig_start+2, column=9)
-        cell_line_right.value = "________________________________________"
-        cell_line_right.font = Font(name="Calibri", size=11, bold=False)
-        cell_line_right.alignment = Alignment(horizontal="center", vertical="center")
+        cell_line_left = ws.cell(
+            row=sig_start + 2,
+            column=2,
+        )
 
-        # Nombres/cargos en fila sig_start + 3
-        # Izquierda (B a E) - Nombre dinámico de la sesión
-        ws.merge_cells(start_row=sig_start+3, start_column=2, end_row=sig_start+3, end_column=5)
-        cell_name_left = ws.cell(row=sig_start+3, column=2)
-        cell_name_left.value = request.session.get("usuario_nombre", "")
-        cell_name_left.font = Font(name="Calibri", size=11, bold=True)
-        cell_name_left.alignment = Alignment(horizontal="center", vertical="center")
+        cell_line_left.value = (
+            "________________________________________"
+        )
 
-        # Derecha (I a L) - "REVISADO"
-        ws.merge_cells(start_row=sig_start+3, start_column=9, end_row=sig_start+3, end_column=12)
-        cell_name_right = ws.cell(row=sig_start+3, column=9)
+        cell_line_left.font = Font(
+            name="Calibri",
+            size=11,
+            bold=False,
+        )
+
+        cell_line_left.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+
+        # Línea derecha
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=9,
+            end_row=sig_start + 2,
+            end_column=12,
+        )
+
+        cell_line_right = ws.cell(
+            row=sig_start + 2,
+            column=9,
+        )
+
+        cell_line_right.value = (
+            "________________________________________"
+        )
+
+        cell_line_right.font = Font(
+            name="Calibri",
+            size=11,
+            bold=False,
+        )
+
+        cell_line_right.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+
+        #Nombre
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=2,
+            end_row=sig_start + 3,
+            end_column=5,
+        )
+
+        cell_name_left = ws.cell(
+            row=sig_start + 3,
+            column=2,
+        )
+
+        cell_name_left.value = request.session.get(
+            "usuario_nombre",
+            "",
+        )
+
+        cell_name_left.font = Font(
+            name="Calibri",
+            size=11,
+            bold=True,
+        )
+
+        cell_name_left.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+
+        # cargo
+        ws.merge_cells(
+            start_row=sig_start + 4,
+            start_column=2,
+            end_row=sig_start + 4,
+            end_column=5,
+        )
+
+        cell_cargo_left = ws.cell(
+            row=sig_start + 4,
+            column=2,
+        )
+
+        cell_cargo_left.value = request.session.get(
+            "usuario_cargo",
+            "",
+        )
+
+        cell_cargo_left.font = Font(
+            name="Calibri",
+            size=10,
+            bold=False,
+        )
+
+        cell_cargo_left.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+        
+        # revisado
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=9,
+            end_row=sig_start + 3,
+            end_column=12,
+        )
+
+        cell_name_right = ws.cell(
+            row=sig_start + 3,
+            column=9,
+        )
+
         cell_name_right.value = "REVISADO"
-        cell_name_right.font = Font(name="Calibri", size=11, bold=True)
-        cell_name_right.alignment = Alignment(horizontal="center", vertical="center")
 
-        # Remover rangos de celdas fusionadas que estén por debajo del bloque de firmas
+        cell_name_right.font = Font(
+            name="Calibri",
+            size=11,
+            bold=True,
+        )
+
+        cell_name_right.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+
         for rng in list(ws.merged_cells.ranges):
-            if rng.min_row > sig_start + 3:
+
+            if rng.min_row > sig_start + 4:
                 ws.unmerge_cells(str(rng))
 
-        # Limpiar filas sobrantes por debajo en la plantilla si existen
         max_r = ws.max_row
-        if max_r > sig_start + 3:
-            ws.delete_rows(sig_start + 4, max_r - (sig_start + 3))
 
+        if max_r > sig_start + 4:
+
+            ws.delete_rows(
+                sig_start + 5,
+                max_r - (sig_start + 4),
+            )
         output = io.BytesIO()
+
         wb.save(output)
+
         output.seek(0)
 
-        # Sanitizar nombre de archivo a caracteres ASCII puros para evitar errores en Content-Disposition
-        clean_desde = f_desde_str.replace("/", "-").replace("—", "sin_fecha").strip()
-        clean_hasta = f_hasta_str.replace("/", "-").replace("—", "sin_fecha").strip()
-        raw_filename = f"ReporteCombustible_{clean_desde}_{clean_hasta}.xlsx"
-        filename_ascii = "".join(c if c.isalnum() or c in "._-" else "_" for c in raw_filename)
+        clean_desde = (
+            f_desde_str
+            .replace("/", "-")
+            .replace("—", "sin_fecha")
+            .strip()
+        )
+
+        clean_hasta = (
+            f_hasta_str
+            .replace("/", "-")
+            .replace("—", "sin_fecha")
+            .strip()
+        )
+
+        raw_filename = (
+            f"ReporteCombustible_"
+            f"{clean_desde}_"
+            f"{clean_hasta}.xlsx"
+        )
+
+        filename_ascii = "".join(
+            c
+            if c.isalnum() or c in "._-"
+            else "_"
+            for c in raw_filename
+        )
 
         response = HttpResponse(
-            output.read(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            output.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
         )
-        response["Content-Disposition"] = f'attachment; filename="{filename_ascii}"'
+
+        response["Content-Disposition"] = (
+            f'attachment; filename="{filename_ascii}"'
+        )
+
         return response
 
     except Exception as exc:
-        logger.exception("Error al generar el archivo Excel")
+
+        logger.exception(
+            "Error al generar el archivo Excel"
+        )
+
         messages.error(
             request,
-            f"Ocurrió un error al generar el archivo Excel: {exc}",
+            (
+                "Ocurrió un error al generar "
+                f"el archivo Excel: {exc}"
+            ),
         )
-        return redirect("registro_combustible")
 
+        return redirect(
+            "registro_combustible"
+        )
 
 @require_http_methods(["GET"])
 def exportar_excel_validar(request):
     """Valida via AJAX si la exportación puede ejecutarse."""
+
     if not request.session.get("usuario_id"):
-        return JsonResponse({"ok": False, "message": "Debe iniciar sesión para exportar.", "level": "error"})
+        return JsonResponse({
+            "ok": False,
+            "message": "Debe iniciar sesión para exportar.",
+            "level": "error",
+        })
 
     last = _obtener_datos_exportacion(request)
+
     if not last:
         return JsonResponse({
             "ok": False,
@@ -1023,22 +1557,42 @@ def exportar_excel_validar(request):
         })
 
     registros = last.get("registros", [])
-    if not registros:
-        return JsonResponse({"ok": False, "message": "No existen registros para exportar.", "level": "info"})
 
-    template_path = (
-        getattr(settings, "RUTA_PLANTILLA_EXCEL", "")
-        or os.getenv("RUTA_PLANTILLA_EXCEL", "")
-        or ""
-    ).strip()
-    if not template_path or not os.path.exists(template_path):
+    if not registros:
         return JsonResponse({
             "ok": False,
-            "message": f"Plantilla de Excel no encontrada en '{template_path}'. Configure la ruta en RUTA_PLANTILLA_EXCEL.",
+            "message": "No existen registros para exportar.",
+            "level": "info",
+        })
+
+    template_path = getattr(
+        settings,
+        "RUTA_PLANTILLA_COMB",
+        "",
+    )
+
+    if not template_path:
+        return JsonResponse({
+            "ok": False,
+            "message": "No se ha configurado RUTA_PLANTILLA_COMB.",
             "level": "error",
         })
 
-    return JsonResponse({"ok": True})
+    template_path = os.fspath(template_path)
+
+    if not os.path.exists(template_path):
+        return JsonResponse({
+            "ok": False,
+            "message": (
+                f"No se encontró la plantilla Excel: "
+                f"{template_path}"
+            ),
+            "level": "error",
+        })
+
+    return JsonResponse({
+        "ok": True,
+    })
 
 
 @require_http_methods(["POST"])
