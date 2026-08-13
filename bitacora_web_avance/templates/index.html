@@ -103,10 +103,15 @@
             font-weight: bold;
             cursor: pointer;
             border-radius: 3px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            text-align: center;
         }
 
         .btn-action:hover {
             background: var(--navy-deep);
+            color: white;
         }
 
         .table-container {
@@ -125,6 +130,9 @@
             padding: 10px 15px;
             font-weight: bold;
             font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         table {
@@ -291,7 +299,28 @@
     <!-- Tabla de resultados -->
     {% if fechas_aplicadas %}
     <div class="table-container">
-        <div class="table-header">Resultados de Registros ({{ registros|length }} encontrados)</div>
+        <div class="table-header">
+            <span>Resultados de Registros ({{ registros|length }} encontrados)</span>
+            <!-- Botón Exportar Excel con los parámetros actuales -->
+            <form action="/exportar" method="POST" style="margin: 0;">
+                <input type="hidden" name="f_desde" value="{{ f_desde }}">
+                <input type="hidden" name="f_hasta" value="{{ f_hasta }}">
+                <input type="hidden" name="chk_buque" value="{{ 'on' if chk_buque else '' }}">
+                <input type="hidden" name="sel_buque" value="{{ sel_buque }}">
+                <input type="hidden" name="chk_tiponave" value="{{ 'on' if chk_tiponave else '' }}">
+                <input type="hidden" name="sel_tiponave" value="{{ sel_tiponave }}">
+                <input type="hidden" name="chk_armador" value="{{ 'on' if chk_armador else '' }}">
+                <input type="hidden" name="sel_armador" value="{{ sel_armador }}">
+                <input type="hidden" name="chk_procedencia" value="{{ 'on' if chk_procedencia else '' }}">
+                <input type="hidden" name="sel_procedencia" value="{{ sel_procedencia }}">
+                <input type="hidden" name="chk_destino" value="{{ 'on' if chk_destino else '' }}">
+                <input type="hidden" name="sel_destino" value="{{ sel_destino }}">
+                <input type="hidden" name="chk_estado" value="{{ 'on' if chk_estado else '' }}">
+                <input type="hidden" name="sel_estado" value="{{ sel_estado }}">
+                <input type="hidden" name="en_puerto_filtro" value="{{ 'on' if en_puerto_filtro else '' }}">
+                <button type="submit" class="btn-action" style="background: var(--amber); color: var(--navy-deep); border: 1px solid #d49a2b; padding: 4px 12px; font-size: 11px;">Exportar Excel</button>
+            </form>
+        </div>
         <table>
             <thead>
                 <tr>
