@@ -1,0 +1,48 @@
+<aside id="sideMenu" class="side-menu" aria-hidden="true" aria-label="Menú principal">
+    <div class="side-menu-header">
+        <div>
+            <h2 class="side-menu-title">Menú de interfaces</h2>
+            <p class="side-menu-subtitle">Autoridad Portuaria de Manta</p>
+        </div>
+        <button id="menuClose" class="menu-close" type="button" aria-label="Cerrar menú">&times;</button>
+    </div>
+
+    <nav class="menu-navigation">
+        <div class="menu-label">Navegación</div>
+
+        <a class="menu-link active" href="/">
+            <span class="menu-icon" aria-hidden="true">▣</span>
+            <span>Bitácora electrónica</span>
+        </a>
+
+        <a class="menu-link" href="{% url 'tarifa' %}">
+            <span class="menu-icon" aria-hidden="true">$</span>
+            <span>Tarifario</span>
+        </a>
+
+        <a class="menu-link" href="{% url 'reporte_inec' %}">
+            <span class="menu-icon" aria-hidden="true">⧉</span>
+            <span>Reportes INEC</span>
+        </a>
+
+        <a class="menu-link" href="{% url 'registro_combustible' %}">
+            <span class="menu-icon" aria-hidden="true">⚓</span>
+            <span>Reporte Combustible</span>
+        </a>
+
+        <a class="menu-link disabled" href="#" aria-disabled="true">
+            <span class="menu-icon" aria-hidden="true">▤</span>
+            <span>Interfaz 2 - Próximamente</span>
+        </a>
+
+        <a class="menu-link disabled" href="#" aria-disabled="true">
+            <span class="menu-icon" aria-hidden="true">⌕</span>
+            <span>Interfaz 3 - Próximamente</span>
+        </a>
+    </nav>
+
+    <div class="menu-footer">
+        Sesión iniciada como:<br>
+        <strong>{{ usuario_nombre }}</strong>
+    </div>
+</aside>

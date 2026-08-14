@@ -44,6 +44,39 @@ class ProjectSmokeTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Usuario o contraseña incorrectos.")
 
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def _authenticate(self, mock_validar, mock_turnos):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Inspector"}]
+
+        response = self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+        self.assertRedirects(response, "/bitacora/")
+
+    def test_tarifa_page_loads(self):
+        self._authenticate()
+
+        response = self.client.get("/tarifario/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tarifario")
+
+    def test_report_page_loads(self):
+        self._authenticate()
+
+        response = self.client.get("/reporte/inec/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reportes INEC")
+
     def test_api_buscar_partida_requires_login(self):
         response = self.client.get("/api/buscar-partida/")
         self.assertEqual(response.status_code, 401)
@@ -174,6 +207,7 @@ class ProjectSmokeTest(TestCase):
         self.assertTrue(json_data["success"])
         self.assertEqual(json_data["resul"], 1)
         mock_guardar.assert_called_once_with(
+            idtarifa=0,
             codigo="118",
             tarifa="TARIFA DE PRUEBA UNITARIA",
             valor="12.34",
@@ -187,6 +221,7 @@ class ProjectSmokeTest(TestCase):
             iva=1,
             ticket=0,
             activo=1,
+            cambio_factura=0,
         )
 
     @patch("bitacora.views.anular_tarifa")

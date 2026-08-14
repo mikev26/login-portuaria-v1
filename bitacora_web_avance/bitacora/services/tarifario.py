@@ -7,15 +7,17 @@ from typing import Any
 
 from django.conf import settings
 
-from .db import (
-    get_connection,
+from .db_connection import (
+    DatabaseConfigurationError,
+    _IDENTIFIER_RE,
+    _PARAMETER_RE,
     _rows_as_dicts,
-    _bool_value,
-    _first_value,
-    _is_missing_object_error,
+    execute_procedure,
+    get_connection,
+    bool_value,
+    first_value,
+    is_missing_object_error,
 )
-
-
 
 
 def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
@@ -91,7 +93,7 @@ def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
                 rows = _rows_as_dicts(cursor)
                 return rows
     except Exception as exc:
-        if _is_missing_object_error(exc):
+        if is_missing_object_error(exc):
             return []
         raise
 
@@ -143,7 +145,7 @@ def obtener_tasa_por_id(idtasa: int | str = "") -> list[dict[str, Any]]:
                 rows = _rows_as_dicts(cursor)
                 return rows
     except Exception as exc:
-        if _is_missing_object_error(exc):
+        if is_missing_object_error(exc):
             return []
         raise
 
@@ -171,6 +173,7 @@ def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
             with closing(connection.cursor()) as cursor:
                 cursor.execute(
                     """
+                    SET NOCOUNT ON;
                     DECLARE @out INT;
                     EXEC dbo.SPJ_Vista_TasasTarifas @SidTasa = ?, @SidResulta = @out OUTPUT;
                     SELECT @out AS siguiente;
@@ -293,35 +296,35 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                             return default
                         return str(val).strip()
 
-                    tasa_id_str = str_or_empty(_first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
+                    tasa_id_str = str_or_empty(first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
                     t_val = {
-                        "id": str_or_empty(_first_value(r, ["idtarifa", "id", "id_tarifa"])),
-                        "codigo": str_or_empty(_first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
-                        "activa": _bool_value(_first_value(r, ["activa", "activo", "estado"], True)),
+                        "id": str_or_empty(first_value(r, ["idtarifa", "id", "id_tarifa"])),
+                        "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
+                        "activa": bool_value(first_value(r, ["activa", "activo", "estado"], True)),
                         "tasa_id": tasa_id_str,
                         "tasa": tasa_map.get(tasa_id_str, ""),
-                        "tarifa": str_or_empty(_first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
-                        "partida_cod": str_or_empty(_first_value(r, ["partida_cod", "scpartida", "partida"])),
-                        "partida_desc": str_or_empty(_first_value(r, ["partida", "partida_desc", "nombrefinanza", "partidafinanzas"])),
-                        "partida_cedula": str_or_empty(_first_value(r, ["cedulafinanza", "partida_cedula", "cedula"])),
-                        "partida_id": str_or_empty(_first_value(r, ["idpartida", "partida_id"], "")),
-                        "formula": str_or_empty(_first_value(r, ["formula", "formula_calc"])),
-                        "detalle": str_or_empty(_first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
-                        "valor": str_or_empty(_first_value(r, ["valor", "monto", "precio"], "0.0000")),
-                        "s_ante": str_or_empty(_first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
-                        "se_cobra_iva": _bool_value(_first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
-                        "senae_cod": str_or_empty(_first_value(r, ["senae_cod", "codigo_senae", "senae"])),
-                        "senae_desc": str_or_empty(_first_value(r, ["senae_desc", "detalle_senae"])),
-                        "calc_param": "eslora" if _first_value(r, ["eslora_toneto"]) == 1 else ("t_neto" if _first_value(r, ["eslora_toneto"]) == 2 else "otros"),
-                        "calc_unidad": "dia" if _first_value(r, ["dia_hora"]) == 1 else ("horas" if _first_value(r, ["dia_hora"]) == 2 else "cantidad"),
-                        "ticket_srv": "vehiculo" if _first_value(r, ["tikect"]) == 1 else ("muelle" if _first_value(r, ["tikect"]) == 2 else "ninguno"),
-                        "permitir_cambio_valor": _bool_value(_first_value(r, ["cambiofacturacion", "cambio_facturacion", "permitir_cambio_valor"], False)),
+                        "tarifa": str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
+                        "partida_cod": str_or_empty(first_value(r, ["partida_cod", "scpartida", "partida"])),
+                        "partida_desc": str_or_empty(first_value(r, ["partida", "partida_desc", "nombrefinanza", "partidafinanzas"])),
+                        "partida_cedula": str_or_empty(first_value(r, ["cedulafinanza", "partida_cedula", "cedula"])),
+                        "partida_id": str_or_empty(first_value(r, ["idpartida", "partida_id"], "")),
+                        "formula": str_or_empty(first_value(r, ["formula", "formula_calc"])),
+                        "detalle": str_or_empty(first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
+                        "valor": str_or_empty(first_value(r, ["valor", "monto", "precio"], "0.0000")),
+                        "s_ante": str_or_empty(first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
+                        "se_cobra_iva": bool_value(first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
+                        "senae_cod": str_or_empty(first_value(r, ["senae_cod", "codigo_senae", "senae"])),
+                        "senae_desc": str_or_empty(first_value(r, ["senae_desc", "detalle_senae"])),
+                        "calc_param": "eslora" if first_value(r, ["eslora_toneto"]) == 1 else ("t_neto" if first_value(r, ["eslora_toneto"]) == 2 else "otros"),
+                        "calc_unidad": "dia" if first_value(r, ["dia_hora"]) == 1 else ("horas" if first_value(r, ["dia_hora"]) == 2 else "cantidad"),
+                        "ticket_srv": "vehiculo" if first_value(r, ["tikect"]) == 1 else ("muelle" if first_value(r, ["tikect"]) == 2 else "ninguno"),
+                        "permitir_cambio_valor": bool_value(first_value(r, ["cambiofacturacion", "cambio_facturacion", "permitir_cambio_valor"], False)),
                     }
                     t_val["json_data"] = json.dumps(t_val)
                     normalized.append(t_val)
                 return normalized
     except Exception as exc:
-        if _is_missing_object_error(exc):
+        if is_missing_object_error(exc):
             return []
         raise
 
@@ -361,6 +364,7 @@ def guardar_tarifa(
                 if idtarifa > 0:
                     cursor.execute(
                         """
+                        SET NOCOUNT ON;
                         DECLARE @res INT;
                         EXEC dbo.SPJ_Update_Tarifas 
                             @sidtarifa = ?,
@@ -372,12 +376,10 @@ def guardar_tarifa(
                             @sidtasa = ?, 
                             @sformula = ?, 
                             @sdetalle = ?, 
-                            @sidante = ?,
                             @shora_dia = ?, 
                             @seslora_tneto = ?, 
                             @siva = ?, 
                             @stikect = ?, 
-                            @sidsenae = ?,
                             @sactivo = ?, 
                             @scambioFactura = ?, 
                             @sresul = @res OUTPUT;
@@ -392,18 +394,17 @@ def guardar_tarifa(
                         int(tasa_id),
                         formula,
                         detalle,
-                        None,  # @sidante
                         int(hora_dia),
                         int(eslora_tneto),
                         int(iva),
                         int(ticket),
-                        None,  # @sidsenae
                         int(activo),
                         int(cambio_factura),
                     )
                 else:
                     cursor.execute(
                         """
+                        SET NOCOUNT ON;
                         DECLARE @res INT;
                         EXEC dbo.SPJ_insert_Tarifas 
                             @sctarifa = ?, 
@@ -439,6 +440,7 @@ def guardar_tarifa(
                         int(cambio_factura),
                     )
                 row = cursor.fetchone()
+                connection.commit()
                 if row:
                     return row[0]
                 return 0
@@ -460,6 +462,7 @@ def anular_tarifa(idtarifa: int | str) -> bool:
                     "UPDATE dbo.dim_tarifa SET idestado = 7, activo = 0 WHERE idtarifa = ?",
                     int(idtarifa)
                 )
+                connection.commit()
                 return True
     except Exception:
         raise

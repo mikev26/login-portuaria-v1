@@ -1,9 +1,9 @@
-"""Configuración del proyecto de Bitácora Portuaria."""
-
 import os
 from pathlib import Path
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 
 def _load_local_env(path: Path) -> None:
@@ -19,7 +19,7 @@ def _load_local_env(path: Path) -> None:
         key, value = line.split("=", 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
+        os.environ[key] = value
 
 
 _load_local_env(BASE_DIR / ".env")
@@ -82,8 +82,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "bitacora_web.wsgi.application"
 
-# Django usa sesiones firmadas en cookie para no depender de una base local.
-# La lógica institucional y los datos de bitácora permanecen en SQL Server.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -105,8 +103,17 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_SAMESITE = "Lax"
-SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-# Solo para mostrar el avance sin depender de la red institucional.
-# Debe permanecer en False cuando se conecte a la base real.
+
 DEMO_MODE = env_bool("DEMO_MODE", False)
+
+RUTA_PLANTILLA_INEC = (
+    BASE_DIR / "plantilla" / "plantillaInec.xlsx"
+)
+RUTA_PLANTILLA_COMB = (
+    BASE_DIR / "plantilla" / "plantilla_combustible.xlsx"
+)
+RUTA_PLANTILLA_TARI = (
+    BASE_DIR / "plantilla" / "plantilla_tarifas.xlsx"
+)

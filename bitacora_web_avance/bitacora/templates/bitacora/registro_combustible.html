@@ -1,0 +1,388 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Reporte de Combustible{% endblock %}
+
+{% block header_title %}
+    CONTROL DE INGRESO DE COMBUSTIBLE
+{% endblock %}
+
+{% block body_class %}
+    report-page combustible-page
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'bitacora/css/combustible.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="report-shell">
+
+    <!-- Encabezado del reporte -->
+    <section class="report-header">
+
+        <div class="report-header-content">
+
+            <div class="report-logo">
+                <img
+                    src="{% static 'bitacora/img/logo_manta.png' %}"
+                    alt="Logo institucional"
+                >
+            </div>
+
+            <div class="report-header-text">
+
+                <div class="report-title">
+                    AUTORIDAD PORTUARIA DE MANTA
+                </div>
+
+                <div class="report-subtitle">
+                    DPTO. DE OPERACIONES - TERMINAL PESQUERO Y CABOTAJE
+                </div>
+
+                <div class="report-small-title">
+                    CONTROL DE INGRESO DE COMBUSTIBLE
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="page-label">
+            Página<br>
+            <strong>1</strong>
+        </div>
+
+    </section>
+
+
+    <div class="section-line"></div>
+
+
+    <!-- Información del reporte -->
+    <section class="info-block">
+
+        <!-- Mensajes -->
+        <div id="report-messages">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-banner {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+                {% for _ in messages %}{% endfor %}  <!-- limpia los mensajes -->
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                    <div class="message-banner error">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+                
+            {% endif %}
+
+        </div>
+
+
+        <!-- Fecha de emisión -->
+        <div class="field-box">
+
+            <div>
+
+                <div class="field-label">
+                    Fecha de emisión
+                </div>
+
+                <div class="field-value">
+                    Manta, {{ fecha_emision|date:"d/m/Y" }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Fechas seleccionadas -->
+        <div class="info-row">
+
+            <div class="field-box">
+
+                <div>
+
+                    <div class="field-label">
+                        Fecha Desde
+                    </div>
+
+                    <div
+                        id="header-fecha-desde"
+                        class="field-value"
+                    >
+                        {% if fecha_desde %}
+                            {{ fecha_desde|date:"d/m/Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="field-box">
+
+                <div>
+
+                    <div class="field-label">
+                        Fecha Hasta
+                    </div>
+
+                    <div
+                        id="header-fecha-hasta"
+                        class="field-value"
+                    >
+                        {% if fecha_hasta %}
+                            {{ fecha_hasta|date:"d/m/Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Filtros -->
+        <form method="get" class="date-range-form">
+
+            <div class="date-range">
+
+                <label>
+
+                    <span class="field-label">
+                        F. Desde
+                    </span>
+
+                    {{ form.fecha_inicio }}
+
+                    {% if form.fecha_inicio.errors %}
+                        <span class="field-error">
+                            {{ form.fecha_inicio.errors|join:", " }}
+                        </span>
+                    {% endif %}
+
+                </label>
+
+
+                <label>
+
+                    <span class="field-label">
+                        F. Hasta
+                    </span>
+
+                    {{ form.fecha_fin }}
+
+                    {% if form.fecha_fin.errors %}
+                        <span class="field-error">
+                            {{ form.fecha_fin.errors|join:", " }}
+                        </span>
+                    {% endif %}
+
+                </label>
+
+
+                <input
+                    type="hidden"
+                    name="buscar"
+                    value="1"
+                >
+
+
+                <button
+                    type="submit"
+                    class="search-button"
+                >
+                    Buscar
+                </button>
+
+
+                <a
+                    id="export-link"
+                    class="search-button"
+                    href="#"
+                    data-export-url="{% url 'registro_combustible_exportar' %}"
+                    data-validate-url="{% url 'registro_combustible_exportar_validar' %}"
+                    aria-disabled="true"
+                >
+                    Exportar Excel
+                </a>
+
+
+                <div
+                    id="export-message"
+                    class="export-message"
+                ></div>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- Resultados -->
+    <section class="section report-results">
+
+        <div class="section-title">
+            Registro de combustible
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table class="report-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tickets</th>
+                        <th>Guía</th>
+                        <th>Placa</th>
+                        <th>Chofer</th>
+                        <th>CodBuque</th>
+                        <th>Barco</th>
+                        <th>Matrícula</th>
+                        <th>Galones</th>
+                        <th>Motivo</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="report-table-body">
+
+                    {% if registros %}
+
+                        {% for registro in registros %}
+
+                            <tr>
+
+                                <td>
+                                    {{ registro.fecha_ingresa }}
+                                </td>
+
+                                <td>
+                                    {{ registro.c_tikect }}
+                                </td>
+
+                                <td>
+                                    {{ registro.guia }}
+                                </td>
+
+                                <td>
+                                    {{ registro.idplaca }}
+                                </td>
+
+                                <td>
+                                    {{ registro.chofer }}
+                                </td>
+
+                                <td>
+                                    {{ registro.codbuque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.buque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.matricula }}
+                                </td>
+
+                                <td>
+                                    {{ registro.galones }}
+                                </td>
+
+                                <td>
+                                    {{ registro.motivo }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr class="table-placeholder">
+
+                            <td colspan="10">
+                                No hay datos disponibles.
+                                Seleccione fechas y presione Buscar.
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- Firmas -->
+    <section class="signatures">
+
+        <div class="signature signature-left">
+
+            <div class="signature-wrapper">
+
+                <span class="signature-title">
+                    Preparado por:
+                </span>
+
+                <span class="signature-line"></span>
+
+                <span class="signature-name">
+                    {{ usuario_nombre }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="signature signature-right">
+
+            <div class="signature-wrapper">
+
+                <span class="signature-line"></span>
+
+                <span class="signature-label">
+                    Revisado
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+    {{ block.super }}
+
+    <script src="{% static 'bitacora/js/combustible.js' %}"></script>
+{% endblock %}

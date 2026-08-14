@@ -1,59 +1,82 @@
+{% extends "bitacora/base.html" %}
 {% load static %}
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Reporte INEC</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 24px; color: #1d2d3d; }
-    form { display:flex; gap:12px; align-items:center; margin-bottom:18px; }
-    input[type=date] { padding:8px; border-radius:4px; }
-    button { padding:8px 12px; border-radius:6px; background:#17689d; color:white; border:0; }
-    table { border-collapse: collapse; width:100%; margin-top:16px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:left; }
-    th { background:#f0f4f8; }
-  </style>
-</head>
-<body>
-  <h1>Reporte INEC</h1>
 
-  {% if messages %}
-    {% for message in messages %}
-      <div style="color: red;">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+{% block title %}Reportes INEC{% endblock %}
+{% block header_title %}REPORTES INEC{% endblock %}
+{% block body_class %}report-page
 
-  <form method="post">
-    {% csrf_token %}
-    <label>Desde <input type="date" name="inicio" value="{{ inicio|default:'' }}" required></label>
-    <label>Hasta <input type="date" name="fin" value="{{ fin|default:'' }}" required></label>
-    <button type="submit" name="show" value="1">Mostrar</button>
-    <button type="submit" name="export" value="1">Exportar CSV</button>
-  </form>
+{% endblock %}
 
-  {% if rows %}
-    <table>
-      <thead>
-        <tr>
-          {% for h in rows.0.keys %}
-            <th>{{ h }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in rows %}
-          <tr>
-            {% for v in r.values %}
-              <td>{{ v }}</td>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'bitacora/css/reporte.css' %}">
+{% endblock %}
+
+{% block content %}
+
+{% include "bitacora/components/side_menu.html" %}
+
+{% if messages %}
+            {% for message in messages %}
+                <div class="message">{{ message }}</div>
             {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No hay datos a mostrar.</p>
-  {% endif %}
+        {% endif %}
 
-</body>
-</html>
+        <section class="section">
+            <div class="section-title">Parámetros de consulta</div>
+            <div class="report-card">
+                <form method="post" class="report-form">
+                    {% csrf_token %}
+
+                    <div class="field">
+                        <label for="inicio">Desde</label>
+                        <input id="inicio" type="date" name="inicio" value="{{ inicio|default:'' }}" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="fin">Hasta</label>
+                        <input id="fin" type="date" name="fin" value="{{ fin|default:'' }}" required>
+                    </div>
+
+                    <div class="actions">
+                        <button class="button button-primary" type="submit" name="show" value="1">Mostrar reporte</button>
+                        <button class="button button-secondary" type="submit" name="export" value="1">
+                            <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <rect x="2" y="2" width="20" height="20" rx="3" fill="#217346"></rect>
+                                <path d="M7.2 7.1h2.4l2.3 3.5 2.3-3.5h2.4l-3.4 4.9 3.6 5.1h-2.5l-2.5-3.7-2.5 3.7H6.9l3.6-5.1-3.3-4.9z" fill="#ffffff"></path>
+                            </svg>
+                            <span>Exportar Excel</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Resultados</div>
+
+            {% if rows %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for h in rows.0.keys %}
+                                    <th>{{ h }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in rows %}
+                                <tr>
+                                    {% for v in r.values %}
+                                        <td>{{ v }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">No hay datos para mostrar en el rango seleccionado.</div>
+            {% endif %}
+        </section>
+{% endblock %}
