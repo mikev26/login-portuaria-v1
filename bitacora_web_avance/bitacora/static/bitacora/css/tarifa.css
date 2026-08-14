@@ -1,0 +1,330 @@
+/* Estilos exclusivos del Tarifario */
+
+/* Toast / notificaciones */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    padding: 12px 18px;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 250px;
+    transform: translateX(120%);
+    transition: transform .3s cubic-bezier(.175,.885,.32,1.275);
+    background: white;
+    border-left: 4px solid var(--blue);
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    border: 1px solid var(--success-border);
+    border-left: 4px solid var(--success);
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.toast.warning {
+    border: 1px solid var(--warning-border);
+    border-left: 4px solid var(--amber-border);
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+/* Barra de acciones */
+.toolbar {
+    display: flex;
+    gap: 20px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.toolbar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px dashed var(--border);
+    padding-right: 20px;
+    position: relative;
+}
+
+.toolbar-group:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.toolbar-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.toolbar-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-top: auto;
+}
+
+.btn-tool {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--navy);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    min-width: 80px;
+    gap: 4px;
+}
+
+.btn-tool svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.btn-tool:hover {
+    background: var(--surface);
+    border-color: var(--blue);
+    color: var(--blue);
+    transform: translateY(-1px);
+}
+
+.btn-tool:active {
+    transform: translateY(0);
+}
+
+/* El Tarifario usa un poco más de separación en sus títulos */
+.section-title {
+    margin-bottom: 15px;
+}
+
+/* Formulario en grilla */
+.grid-form {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+}
+
+.col-1 { grid-column: span 1; }
+.col-2 { grid-column: span 2; }
+.col-3 { grid-column: span 3; }
+.col-4 { grid-column: span 4; }
+.col-5 { grid-column: span 5; }
+.col-6 { grid-column: span 6; }
+.col-7 { grid-column: span 7; }
+.col-8 { grid-column: span 8; }
+.col-9 { grid-column: span 9; }
+.col-10 { grid-column: span 10; }
+.col-11 { grid-column: span 11; }
+.col-12 { grid-column: span 12; }
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 650;
+    margin-top: 26px;
+}
+
+.checkbox-container input {
+    width: auto;
+    cursor: pointer;
+}
+
+input,
+select,
+textarea {
+    transition: border-color .2s, box-shadow .2s;
+}
+
+input[readonly],
+input:disabled {
+    cursor: not-allowed;
+}
+
+.input-group-combo {
+    display: flex;
+    gap: 8px;
+}
+
+.input-combo-short {
+    width: 100px;
+    flex-shrink: 0;
+}
+
+/* Radios */
+.radio-box-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all .2s;
+}
+
+.radio-option input[type="radio"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.radio-option:hover {
+    border-color: var(--blue);
+    background: rgba(29,111,159,.05);
+}
+
+.radio-option.selected {
+    border-color: var(--blue);
+    background: rgba(29,111,159,.1);
+    font-weight: 600;
+    color: var(--navy);
+}
+
+/* Cálculos y tickets */
+.flex-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.sub-panel {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    background: white;
+}
+
+.sub-panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--navy);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--surface);
+    padding-bottom: 6px;
+}
+
+.calc-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.calc-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.calc-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* Tabla del tarifario */
+.table-wrap {
+    margin-top: 10px;
+}
+
+tbody tr {
+    cursor: pointer;
+    transition: background .15s;
+}
+
+tbody tr:hover {
+    background: #eef4f8;
+}
+
+@media (max-width: 850px) {
+    .grid-form {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-form > div {
+        grid-column: span 12 !important;
+    }
+
+    .flex-sections {
+        grid-template-columns: 1fr;
+    }
+
+    .checkbox-container {
+        margin-top: 5px;
+    }
+
+    .toolbar {
+        justify-content: center;
+    }
+
+    .toolbar-group {
+        border-right: none;
+        border-bottom: 1px dashed var(--border);
+        padding-right: 0;
+        padding-bottom: 12px;
+        width: 100%;
+    }
+
+    .toolbar-group:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .toolbar-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}

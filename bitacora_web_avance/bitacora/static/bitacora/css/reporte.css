@@ -1,0 +1,105 @@
+/* Estilos exclusivos de Reportes INEC */
+
+.report-card {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.report-form {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.report-form .field {
+    min-width: 210px;
+    flex: 1;
+}
+
+.report-form input {
+    padding: 10px;
+}
+
+.report-form .actions {
+    flex-wrap: wrap;
+}
+
+.button {
+    min-height: 40px;
+    padding: 9px 15px;
+    border-radius: 6px;
+    font: 700 13px "Segoe UI", Arial, sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.button-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: block;
+}
+
+.button-primary {
+    border: 1px solid var(--navy);
+    background: var(--navy);
+    color: white;
+}
+
+.button-secondary {
+    border: 1px solid var(--border);
+    background: #f7f9fb;
+    color: var(--navy-deep);
+}
+
+.button:hover {
+    filter: brightness(.97);
+}
+
+.report-card + * {
+    margin-top: 0;
+}
+
+.table-wrap {
+    background: white;
+}
+
+table {
+    min-width: 720px;
+}
+
+.empty-state {
+    padding: 28px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--muted);
+    background: #fbfcfd;
+    font-size: 13px;
+}
+
+@media (max-width: 700px) {
+    .report-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .report-form .field {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .report-form .actions {
+        width: 100%;
+    }
+
+    .button {
+        flex: 1;
+    }
+}

@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Bitácora Electrónica{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'bitacora/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'bitacora/css/global.css' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+
+    {% block body_before %}{% endblock %}
+
+    <!-- Menú lateral -->
+    <div id="menuOverlay" class="menu-overlay" aria-hidden="true"></div>
+
+    {% include "bitacora/components/side_menu.html" %}
+
+    <div class="shell">
+
+        <header>
+            <div class="header-left">
+
+                {% include "bitacora/components/hamburger_button.html" %}
+
+                <div class="brand">
+                    <img
+                        src="{% static 'bitacora/img/logo_manta.png' %}"
+                        alt="Logo institucional"
+                    >
+
+                    <div>
+                        <h1>
+                            {% block header_title %}
+                                BITÁCORA ELECTRÓNICA
+                            {% endblock %}
+                        </h1>
+
+                        <p>Autoridad Portuaria de Manta</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="session">
+                {% if usuario_nombre %}
+                    <strong>{{ usuario_nombre }}</strong><br>
+                    {{ usuario_cargo|default:'' }}
+                    {% if usuario_login %}
+                        · {{ usuario_login }}
+                    {% endif %}
+                {% endif %}
+
+                {% block header_actions %}
+                    {% if usuario_nombre %}
+                        <form
+                            class="logout-form"
+                            method="post"
+                            action="{% url 'logout' %}"
+                        >
+                            {% csrf_token %}
+                            <button type="submit">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endblock %}
+            </div>
+        </header>
+
+        <main>
+
+            {% if demo_mode %}
+                <div class="demo">
+                    <strong>Modo demostración:</strong>
+                    los datos no provienen todavía de SQL Server.
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+    {% block body_after %}{% endblock %}
+
+    {% block extra_js %}  <script src="{% static 'bitacora/js/menu.js' %}"></script> {% endblock %}
+
+</body>
+</html>
