@@ -19,6 +19,7 @@ from .db import (
     obtener_reporte_combustible,
     obtener_turnos_usuario,
     validar_usuario,
+    guardar_novedad_bitacora,
 )
 
 logger = logging.getLogger(__name__)

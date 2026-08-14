@@ -513,3 +513,39 @@ def obtener_buques_artesanales() -> list[dict[str, Any]]:
             rows = _rows_as_dicts(cursor)
 
     return _normalize_ship_rows(rows, "artesanal")
+
+# opcion guardar 
+
+def guardar_novedad_bitacora(
+    idturno: int,
+    fecha_hora: datetime,
+    id_tipo_novedad: int,
+    id_buque: int,
+    id_registro: int,
+    sc_registro: int | None,
+    detalle: str,
+) -> int | None:
+    """
+    Guarda una novedad de bitácora utilizando
+    dbo.SPJ_Insert_Bitacora.
+    """
+
+    rows = _execute_procedure(
+        "dbo.SPJ_Insert_Bitacora",
+        (
+            ("@idturno", idturno),
+            ("@fechaHora", fecha_hora),
+            ("@idTipoNovedad", id_tipo_novedad),
+            ("@idBuque", id_buque),
+            ("@idRegistro", id_registro),
+            ("@scRegistro", sc_registro),
+            ("@detalle", detalle),
+        ),
+    )
+
+    if not rows:
+        return None
+
+    nuevo_id = rows[0].get("newid")
+
+    return int(nuevo_id) if nuevo_id is not None else None
