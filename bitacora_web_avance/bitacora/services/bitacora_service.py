@@ -29,6 +29,7 @@ def guardar_novedad_bitacora(
             ("@scRegistro", sc_registro),
             ("@detalle", detalle),
         ),
+        commit=True,
     )
 
     if not rows:
@@ -40,59 +41,24 @@ def guardar_novedad_bitacora(
 
 
 def obtener_historial_turno(idturno: int) -> list[dict]:
-    """Obtiene las novedades registradas para un turno."""
+    """
+    Recupera las novedades registradas de un turno
+    utilizando el procedimiento oficial
+    dbo.SPJ_ReporteBitacoraTurno.
+    """
 
     rows = execute_query(
-        """
-        SELECT
-            b.fechaHora AS fecha_hora,
-            b.idTipoNovedad AS id_tipo_novedad,
-            b.detalle,
-
-            CASE
-                WHEN b.idTipoNovedad = 1
-                    THEN COALESCE(i.buque, 'Buque industrial')
-
-                WHEN b.idTipoNovedad = 2
-                    THEN COALESCE(a.buque, 'Buque artesanal')
-
-                ELSE 'Novedad'
-            END AS buque_novedad
-
-        FROM dbo.dim_mov_bitacora AS b
-
-        LEFT JOIN dbo.dim_con_maestro_registro_lista AS i
-            ON b.idTipoNovedad = 1
-           AND i.idbuque = b.idBuque
-           AND i.idregistro = b.idRegistro
-
-        LEFT JOIN dbo.dim_con_maestro_registro_cabotaje AS a
-            ON b.idTipoNovedad = 2
-           AND a.idbuque = b.idBuque
-           AND a.scregistro = b.idRegistro
-
-        WHERE b.idturno = ?
-          AND b.idestado = 1
-
-        ORDER BY b.fechaHora DESC
-        """,
+        "EXEC dbo.SPJ_ReporteBitacoraTurno ?",
         (idturno,),
     )
 
     historial = []
 
     for row in rows:
-        fecha_hora = row.get("fecha_hora")
-
-        if isinstance(fecha_hora, datetime):
-            hora = fecha_hora.strftime("%H:%M")
-        else:
-            hora = str(fecha_hora or "")
-
         historial.append(
             {
-                "hora": hora,
-                "buque_novedad": row.get("buque_novedad") or "Novedad",
+                "hora": str(row.get("hora") or ""),
+                "buque_novedad": row.get("tiponovedad") or "Novedad",
                 "detalle": row.get("detalle") or "",
             }
         )

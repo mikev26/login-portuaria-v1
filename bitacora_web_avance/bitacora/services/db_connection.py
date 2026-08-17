@@ -135,10 +135,16 @@ def _rows_as_dicts(
 def execute_procedure(
     procedure: str,
     parameters: Iterable[tuple[str, Any]] = (),
+    *,
+    commit: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Ejecuta un procedimiento almacenado
     y devuelve resultados como lista de dicts.
+
+    Si commit=True, confirma la transacción.
+    Se utiliza únicamente para procedimientos
+    que realizan INSERT, UPDATE o DELETE.
     """
 
     params = list(parameters)
@@ -160,26 +166,38 @@ def execute_procedure(
     ]
 
     with closing(get_connection()) as connection:
-        with closing(connection.cursor()) as cursor:
+        try:
+            with closing(connection.cursor()) as cursor:
 
-            if values:
-                cursor.execute(
-                    sql,
-                    *values
-                )
-            else:
-                cursor.execute(sql)
+                if values:
+                    cursor.execute(
+                        sql,
+                        *values
+                    )
+                else:
+                    cursor.execute(sql)
 
-            # Algunos procedimientos primero
-            # emiten resultados auxiliares.
-            while (
-                cursor.description is None
-                and cursor.nextset()
-            ):
-                pass
+                # Algunos procedimientos primero
+                # emiten resultados auxiliares.
+                while (
+                    cursor.description is None
+                    and cursor.nextset()
+                ):
+                    pass
 
-            return _rows_as_dicts(cursor)
+                rows = _rows_as_dicts(cursor)
 
+            # Solo confirmar cuando el procedimiento
+            # modifica información en la base de datos.
+            if commit:
+                connection.commit()
+
+            return rows
+
+        except Exception:
+            if commit:
+                connection.rollback()
+            raise
 
 # ==========================================================
 # CONSULTAS SQL DIRECTAS

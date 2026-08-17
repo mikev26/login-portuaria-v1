@@ -31,7 +31,11 @@ from .services import (
     anular_tarifa,
     
 )
-from .services.bitacora_service import guardar_novedad_bitacora
+from .services.bitacora_service import (
+    guardar_novedad_bitacora,
+    obtener_historial_turno,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,35 +107,88 @@ TIPOS_NOVEDAD_BITACORA = {
 
 def bitacora_home(request):
     idusuario = request.session.get("usuario_id")
+
     if not idusuario:
         return redirect("login")
 
     try:
+        # OBTENER TURNOS ACTIVOS DEL USUARIO
         turnos = obtener_turnos_usuario(idusuario)
 
         if not turnos:
             request.session.flush()
+
             messages.error(
                 request,
                 "Su turno ya no está activo o perdió el permiso de bitácora.",
             )
-            return redirect("login")
 
+            return redirect("login")
+        
+        # RECUPERAR HISTORIAL DE NOVEDADES
+        # El procedimiento dbo.SPJ_ReporteBitacoraTurno recibe
+        # el id del turno y devuelve las novedades registradas
+        # correspondientes a dicho turno.
+
+        for turno in turnos:
+            idturno_historial = turno.get("idturno")
+
+            if idturno_historial is not None:
+                turno["novedades"] = obtener_historial_turno(
+                    int(idturno_historial)
+                )
+            else:
+                turno["novedades"] = []
+
+        # ======================================================
+        # OBTENER BUQUES DISPONIBLES
+        # ======================================================
         industriales = obtener_buques_industriales()
         artesanales = obtener_buques_artesanales()
 
-        # Guardar novedad
+        # ======================================================
+        # GUARDAR NUEVA NOVEDAD
+        # ======================================================
         if request.method == "POST":
-            idturno_raw = request.POST.get("idturno", "").strip()
-            tipo_novedad = request.POST.get("tipo_novedad", "").strip()
-            idbuque_raw = request.POST.get("idbuque", "").strip()
-            idregistro_raw = request.POST.get("idregistro", "").strip()
-            scregistro_raw = request.POST.get("scregistro", "").strip()
-            detalle = request.POST.get("detalle", "").strip()
+            idturno_raw = request.POST.get(
+                "idturno",
+                "",
+            ).strip()
 
-            # 1 = Industrial / 2 = Artesanal
-            id_tipo_novedad = TIPOS_NOVEDAD_BITACORA.get(tipo_novedad)
+            tipo_novedad = request.POST.get(
+                "tipo_novedad",
+                "",
+            ).strip()
 
+            idbuque_raw = request.POST.get(
+                "idbuque",
+                "",
+            ).strip()
+
+            idregistro_raw = request.POST.get(
+                "idregistro",
+                "",
+            ).strip()
+
+            scregistro_raw = request.POST.get(
+                "scregistro",
+                "",
+            ).strip()
+
+            detalle = request.POST.get(
+                "detalle",
+                "",
+            ).strip()
+
+            # 1 = Industrial
+            # 2 = Artesanal
+            id_tipo_novedad = TIPOS_NOVEDAD_BITACORA.get(
+                tipo_novedad
+            )
+
+            # ==================================================
+            # VALIDACIONES
+            # ==================================================
             if id_tipo_novedad is None:
                 messages.error(
                     request,
@@ -140,7 +197,10 @@ def bitacora_home(request):
                 return redirect(request.path)
 
             if not idturno_raw:
-                messages.error(request, "No se recibió el turno.")
+                messages.error(
+                    request,
+                    "No se recibió el turno.",
+                )
                 return redirect(request.path)
 
             if not idbuque_raw or not idregistro_raw:
@@ -161,15 +221,26 @@ def bitacora_home(request):
                 idturno = int(idturno_raw)
                 idbuque = int(idbuque_raw)
                 idregistro = int(idregistro_raw)
-                scregistro = int(scregistro_raw) if scregistro_raw else None
+
+                scregistro = (
+                    int(scregistro_raw)
+                    if scregistro_raw
+                    else None
+                )
+
             except (TypeError, ValueError):
                 messages.error(
                     request,
-                    "Los datos recibidos para registrar la novedad no son válidos.",
+                    (
+                        "Los datos recibidos para registrar "
+                        "la novedad no son válidos."
+                    ),
                 )
                 return redirect(request.path)
 
-            # Verificar que el turno enviado pertenece a los turnos activos
+            # ==================================================
+            # VERIFICAR QUE EL TURNO ESTÉ ACTIVO
+            # ==================================================
             turnos_validos = {
                 int(turno["idturno"])
                 for turno in turnos
@@ -183,8 +254,10 @@ def bitacora_home(request):
                 )
                 return redirect(request.path)
 
-            # Verificar que el buque realmente pertenece
-            # a la categoría seleccionada.
+            # ==================================================
+            # VERIFICAR QUE EL BUQUE PERTENEZCA
+            # AL TIPO SELECCIONADO
+            # ==================================================
             buques_validos = (
                 industriales
                 if tipo_novedad == "industrial"
@@ -193,17 +266,24 @@ def bitacora_home(request):
 
             buque_valido = any(
                 str(buque.get("idbuque")) == str(idbuque)
-                and str(buque.get("idregistro")) == str(idregistro)
+                and
+                str(buque.get("idregistro")) == str(idregistro)
                 for buque in buques_validos
             )
 
             if not buque_valido:
                 messages.error(
                     request,
-                    "El buque seleccionado no corresponde al tipo de novedad.",
+                    (
+                        "El buque seleccionado no corresponde "
+                        "al tipo de novedad."
+                    ),
                 )
                 return redirect(request.path)
 
+            # ==================================================
+            # GUARDAR MEDIANTE dbo.SPJ_Insert_Bitacora
+            # ==================================================
             nuevo_id = guardar_novedad_bitacora(
                 idturno=idturno,
                 fecha_hora=timezone.now(),
@@ -214,39 +294,69 @@ def bitacora_home(request):
                 detalle=detalle,
             )
 
+            # Solo mostrar mensaje si ocurrió un problema.
+            # Si se guarda correctamente, el redirect hará que
+            # SPJ_ReporteBitacoraTurno vuelva a consultar el
+            # historial y la novedad aparecerá directamente abajo.
             if nuevo_id is None:
                 messages.error(
                     request,
-                    "No fue posible confirmar el registro de la novedad.",
-                )
-            else:
-                messages.success(
-                    request,
-                    f"Novedad registrada correctamente. Registro #{nuevo_id}.",
+                    (
+                        "No fue posible confirmar "
+                        "el registro de la novedad."
+                    ),
                 )
 
             return redirect(request.path)
 
-    except (DatabaseConfigurationError, DatabaseContractError) as exc:
-        logger.exception("Error de configuración al abrir la bitácora")
-        messages.error(request, str(exc))
-        turnos, industriales, artesanales = [], [], []
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
 
-    except Exception:
-        logger.exception("Error inesperado al cargar la bitácora")
+        logger.exception(
+            "Error de configuración al abrir la bitácora"
+        )
+
         messages.error(
             request,
-            "No fue posible cargar los datos de la bitácora desde SQL Server.",
+            str(exc),
         )
-        turnos, industriales, artesanales = [], [], []
+
+        turnos = []
+        industriales = []
+        artesanales = []
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al cargar la bitácora"
+        )
+
+        messages.error(
+            request,
+            (
+                "No fue posible cargar los datos "
+                "de la bitácora desde SQL Server."
+            ),
+        )
+
+        turnos = []
+        industriales = []
+        artesanales = []
 
     return render(
         request,
         "bitacora/home.html",
         {
-            "usuario_nombre": request.session.get("usuario_nombre"),
-            "usuario_login": request.session.get("usuario_login"),
-            "usuario_cargo": request.session.get("usuario_cargo"),
+            "usuario_nombre": request.session.get(
+                "usuario_nombre"
+            ),
+            "usuario_login": request.session.get(
+                "usuario_login"
+            ),
+            "usuario_cargo": request.session.get(
+                "usuario_cargo"
+            ),
             "turnos": turnos,
             "buques_industriales": industriales,
             "buques_artesanales": artesanales,
