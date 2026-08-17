@@ -1,0 +1,27 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Registro de Inflación | Autoridad Portuaria{% endblock %}
+{% block header_title %}REGISTRO INFLACIÓN{% endblock %}
+{% block body_class %}tarifa-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'bitacora/css/tarifa.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="section-title">Registro de Inflación Anual</div>
+    
+    <div style="background: #ffffff; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; max-width: 600px; margin: 40px auto; border: 1px solid var(--border);">
+        <div style="font-size: 56px; margin-bottom: 20px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">📈</div>
+        <h3 style="font-size: 22px; color: var(--navy-deep); margin-bottom: 12px; font-weight: 700; font-family: inherit;">Módulo de Inflación Anual</h3>
+        <p style="color: var(--muted); font-size: 14.5px; line-height: 1.6; margin-bottom: 30px; font-family: inherit;">
+            Este módulo le permitirá configurar y aplicar los porcentajes de inflación anual para el ajuste automático de tarifas autorizadas en el sistema portuario.
+        </p>
+        <div style="display: inline-block; background: #e3f0f8; color: var(--navy-deep); padding: 10px 22px; border-radius: 30px; font-size: 13.5px; font-weight: 700; letter-spacing: 0.3px; border: 1px solid rgba(6, 45, 82, 0.15);">
+            Próximamente disponible
+        </div>
+    </div>
+</section>
+{% endblock %}

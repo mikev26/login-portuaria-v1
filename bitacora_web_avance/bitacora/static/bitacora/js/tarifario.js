@@ -68,6 +68,7 @@
         document.getElementById('tarifaValor').value = "0.0000";
         document.getElementById('tarifaIva').checked = false;
         document.getElementById('tarifaPermitirCambio').checked = false;
+        document.getElementById('tarifaInflacion').checked = false;
 
         // Reset radio choices
         document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
@@ -162,6 +163,7 @@
         document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.0000" : valNum.toFixed(4);
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
         document.getElementById('tarifaPermitirCambio').checked = !!data.permitir_cambio_valor;
+        document.getElementById('tarifaInflacion').checked = !!data.aplica_inflacion;
 
         // Check correct radio buttons
         const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);
@@ -209,6 +211,7 @@
             const iva = document.getElementById('tarifaIva').checked ? '1' : '0';
             const activa = document.getElementById('tarifaActiva').checked ? '1' : '0';
             const permitir_cambio_valor = document.getElementById('tarifaPermitirCambio').checked ? '1' : '0';
+            const aplica_inflacion = document.getElementById('tarifaInflacion').checked ? '1' : '0';
 
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -229,6 +232,7 @@
             formData.append('ticket_srv', ticket_srv);
             formData.append('activa', activa);
             formData.append('permitir_cambio_valor', permitir_cambio_valor);
+            formData.append('aplica_inflacion', aplica_inflacion);
 
             fetch('/tarifa/guardar/', {
                 method: 'POST',

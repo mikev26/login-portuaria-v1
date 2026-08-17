@@ -1619,6 +1619,25 @@ def tarifa_view(request):
 
 @never_cache
 @require_http_methods(["GET"])
+def tarifa_inflacion_view(request):
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    return render(
+        request,
+        "bitacora/tarifa_inflacion.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
+            "demo_mode": settings.DEMO_MODE,
+        },
+    )
+
+
+@never_cache
+@require_http_methods(["GET"])
 def tarifa_listado_view(request):
     idusuario = request.session.get("usuario_id")
     if not idusuario:
@@ -1728,6 +1747,7 @@ def guardar_tarifa_view(request):
     ticket_srv = request.POST.get("ticket_srv", "").strip()
     activa = request.POST.get("activa", "1").strip()
     permitir_cambio_valor = request.POST.get("permitir_cambio_valor", "0").strip()
+    aplica_inflacion = request.POST.get("aplica_inflacion", "0").strip()
     idtarifa_raw = request.POST.get("id", "0").strip()
     try:
         idtarifa = int(idtarifa_raw)
@@ -1776,6 +1796,7 @@ def guardar_tarifa_view(request):
             ticket=ticket,
             activo=1 if activa in ["1", "true", "True"] else 0,
             cambio_factura=1 if permitir_cambio_valor in ["1", "true", "True"] else 0,
+            aplica_inflacion=1 if aplica_inflacion in ["1", "true", "True"] else 0,
         )
         if resul == 3:
             return JsonResponse({"success": False, "error": "El código de tarifa ya existe para esta tasa."})
@@ -1816,7 +1837,7 @@ def exportar_tarifas_view(request):
     """Genera un archivo Excel con el listado de tarifas cargando la plantilla excel/Tarifas_J.xlsx."""
     import os
     import openpyxl
-    from openpyxl.styles import Font
+    from openpyxl.styles import Font, Alignment
     from copy import copy
     
     idusuario = request.session.get("usuario_id")
@@ -1826,6 +1847,20 @@ def exportar_tarifas_view(request):
     try:
         # 1. Obtener todas las tarifas existentes
         tarifas = obtener_tarifas_existentes()
+
+        # Ordenar por el nombre de la tasa (tasa) y luego por codigo (COD.TARIFA) en orden ascendente
+        def sort_key(t):
+            tasa_nombre = (t.get("tasa") or "").strip().upper()
+            codigo = t.get("codigo") or "0"
+            try:
+                cod_val = int(codigo)
+            except ValueError:
+                cod_val = codigo
+
+            cod_key = (0, cod_val) if isinstance(cod_val, int) else (1, str(cod_val))
+            return (tasa_nombre, cod_key)
+
+        tarifas = sorted(tarifas, key=sort_key)
 
         # 2. Ruta a la plantilla
         template_path = getattr(
@@ -1861,15 +1896,17 @@ def exportar_tarifas_view(request):
         ws.cell(row=5, column=1, value=f"Fecha de Emisión : {current_date_str}")
         ws.cell(row=6, column=1, value=None)  # Limpiar A4 por si acaso
 
-        # 4. Escribir los datos en el excel a partir de la fila 6 (inmediatamente debajo de la cabecera en la fila 5)
+        # 4. Escribir los datos en el excel a partir de la fila 8
         # Las columnas correspondientes son:
-        # Col 1: Cod.tarifa (sctarifa / codigo)
-        # Col 2: Tarifa (tarifa)
-        # Col 3: Valor (valor)
-        # Col 4: Formula (formula)
-        # Col 5: Detalle (detalle)
-        # Col 6: Cod.partida (partida_cod / scpartida)
-        # Col 7: Partida (partida_desc)
+        # Col 1: Tasa (tasa)
+        # Col 2: Cod.tarifa (codigo / sctarifa)
+        # Col 3: Tarifa (tarifa)
+        # Col 4: Valor (valor)
+        # Col 5: Formula (formula)
+        # Col 6: Inflacion (aplica_inflacion_txt)
+        # Col 7: Detalle (detalle)
+        # Col 8: Cod.partida (partida_cod / scpartida)
+        # Col 9: Partida (partida_desc)
         start_row = 8
         for idx, t in enumerate(tarifas):
             row_num = start_row + idx
@@ -1879,27 +1916,35 @@ def exportar_tarifas_view(request):
             except (ValueError, TypeError):
                 val_num = 0.00
 
-            ws.cell(row=row_num, column=1, value=t.get("codigo", ""))
-            ws.cell(row=row_num, column=2, value=t.get("tarifa", ""))
-            ws.cell(row=row_num, column=3, value=val_num)
-            ws.cell(row=row_num, column=4, value=t.get("formula", ""))
-            ws.cell(row=row_num, column=5, value=t.get("detalle", ""))
-            ws.cell(row=row_num, column=6, value=t.get("partida_cod", ""))
-            ws.cell(row=row_num, column=7, value=t.get("partida_desc", ""))
+            try:
+                cod_num = int(t.get("codigo", ""))
+            except (ValueError, TypeError):
+                cod_num = t.get("codigo", "")
+
+            ws.cell(row=row_num, column=1, value=t.get("tasa", ""))
+            ws.cell(row=row_num, column=2, value=cod_num)
+            ws.cell(row=row_num, column=3, value=t.get("tarifa", ""))
+            ws.cell(row=row_num, column=4, value=val_num)
+            ws.cell(row=row_num, column=5, value=t.get("formula", ""))
+            ws.cell(row=row_num, column=6, value=t.get("aplica_inflacion_txt", "No aplica Inflación anual"))
+            ws.cell(row=row_num, column=7, value=t.get("detalle", ""))
+            ws.cell(row=row_num, column=8, value=t.get("partida_cod", ""))
+            ws.cell(row=row_num, column=9, value=t.get("partida_desc", ""))
 
             # Formatear celdas de la fila y forzar color de texto negro
-            for col_idx in range(1, 8):
+            for col_idx in range(1, 10):
                 cell = ws.cell(row=row_num, column=col_idx)
                 
-                # Si supera el formato de plantilla (fila 33), copiamos el formato de la fila 6
-                if row_num > 33:
-                    src_cell = ws.cell(row=6, column=col_idx)
-                    if src_cell.has_style:
-                        cell.font = copy(src_cell.font)
-                        cell.border = copy(src_cell.border)
-                        cell.fill = copy(src_cell.fill)
-                        cell.number_format = copy(src_cell.number_format)
-                        cell.alignment = copy(src_cell.alignment)
+                # Alternar colores copiando el formato de la fila 8 (azul oscuro) o fila 9 (azul claro) de la plantilla
+                src_row = 8 if row_num % 2 == 0 else 9
+                src_cell = ws.cell(row=src_row, column=col_idx)
+                
+                if src_cell.has_style:
+                    cell.font = copy(src_cell.font)
+                    cell.border = copy(src_cell.border)
+                    cell.fill = copy(src_cell.fill)
+                    cell.number_format = copy(src_cell.number_format)
+                    cell.alignment = copy(src_cell.alignment)
 
                 # Forzar color de texto negro y desactivar negritas para legibilidad
                 if cell.font:
@@ -1916,6 +1961,76 @@ def exportar_tarifas_view(request):
                     )
                 else:
                     cell.font = Font(name="Calibri", size=11, color="000000")
+
+        # 4.5. Agregar bloque de firmas al final de todas las tarifas
+        last_data_row = start_row + len(tarifas) - 1 if len(tarifas) > 0 else 7
+        sig_start = last_data_row + 3
+
+        # Escribir "PREPARADO POR:" en la columna 1 (A)
+        cell_prep = ws.cell(row=sig_start, column=1)
+        cell_prep.value = "PREPARADO POR:"
+        cell_prep.font = Font(name="Calibri", size=11, bold=True)
+        cell_prep.alignment = Alignment(horizontal="left", vertical="center")
+
+        # Línea de firma izquierda (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=2,
+            end_row=sig_start + 2,
+            end_column=4,
+        )
+        cell_line_left = ws.cell(row=sig_start + 2, column=2)
+        cell_line_left.value = "________________________________________"
+        cell_line_left.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Nombre del usuario que inicia sesión (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=2,
+            end_row=sig_start + 3,
+            end_column=4,
+        )
+        cell_name_left = ws.cell(row=sig_start + 3, column=2)
+        cell_name_left.value = request.session.get("usuario_nombre", "")
+        cell_name_left.font = Font(name="Calibri", size=11, bold=True)
+        cell_name_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Cargo del usuario que inicia sesión (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 4,
+            start_column=2,
+            end_row=sig_start + 4,
+            end_column=4,
+        )
+        cell_cargo_left = ws.cell(row=sig_start + 4, column=2)
+        cell_cargo_left.value = request.session.get("usuario_cargo", "")
+        cell_cargo_left.font = Font(name="Calibri", size=10, bold=False)
+        cell_cargo_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Línea de firma derecha "REVISADO" (Columnas 7 a 9)
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=7,
+            end_row=sig_start + 2,
+            end_column=9,
+        )
+        cell_line_right = ws.cell(row=sig_start + 2, column=7)
+        cell_line_right.value = "________________________________________"
+        cell_line_right.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_right.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Texto "REVISADO" (Columnas 7 a 9)
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=7,
+            end_row=sig_start + 3,
+            end_column=9,
+        )
+        cell_title_right = ws.cell(row=sig_start + 3, column=7)
+        cell_title_right.value = "REVISADO"
+        cell_title_right.font = Font(name="Calibri", size=11, bold=True)
+        cell_title_right.alignment = Alignment(horizontal="center", vertical="center")
 
         # 5. Generar respuesta HTTP para la descarga
         response = HttpResponse(

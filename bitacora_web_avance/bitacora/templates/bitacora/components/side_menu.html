@@ -10,22 +10,36 @@
     <nav class="menu-navigation">
         <div class="menu-label">Navegación</div>
 
-        <a class="menu-link active" href="/">
+        <a class="menu-link {% if request.path == '/' %}active{% endif %}" href="/">
             <span class="menu-icon" aria-hidden="true">▣</span>
             <span>Bitácora electrónica</span>
         </a>
 
-        <a class="menu-link" href="{% url 'tarifa' %}">
-            <span class="menu-icon" aria-hidden="true">$</span>
-            <span>Tarifario</span>
-        </a>
+        <!-- Dropdown for Tarifario -->
+        <div class="menu-dropdown {% if '/tarifa/' in request.path or '/tarifario/' in request.path %}expanded{% endif %}">
+            <button class="menu-link menu-dropdown-toggle {% if '/tarifa/' in request.path or '/tarifario/' in request.path %}active{% endif %}" type="button" aria-expanded="{% if '/tarifa/' in request.path or '/tarifario/' in request.path %}true{% else %}false{% endif %}" style="width:100%; border:none; background:none; text-align:left; cursor:pointer; font-family:inherit; outline:none; display:flex; align-items:center; color: var(--text);">
+                <span class="menu-icon" aria-hidden="true">$</span>
+                <span style="flex-grow:1; font-family:inherit; font-weight:600;">Tarifario</span>
+                <span class="dropdown-arrow" style="transition: transform 0.25s; font-size: 10px; opacity: 0.7; {% if '/tarifa/' in request.path or '/tarifario/' in request.path %}transform: rotate(180deg);{% endif %}">▼</span>
+            </button>
+            <div class="menu-dropdown-content" style="{% if '/tarifa/' in request.path or '/tarifario/' in request.path %}max-height: 120px;{% else %}max-height: 0;{% endif %} overflow: hidden; transition: max-height 0.25s ease-out; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                <a class="menu-link {% if request.path == '/tarifa/' or request.path == '/tarifario/' %}active{% endif %}" href="{% url 'tarifa' %}" style="min-height: 40px; font-size: 12.5px;">
+                    <span class="menu-icon" aria-hidden="true">⚙</span>
+                    <span>Registro Maestro</span>
+                </a>
+                <a class="menu-link {% if request.path == '/tarifa/inflacion/' %}active{% endif %}" href="{% url 'tarifa_inflacion' %}" style="min-height: 40px; font-size: 12.5px;">
+                    <span class="menu-icon" aria-hidden="true">📈</span>
+                    <span>Registro Inflacion</span>
+                </a>
+            </div>
+        </div>
 
-        <a class="menu-link" href="{% url 'reporte_inec' %}">
+        <a class="menu-link {% if '/reporte/inec/' in request.path %}active{% endif %}" href="{% url 'reporte_inec' %}">
             <span class="menu-icon" aria-hidden="true">⧉</span>
             <span>Reportes INEC</span>
         </a>
 
-        <a class="menu-link" href="{% url 'registro_combustible' %}">
+        <a class="menu-link {% if '/registro-combustible/' in request.path %}active{% endif %}" href="{% url 'registro_combustible' %}">
             <span class="menu-icon" aria-hidden="true">⚓</span>
             <span>Reporte Combustible</span>
         </a>

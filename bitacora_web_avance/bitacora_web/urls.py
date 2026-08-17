@@ -21,6 +21,7 @@ urlpatterns = [
         name="registro_combustible_exportar_validar",
     ),
     path("tarifa/", views.tarifa_view, name="tarifa"),
+    path("tarifa/inflacion/", views.tarifa_inflacion_view, name="tarifa_inflacion"),
     path("tarifa/listado/", views.tarifa_listado_view, name="tarifa_listado"),
     path("tarifa/guardar/", views.guardar_tarifa_view, name="tarifa_guardar"),
     path("tarifa/anular/", views.anular_tarifa_view, name="tarifa_anular"),

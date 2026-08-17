@@ -227,7 +227,8 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "calc_param": "eslora",
                 "calc_unidad": "dia",
                 "ticket_srv": "ninguno",
-                "permitir_cambio_valor": False
+                "permitir_cambio_valor": False,
+                "aplica_inflacion": 1
             },
             {
                 "id": "2",
@@ -249,7 +250,8 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "calc_param": "t_neto",
                 "calc_unidad": "horas",
                 "ticket_srv": "muelle",
-                "permitir_cambio_valor": False
+                "permitir_cambio_valor": False,
+                "aplica_inflacion": 0
             },
             {
                 "id": "3",
@@ -271,7 +273,8 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "calc_param": "otros",
                 "calc_unidad": "cantidad",
                 "ticket_srv": "vehiculo",
-                "permitir_cambio_valor": True
+                "permitir_cambio_valor": True,
+                "aplica_inflacion": 1
             }
         ]
         for t in normalized:
@@ -279,11 +282,17 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
         return normalized
 
     try:
-        tasa_map = {
-            "5": "TASA CABOTAJE",
-            "7": "TASAS ESPECIFICAS",
-            "2": "TASAS A LAS NAVES",
-        }
+        tasa_map = {}
+        try:
+            tasas_db = obtener_tasa_por_id()
+            for t_item in tasas_db:
+                tasa_map[str(t_item["idtasa"])] = t_item["tasa"]
+        except Exception:
+            tasa_map = {
+                "5": "TASA CABOTAJE",
+                "7": "TASAS ESPECIFICAS",
+                "2": "TASAS A LAS NAVES",
+            }
         with closing(get_connection()) as connection:
             with closing(connection.cursor()) as cursor:
                 cursor.execute("EXEC dbo.SPJ_v_tarifas 1")
@@ -297,6 +306,15 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                         return str(val).strip()
 
                     tasa_id_str = str_or_empty(first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
+                    
+                    inflacion_val = first_value(r, ["inflacion", "aplicainflacion", "aplica_inflacion"])
+                    if isinstance(inflacion_val, str):
+                        aplica_inflacion = 1 if "aplica" in inflacion_val.lower() and "no aplica" not in inflacion_val.lower() else 0
+                        aplica_inflacion_txt = inflacion_val
+                    else:
+                        aplica_inflacion = 1 if bool_value(inflacion_val, False) else 0
+                        aplica_inflacion_txt = "Aplica inflación anual" if aplica_inflacion == 1 else "No aplica Inflación anual"
+
                     t_val = {
                         "id": str_or_empty(first_value(r, ["idtarifa", "id", "id_tarifa"])),
                         "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
@@ -319,6 +337,8 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                         "calc_unidad": "dia" if first_value(r, ["dia_hora"]) == 1 else ("horas" if first_value(r, ["dia_hora"]) == 2 else "cantidad"),
                         "ticket_srv": "vehiculo" if first_value(r, ["tikect"]) == 1 else ("muelle" if first_value(r, ["tikect"]) == 2 else "ninguno"),
                         "permitir_cambio_valor": bool_value(first_value(r, ["cambiofacturacion", "cambio_facturacion", "permitir_cambio_valor"], False)),
+                        "aplica_inflacion": aplica_inflacion,
+                        "aplica_inflacion_txt": aplica_inflacion_txt,
                     }
                     t_val["json_data"] = json.dumps(t_val)
                     normalized.append(t_val)
@@ -345,6 +365,7 @@ def guardar_tarifa(
     ticket: int,
     activo: int,
     cambio_factura: int,
+    aplica_inflacion: int,
 ) -> int:
     """
     Guarda o actualiza una tarifa en la base de datos usando el procedimiento adecuado.
@@ -382,7 +403,8 @@ def guardar_tarifa(
                             @stikect = ?, 
                             @sactivo = ?, 
                             @scambioFactura = ?, 
-                            @sresul = @res OUTPUT;
+                            @sresul = @res OUTPUT,
+                            @sinflacion = ?;
                         SELECT @res AS resul;
                         """,
                         idtarifa,
@@ -400,6 +422,7 @@ def guardar_tarifa(
                         int(ticket),
                         int(activo),
                         int(cambio_factura),
+                        int(aplica_inflacion),
                     )
                 else:
                     cursor.execute(
@@ -421,7 +444,8 @@ def guardar_tarifa(
                             @stikect = ?, 
                             @sactivo = ?, 
                             @scambioFactura = ?, 
-                            @sresul = @res OUTPUT;
+                            @sresul = @res OUTPUT,
+                            @sinflacion = ?;
                         SELECT @res AS resul;
                         """,
                         codigo,
@@ -438,6 +462,7 @@ def guardar_tarifa(
                         int(ticket),
                         int(activo),
                         int(cambio_factura),
+                        int(aplica_inflacion),
                     )
                 row = cursor.fetchone()
                 connection.commit()
