@@ -6,105 +6,358 @@
 
 
 {% block content %}
-{% if demo_mode %}<div class="demo"><strong>Modo demostración:</strong> los datos no provienen todavía de SQL Server.</div>{% endif %}
-        {% if messages %}
-            {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
-        {% endif %}
 
-        {% if turnos %}
-        <section class="section">
-            <div class="section-title">Turno habilitado</div>
-            <div class="row">
-                <div class="field grow">
-                    <label for="turnoSelect">Turnos activos de la bitácora</label>
-                    <select id="turnoSelect" class="turn-select">
-                        {% for turno in turnos %}
-                        <option value="{{ forloop.counter }}" data-inicio="{{ turno.fecha_inicio }}" data-fin="{{ turno.fecha_fin|default:'.NULL.' }}">
-                            #{{ turno.idturno }} — {{ turno.nombre }} — {{ turno.fecha_inicio }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Inicia turno</label>
-                    <input id="turnoInicio" type="text" readonly>
-                </div>
-                <div class="field">
-                    <label>Finaliza turno</label>
-                    <input id="turnoFin" type="text" readonly>
-                </div>
-            </div>
-        </section>
+{% if demo_mode %}
+<div class="demo">
+    <strong>Modo demostración:</strong>
+    los datos no provienen todavía de SQL Server.
+</div>
+{% endif %}
 
-        {% for turno in turnos %}
-        <div id="turnoPanel{{ forloop.counter }}" class="panel-turno{% if forloop.first %} visible{% endif %}">
-            <section class="section">
-                <div class="section-title">Registrar novedad</div>
-                <div class="row">
-                    <div class="field">
-                        <label for="fecha{{ forloop.counter }}">Fecha</label>
-                        <input id="fecha{{ forloop.counter }}" class="current-date" type="date" readonly>
-                    </div>
-                    <div class="field">
-                        <label for="hora{{ forloop.counter }}">Hora</label>
-                        <input id="hora{{ forloop.counter }}" class="current-time" type="time" readonly>
-                    </div>
-                    <div class="field grow">
-                        <label for="tipo{{ forloop.counter }}">Tipo de novedad</label>
-                        <select id="tipo{{ forloop.counter }}" class="novelty-type" data-ship-select="buque{{ forloop.counter }}">
-                            <option value="inicio">Inicia turno</option>
-                            <option value="industrial">Buque industrial</option>
-                            <option value="artesanal">Buque artesanal</option>
-                        </select>
-                    </div>
-                </div>
+{% if messages %}
+    {% for message in messages %}
+        <div class="message">{{ message }}</div>
+    {% endfor %}
+{% endif %}
 
-                <div class="row" style="margin-top:16px;">
-                    <div class="field grow">
-                        <label for="buque{{ forloop.counter }}">Registro de buque</label>
-                        <select id="buque{{ forloop.counter }}" class="ship-select" disabled>
-                            <option value="">No aplica para este tipo de novedad</option>
-                        </select>
-                        <div class="ship-help" id="buque{{ forloop.counter }}Help"></div>
-                    </div>
-                </div>
 
-                <div class="field" style="margin-top:16px;">
-                    <label for="detalle{{ forloop.counter }}">Detalle de novedades</label>
-                    <textarea id="detalle{{ forloop.counter }}" placeholder="Describa la novedad observada..."></textarea>
-                </div>
+{% if turnos %}
 
-                <div class="actions">
-                    <button type="button" class="primary" disabled>Guardar novedad</button>
-                </div>
-                <div class="pending">El guardado se habilitará cuando se confirme el procedimiento almacenado que registra las novedades.</div>
-            </section>
+<section class="section">
+    <div class="section-title">Turno habilitado</div>
 
-            <section class="section">
-                <div class="section-title">Historial del turno</div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Hora</th><th>Buque / Novedad</th><th>Detalle</th></tr></thead>
-                        <tbody>
-                        {% for novedad in turno.novedades %}
-                            <tr><td>{{ novedad.hora }}</td><td>{{ novedad.buque_novedad }}</td><td>{{ novedad.detalle }}</td></tr>
-                        {% empty %}
-                            <tr><td colspan="3" class="empty">Todavía no se ha conectado el procedimiento del historial de novedades.</td></tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <div class="row">
+
+        <div class="field grow">
+            <label for="turnoSelect">
+                Turnos activos de la bitácora
+            </label>
+
+            <select id="turnoSelect" class="turn-select">
+
+                {% for turno in turnos %}
+
+                <option
+                    value="{{ forloop.counter }}"
+                    data-inicio="{{ turno.fecha_inicio }}"
+                    data-fin="{{ turno.fecha_fin|default:'.NULL.' }}"
+                >
+                    #{{ turno.idturno }}
+                    —
+                    {{ turno.nombre }}
+                    —
+                    {{ turno.fecha_inicio }}
+                </option>
+
+                {% endfor %}
+
+            </select>
         </div>
-        {% endfor %}
-        {% else %}
-            <div class="no-turns">No se pudieron cargar turnos activos.</div>
-        {% endif %}
+
+
+        <div class="field">
+            <label>Inicia turno</label>
+
+            <input
+                id="turnoInicio"
+                type="text"
+                readonly
+            >
+        </div>
+
+
+        <div class="field">
+            <label>Finaliza turno</label>
+
+            <input
+                id="turnoFin"
+                type="text"
+                readonly
+            >
+        </div>
+
+    </div>
+</section>
+
+
+{% for turno in turnos %}
+
+<div
+    id="turnoPanel{{ forloop.counter }}"
+    class="panel-turno{% if forloop.first %} visible{% endif %}"
+>
+
+
+    <!-- ====================================================== -->
+    <!-- ===== INICIO: FORMULARIO SPJ_INSERT_BITACORA ========= -->
+    <!-- ====================================================== -->
+
+    <section class="section">
+
+        <form method="post" class="novedad-form">
+
+            {% csrf_token %}
+
+
+            <!-- Turno al que pertenece la novedad -->
+            <input
+                type="hidden"
+                name="idturno"
+                value="{{ turno.idturno }}"
+            >
+
+
+            <!--
+                Estos valores se completan automáticamente
+                desde home.js cuando se selecciona un buque.
+            -->
+
+            <input
+                type="hidden"
+                name="idbuque"
+                class="selected-idbuque"
+            >
+
+            <input
+                type="hidden"
+                name="idregistro"
+                class="selected-idregistro"
+            >
+
+            <input
+                type="hidden"
+                name="scregistro"
+                class="selected-scregistro"
+            >
+
+
+            <div class="section-title">
+                Registrar novedad
+            </div>
+
+
+            <div class="row">
+
+                <div class="field">
+
+                    <label for="fecha{{ forloop.counter }}">
+                        Fecha
+                    </label>
+
+                    <input
+                        id="fecha{{ forloop.counter }}"
+                        class="current-date"
+                        type="date"
+                        readonly
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="hora{{ forloop.counter }}">
+                        Hora
+                    </label>
+
+                    <input
+                        id="hora{{ forloop.counter }}"
+                        class="current-time"
+                        type="time"
+                        readonly
+                    >
+
+                </div>
+
+
+                <div class="field grow">
+
+                    <label for="tipo{{ forloop.counter }}">
+                        Tipo de novedad
+                    </label>
+
+                    <select
+                        id="tipo{{ forloop.counter }}"
+                        name="tipo_novedad"
+                        class="novelty-type"
+                        data-ship-select="buque{{ forloop.counter }}"
+                        required
+                    >
+
+                        <option value="">
+                            -- Seleccione tipo de novedad --
+                        </option>
+
+                        <option value="industrial">
+                            Buque industrial
+                        </option>
+
+                        <option value="artesanal">
+                            Buque artesanal
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:16px;"
+            >
+
+                <div class="field grow">
+
+                    <label for="buque{{ forloop.counter }}">
+                        Registro de buque
+                    </label>
+
+                    <select
+                        id="buque{{ forloop.counter }}"
+                        class="ship-select"
+                        disabled
+                    >
+
+                        <option value="">
+                            Seleccione primero un tipo de novedad
+                        </option>
+
+                    </select>
+
+
+                    <div
+                        class="ship-help"
+                        id="buque{{ forloop.counter }}Help"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="field"
+                style="margin-top:16px;"
+            >
+
+                <label for="detalle{{ forloop.counter }}">
+                    Detalle de novedades
+                </label>
+
+                <textarea
+                    id="detalle{{ forloop.counter }}"
+                    name="detalle"
+                    class="novelty-detail"
+                    placeholder="Describa la novedad observada..."
+                    required
+                ></textarea>
+
+            </div>
+
+
+            <div class="actions">
+
+                <button
+                    type="submit"
+                    class="primary save-novelty-button"
+                    disabled
+                >
+                    Guardar novedad
+                </button>
+
+            </div>
+
+
+            <div class="pending">
+                Seleccione el tipo de novedad, el buque y escriba
+                el detalle para habilitar el guardado.
+            </div>
+
+        </form>
+
+    </section>
+
+    <!-- ====================================================== -->
+    <!-- ===== FIN: FORMULARIO SPJ_INSERT_BITACORA ============ -->
+    <!-- ====================================================== -->
+
+
+
+    <section class="section">
+
+        <div class="section-title">
+            Historial del turno
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Buque / Novedad</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+
+
+                <tbody>
+
+                {% for novedad in turno.novedades %}
+
+                    <tr>
+                        <td>{{ novedad.hora }}</td>
+                        <td>{{ novedad.buque_novedad }}</td>
+                        <td>{{ novedad.detalle }}</td>
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td colspan="3" class="empty">
+                            Todavía no se ha conectado el procedimiento
+                            del historial de novedades.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endfor %}
+
+
+{% else %}
+
+<div class="no-turns">
+    No se pudieron cargar turnos activos.
+</div>
+
+{% endif %}
+
 {% endblock %}
 
+
+
 {% block extra_js %}
+
 {{ block.super }}
+
 {{ buques_industriales|json_script:"industrialShips" }}
 {{ buques_artesanales|json_script:"artisanalShips" }}
+
 <script src="{% static 'bitacora/js/home.js' %}"></script>
+
 {% endblock %}

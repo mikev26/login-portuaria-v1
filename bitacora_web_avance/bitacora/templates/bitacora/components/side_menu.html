@@ -4,31 +4,79 @@
             <h2 class="side-menu-title">Menú de interfaces</h2>
             <p class="side-menu-subtitle">Autoridad Portuaria de Manta</p>
         </div>
-        <button id="menuClose" class="menu-close" type="button" aria-label="Cerrar menú">&times;</button>
+
+        <button
+            id="menuClose"
+            class="menu-close"
+            type="button"
+            aria-label="Cerrar menú"
+        >
+            &times;
+        </button>
     </div>
 
     <nav class="menu-navigation">
         <div class="menu-label">Navegación</div>
 
-        <a class="menu-link active" href="/">
+        <!--
+            MENÚ ACTIVO DINÁMICO
+
+            Cada enlace comprueba el nombre de la ruta actual mediante
+            request.resolver_match.url_name.
+
+            De esta forma, únicamente la interfaz que está abierta
+            recibe la clase CSS "active".
+        -->
+
+        <!-- Bitácora electrónica -->
+        <a
+            class="menu-link {% if request.resolver_match.url_name == 'bitacora_home' %}active{% endif %}"
+            href="{% url 'bitacora_home' %}"
+        >
             <span class="menu-icon" aria-hidden="true">▣</span>
             <span>Bitácora electrónica</span>
         </a>
 
-        <a class="menu-link" href="{% url 'tarifa' %}">
+        <!-- Tarifario -->
+        <a
+            class="menu-link {% if request.resolver_match.url_name == 'tarifa' %}active{% endif %}"
+            href="{% url 'tarifa' %}"
+        >
             <span class="menu-icon" aria-hidden="true">$</span>
             <span>Tarifario</span>
         </a>
 
-        <a class="menu-link" href="{% url 'reporte_inec' %}">
+        <!-- Reportes INEC -->
+        <a
+            class="menu-link {% if request.resolver_match.url_name == 'reporte_inec' %}active{% endif %}"
+            href="{% url 'reporte_inec' %}"
+        >
             <span class="menu-icon" aria-hidden="true">⧉</span>
             <span>Reportes INEC</span>
         </a>
 
-        <a class="menu-link" href="{% url 'registro_combustible' %}">
+        <!-- Reporte de combustible -->
+        <a
+            class="menu-link {% if request.resolver_match.url_name == 'registro_combustible' %}active{% endif %}"
+            href="{% url 'registro_combustible' %}"
+        >
             <span class="menu-icon" aria-hidden="true">⚓</span>
             <span>Reporte Combustible</span>
         </a>
+
+        <!--
+            VISTAS PENDIENTES
+
+            Cuando se agregue una nueva interfaz:
+            - Se reemplaza el enlace "#".
+            - Se elimina la clase "disabled".
+            - Se utiliza el nombre real de la nueva ruta para
+              controlar cuándo debe aparecer como activa.
+
+            Importante:
+            No colocar ejemplos de etiquetas Django dentro de
+            comentarios HTML, porque Django igualmente los procesa.
+        -->
 
         <a class="menu-link disabled" href="#" aria-disabled="true">
             <span class="menu-icon" aria-hidden="true">▤</span>

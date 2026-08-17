@@ -40,7 +40,7 @@ def _login_desde_vista_turno(usuario: str, clave: str) -> dict[str, Any] | None:
                 SELECT TOP 1 idusuario, usuario, nombre, cargo
                 FROM {login_view}
                 WHERE usuario = ?
-                  AND ClaveBitacora = ?
+                  AND ClaveBitacora COLLATE Latin1_General_100_BIN2 = ?
                   AND fecha_s IS NULL
                   AND activo <> 7
                   AND bitacora = 1

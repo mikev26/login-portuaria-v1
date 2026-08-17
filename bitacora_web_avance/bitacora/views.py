@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 
 from .forms import LoginForm, RegistroCombustibleFilterForm
 from .services import (
@@ -30,7 +31,7 @@ from .services import (
     anular_tarifa,
     
 )
-from .db import guardar_novedad_bitacora
+from .services.bitacora_service import guardar_novedad_bitacora
 logger = logging.getLogger(__name__)
 
 
@@ -93,9 +94,13 @@ def login_view(request):
         {"demo_mode": settings.DEMO_MODE, "form": form},
     )
 
-
+TIPOS_NOVEDAD_BITACORA = {
+    "industrial": 1,
+    "artesanal": 2,
+}
 @never_cache
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
+
 def bitacora_home(request):
     idusuario = request.session.get("usuario_id")
     if not idusuario:
@@ -103,6 +108,7 @@ def bitacora_home(request):
 
     try:
         turnos = obtener_turnos_usuario(idusuario)
+
         if not turnos:
             request.session.flush()
             messages.error(
@@ -114,10 +120,118 @@ def bitacora_home(request):
         industriales = obtener_buques_industriales()
         artesanales = obtener_buques_artesanales()
 
+        # Guardar novedad
+        if request.method == "POST":
+            idturno_raw = request.POST.get("idturno", "").strip()
+            tipo_novedad = request.POST.get("tipo_novedad", "").strip()
+            idbuque_raw = request.POST.get("idbuque", "").strip()
+            idregistro_raw = request.POST.get("idregistro", "").strip()
+            scregistro_raw = request.POST.get("scregistro", "").strip()
+            detalle = request.POST.get("detalle", "").strip()
+
+            # 1 = Industrial / 2 = Artesanal
+            id_tipo_novedad = TIPOS_NOVEDAD_BITACORA.get(tipo_novedad)
+
+            if id_tipo_novedad is None:
+                messages.error(
+                    request,
+                    "Debe seleccionar un tipo de novedad válido.",
+                )
+                return redirect(request.path)
+
+            if not idturno_raw:
+                messages.error(request, "No se recibió el turno.")
+                return redirect(request.path)
+
+            if not idbuque_raw or not idregistro_raw:
+                messages.error(
+                    request,
+                    "Debe seleccionar un buque.",
+                )
+                return redirect(request.path)
+
+            if not detalle:
+                messages.error(
+                    request,
+                    "Debe ingresar el detalle de la novedad.",
+                )
+                return redirect(request.path)
+
+            try:
+                idturno = int(idturno_raw)
+                idbuque = int(idbuque_raw)
+                idregistro = int(idregistro_raw)
+                scregistro = int(scregistro_raw) if scregistro_raw else None
+            except (TypeError, ValueError):
+                messages.error(
+                    request,
+                    "Los datos recibidos para registrar la novedad no son válidos.",
+                )
+                return redirect(request.path)
+
+            # Verificar que el turno enviado pertenece a los turnos activos
+            turnos_validos = {
+                int(turno["idturno"])
+                for turno in turnos
+                if turno.get("idturno") is not None
+            }
+
+            if idturno not in turnos_validos:
+                messages.error(
+                    request,
+                    "El turno seleccionado no está activo.",
+                )
+                return redirect(request.path)
+
+            # Verificar que el buque realmente pertenece
+            # a la categoría seleccionada.
+            buques_validos = (
+                industriales
+                if tipo_novedad == "industrial"
+                else artesanales
+            )
+
+            buque_valido = any(
+                str(buque.get("idbuque")) == str(idbuque)
+                and str(buque.get("idregistro")) == str(idregistro)
+                for buque in buques_validos
+            )
+
+            if not buque_valido:
+                messages.error(
+                    request,
+                    "El buque seleccionado no corresponde al tipo de novedad.",
+                )
+                return redirect(request.path)
+
+            nuevo_id = guardar_novedad_bitacora(
+                idturno=idturno,
+                fecha_hora=timezone.now(),
+                id_tipo_novedad=id_tipo_novedad,
+                id_buque=idbuque,
+                id_registro=idregistro,
+                sc_registro=scregistro,
+                detalle=detalle,
+            )
+
+            if nuevo_id is None:
+                messages.error(
+                    request,
+                    "No fue posible confirmar el registro de la novedad.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Novedad registrada correctamente. Registro #{nuevo_id}.",
+                )
+
+            return redirect(request.path)
+
     except (DatabaseConfigurationError, DatabaseContractError) as exc:
         logger.exception("Error de configuración al abrir la bitácora")
         messages.error(request, str(exc))
         turnos, industriales, artesanales = [], [], []
+
     except Exception:
         logger.exception("Error inesperado al cargar la bitácora")
         messages.error(
@@ -440,6 +554,54 @@ def exportar_reporte_inec_excel(
 
     sig_start = ultima_fila_datos + 3
 
+    # REPORTE INEC
+
+    def limpiar_combinaciones(
+        hoja,
+        fila_inicio,
+        fila_fin,
+        columna_inicio,
+        columna_fin,
+    ):
+        rangos_eliminar = []
+
+        for rango in list(hoja.merged_cells.ranges):
+            hay_cruce = not (
+                rango.max_row < fila_inicio
+                or rango.min_row > fila_fin
+                or rango.max_col < columna_inicio
+                or rango.min_col > columna_fin
+            )
+
+            if hay_cruce:
+                rangos_eliminar.append(str(rango))
+
+        for rango in rangos_eliminar:
+            hoja.unmerge_cells(rango)
+
+
+    # Limpiar únicamente las dos zonas de firmas.
+    limpiar_combinaciones(
+        worksheet,
+        sig_start,
+        sig_start + 4,
+        2,
+        5,
+    )
+
+    limpiar_combinaciones(
+        worksheet,
+        sig_start,
+        sig_start + 4,
+        9,
+        12,
+    )
+
+
+    # -------------------------
+    # PREPARADO POR
+    # -------------------------
+
     worksheet.merge_cells(
         start_row=sig_start,
         start_column=2,
@@ -465,6 +627,8 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
+
+    # Línea de firma izquierda
     worksheet.merge_cells(
         start_row=sig_start + 2,
         start_column=2,
@@ -492,33 +656,8 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
-    worksheet.merge_cells(
-        start_row=sig_start + 2,
-        start_column=9,
-        end_row=sig_start + 2,
-        end_column=12,
-    )
 
-    cell_line_right = worksheet.cell(
-        row=sig_start + 2,
-        column=9,
-    )
-
-    cell_line_right.value = (
-        "________________________________________"
-    )
-
-    cell_line_right.font = Font(
-        name="Calibri",
-        size=11,
-        bold=False,
-    )
-
-    cell_line_right.alignment = Alignment(
-        horizontal="center",
-        vertical="center",
-    )
-
+    # Nombre del usuario
     worksheet.merge_cells(
         start_row=sig_start + 3,
         start_column=2,
@@ -544,6 +683,8 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
+
+    # Cargo del usuario
     worksheet.merge_cells(
         start_row=sig_start + 4,
         start_column=2,
@@ -594,6 +735,37 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
+
+    # Línea de firma derecha
+    worksheet.merge_cells(
+        start_row=sig_start + 2,
+        start_column=9,
+        end_row=sig_start + 2,
+        end_column=12,
+    )
+
+    cell_line_right = worksheet.cell(
+        row=sig_start + 2,
+        column=9,
+    )
+
+    cell_line_right.value = (
+        "________________________________________"
+    )
+
+    cell_line_right.font = Font(
+        name="Calibri",
+        size=11,
+        bold=False,
+    )
+
+    cell_line_right.alignment = Alignment(
+        horizontal="center",
+        vertical="center",
+    )
+
+
+    # Texto debajo de la firma derecha
     worksheet.merge_cells(
         start_row=sig_start + 3,
         start_column=9,
