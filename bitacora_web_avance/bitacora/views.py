@@ -1624,6 +1624,12 @@ def tarifa_inflacion_view(request):
     if not idusuario:
         return redirect("login")
 
+    try:
+        tarifas = obtener_tarifas_existentes(estado=101)
+    except Exception as exc:
+        logger.exception("Error al obtener tarifas para inflación")
+        tarifas = []
+
     return render(
         request,
         "bitacora/tarifa_inflacion.html",
@@ -1632,6 +1638,7 @@ def tarifa_inflacion_view(request):
             "usuario_login": request.session.get("usuario_login"),
             "usuario_cargo": request.session.get("usuario_cargo"),
             "demo_mode": settings.DEMO_MODE,
+            "tarifas": tarifas,
         },
     )
 
@@ -1643,8 +1650,11 @@ def tarifa_listado_view(request):
     if not idusuario:
         return redirect("login")
 
+    filtro = request.GET.get("filtro", "activas").strip().lower()
+    estado = 100 if filtro == "todas" else 1
+
     try:
-        tarifas = obtener_tarifas_existentes()
+        tarifas = obtener_tarifas_existentes(estado=estado)
     except Exception as exc:
         logger.exception("Error al obtener tarifas existentes")
         tarifas = []
@@ -1654,6 +1664,7 @@ def tarifa_listado_view(request):
         "bitacora/tarifa_listado.html",
         {
             "tarifas": tarifas,
+            "filtro": filtro,
         },
     )
 
@@ -1844,9 +1855,22 @@ def exportar_tarifas_view(request):
     if not idusuario:
         return HttpResponse("No autorizado", status=401)
 
+    filtro = request.GET.get("filtro", "activas").strip().lower()
+    estado = 100 if filtro == "todas" else 1
+    q = request.GET.get("q", "").strip().lower()
+
     try:
-        # 1. Obtener todas las tarifas existentes
-        tarifas = obtener_tarifas_existentes()
+        # 1. Obtener tarifas según filtro
+        tarifas = obtener_tarifas_existentes(estado=estado)
+
+        # 1.5. Filtrar por término de búsqueda (búsqueda en vivo de la tabla)
+        if q:
+            tarifas = [
+                t for t in tarifas
+                if q in (t.get("tasa") or "").lower()
+                or q in (t.get("codigo") or "").lower()
+                or q in (t.get("tarifa") or "").lower()
+            ]
 
         # Ordenar por el nombre de la tasa (tasa) y luego por codigo (COD.TARIFA) en orden ascendente
         def sort_key(t):
@@ -1930,9 +1954,10 @@ def exportar_tarifas_view(request):
             ws.cell(row=row_num, column=7, value=t.get("detalle", ""))
             ws.cell(row=row_num, column=8, value=t.get("partida_cod", ""))
             ws.cell(row=row_num, column=9, value=t.get("partida_desc", ""))
+            ws.cell(row=row_num, column=10, value="ACTIVA" if t.get("activa") else "ANULADA")
 
             # Formatear celdas de la fila y forzar color de texto negro
-            for col_idx in range(1, 10):
+            for col_idx in range(1, 11):
                 cell = ws.cell(row=row_num, column=col_idx)
                 
                 # Alternar colores copiando el formato de la fila 8 (azul oscuro) o fila 9 (azul claro) de la plantilla

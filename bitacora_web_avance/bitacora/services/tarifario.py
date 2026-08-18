@@ -201,9 +201,9 @@ def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
         return tasa_next_map.get(str(idtasa), 1)
 
 
-def obtener_tarifas_existentes() -> list[dict[str, Any]]:
+def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
     """
-    Ejecuta el procedimiento almacenado sp_v_tarifas 1 para obtener el listado de tarifas.
+    Ejecuta el procedimiento almacenado sp_v_tarifas para obtener el listado de tarifas.
     """
     if settings.DEMO_MODE:
         normalized = [
@@ -277,6 +277,37 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                 "aplica_inflacion": 1
             }
         ]
+        
+        # Filtro simulado en modo demostración
+        if estado == 1:
+            normalized = [t for t in normalized if t.get("activa") is True]
+        elif estado == 0:
+            normalized = [t for t in normalized if t.get("activa") is False]
+        elif estado == 101:
+            normalized = [
+                {
+                    "id": "1",
+                    "codigo": "306",
+                    "activa": True,
+                    "tasa": "TASA CABOTAJE",
+                    "tasa_id": "5",
+                    "tarifa": "Prueba de tarifa exitosa",
+                    "valor": "111110.0000",
+                    "aplica_inflacion": 1
+                },
+                {
+                    "id": "2",
+                    "codigo": "307",
+                    "activa": True,
+                    "tasa": "TASA CABOTAJE",
+                    "tasa_id": "5",
+                    "tarifa": "Tarifa prueba 3 editado 3.1",
+                    "valor": "5777.2000",
+                    "aplica_inflacion": 1
+                }
+            ]
+        # Si estado == 100 se devuelven todas las tarifas
+
         for t in normalized:
             t["json_data"] = json.dumps(t)
         return normalized
@@ -295,7 +326,7 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
             }
         with closing(get_connection()) as connection:
             with closing(connection.cursor()) as cursor:
-                cursor.execute("EXEC dbo.SPJ_v_tarifas 1")
+                cursor.execute("EXEC dbo.SPJ_v_tarifas ?", estado)
                 rows = _rows_as_dicts(cursor)
                 
                 normalized = []
@@ -307,12 +338,18 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
 
                     tasa_id_str = str_or_empty(first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
                     
+                    tasa_db_val = first_value(r, ["tasa", "tasa_nombre"])
+                    if tasa_db_val and not str(tasa_db_val).isdigit():
+                        tasa_nombre = str(tasa_db_val).strip()
+                    else:
+                        tasa_nombre = tasa_map.get(tasa_id_str, "")
+                    
                     inflacion_val = first_value(r, ["inflacion", "aplicainflacion", "aplica_inflacion"])
                     if isinstance(inflacion_val, str):
                         aplica_inflacion = 1 if "aplica" in inflacion_val.lower() and "no aplica" not in inflacion_val.lower() else 0
                         aplica_inflacion_txt = inflacion_val
                     else:
-                        aplica_inflacion = 1 if bool_value(inflacion_val, False) else 0
+                        aplica_inflacion = 1 if bool_value(inflacion_val) else 0
                         aplica_inflacion_txt = "Aplica inflación anual" if aplica_inflacion == 1 else "No aplica Inflación anual"
 
                     t_val = {
@@ -320,7 +357,7 @@ def obtener_tarifas_existentes() -> list[dict[str, Any]]:
                         "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
                         "activa": bool_value(first_value(r, ["activa", "activo", "estado"], True)),
                         "tasa_id": tasa_id_str,
-                        "tasa": tasa_map.get(tasa_id_str, ""),
+                        "tasa": tasa_nombre,
                         "tarifa": str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
                         "partida_cod": str_or_empty(first_value(r, ["partida_cod", "scpartida", "partida"])),
                         "partida_desc": str_or_empty(first_value(r, ["partida", "partida_desc", "nombrefinanza", "partidafinanzas"])),
