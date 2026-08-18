@@ -608,3 +608,30 @@
         grid-column: 3;
     }
 }
+
+/* =========================================================
+   BOTÓN CERRAR MODAL (X)
+   ========================================================= */
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.close-modal-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    color: #64748b;
+    padding: 0 4px;
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.close-modal-btn:hover {
+    color: #0f172a;
+    background: #e2e8f0;
+}

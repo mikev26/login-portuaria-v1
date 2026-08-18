@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
 
-        let filtrosMultiples = {
+    let filtrosMultiples = {
         buques: [],
         tipos_nave: [],
         armadores: [],
@@ -38,7 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     function toggleFilter(name, checkbox) {
-
         const select = document.getElementById(
             "sel_" + name
         );
@@ -48,7 +47,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         select.disabled = !checkbox.checked;
-
     }
 
     const filtros = [
@@ -60,9 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "estado"
     ];
 
-
     filtros.forEach(function (nombre) {
-
         const checkbox = document.getElementById(
             "chk_" + nombre
         );
@@ -74,19 +70,15 @@ document.addEventListener("DOMContentLoaded", function () {
         checkbox.addEventListener(
             "change",
             function () {
-
                 toggleFilter(
                     nombre,
                     checkbox
                 );
-
             }
         );
-
     });
 
     window.openModal = function (title, key) {
-
         const modal = document.getElementById(
             "multiModal"
         );
@@ -99,10 +91,8 @@ document.addEventListener("DOMContentLoaded", function () {
             "modalList"
         );
 
-
         modalTitle.textContent =
             "Seleccionar " + title;
-
 
         modalList.innerHTML = "";
 
@@ -115,9 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
             estados: "sel_estado"
         };
 
-
         modalSelectId = selectMap[key];
-
 
         const select = document.getElementById(
             modalSelectId
@@ -127,18 +115,15 @@ document.addEventListener("DOMContentLoaded", function () {
             !filtrosMultiples[key] ||
             filtrosMultiples[key].length === 0
         ) {
-
             filtrosMultiples[key] = [];
 
             if (
                 select &&
                 select.value
             ) {
-
                 filtrosMultiples[key].push(
                     select.value
                 );
-
             }
 
             const form =
@@ -146,37 +131,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     "formReporteBuque"
                 );
 
-
             const hiddenInputs =
                 form.querySelectorAll(
                     `input[name="${modalSelectId}_modal"]`
                 );
 
-
             hiddenInputs.forEach(function (input) {
-
                 if (
                     input.value &&
                     !filtrosMultiples[key].includes(
                         input.value
                     )
                 ) {
-
                     filtrosMultiples[key].push(
                         input.value
                     );
-
                 }
-
             });
-
         }
-
 
         const items = dataLists[key] || [];
 
         if (items.length === 0) {
-
             modalList.innerHTML = `
                 <div class="modal-empty">
                     No existen elementos disponibles.
@@ -188,15 +164,12 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-
         items.forEach(function (item) {
-
             const div =
                 document.createElement("div");
 
             div.className =
                 "modal-option";
-
 
             const checkbox =
                 document.createElement("input");
@@ -218,19 +191,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         "_"
                     );
 
-
             // Marcar selección anterior
-
             if (
                 filtrosMultiples[key].includes(
                     item
                 )
             ) {
-
                 checkbox.checked = true;
-
             }
-
 
             const label =
                 document.createElement("label");
@@ -244,40 +212,29 @@ document.addEventListener("DOMContentLoaded", function () {
             checkbox.addEventListener(
                 "change",
                 function () {
-
                     if (checkbox.checked) {
-
                         if (
                             !filtrosMultiples[key].includes(
                                 checkbox.value
                             )
                         ) {
-
                             filtrosMultiples[key].push(
                                 checkbox.value
                             );
-
                         }
-
                     } else {
-
                         filtrosMultiples[key] =
                             filtrosMultiples[key].filter(
                                 function (valor) {
-
                                     return (
                                         valor !==
                                         checkbox.value
                                     );
-
                                 }
                             );
-
                     }
-
                 }
             );
-
 
             div.appendChild(
                 checkbox
@@ -290,54 +247,42 @@ document.addEventListener("DOMContentLoaded", function () {
             modalList.appendChild(
                 div
             );
-
         });
-
 
         modal.style.display =
             "flex";
-
     };
 
     window.acceptModal = function () {
-
         if (!modalSelectId) {
             return;
         }
-
 
         const select =
             document.getElementById(
                 modalSelectId
             );
 
-
         if (!select) {
             return;
         }
-
 
         const modalList =
             document.getElementById(
                 "modalList"
             );
 
-
         const checked =
             modalList.querySelectorAll(
                 'input[type="checkbox"]:checked'
             );
 
-
         const seleccionados =
             Array.from(checked).map(
                 function (checkbox) {
-
                     return checkbox.value;
-
                 }
             );
-
 
         const keyMap = {
             sel_buque: "buques",
@@ -348,19 +293,15 @@ document.addEventListener("DOMContentLoaded", function () {
             sel_estado: "estados"
         };
 
-
         const key =
             keyMap[modalSelectId];
-
 
         filtrosMultiples[key] =
             seleccionados;
 
         select.innerHTML = "";
 
-
         if (seleccionados.length === 0) {
-
             const option =
                 document.createElement(
                     "option"
@@ -374,12 +315,9 @@ document.addEventListener("DOMContentLoaded", function () {
             select.appendChild(
                 option
             );
-
         } else {
-
             seleccionados.forEach(
                 function (valor, index) {
-
                     const option =
                         document.createElement(
                             "option"
@@ -398,10 +336,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     select.appendChild(
                         option
                     );
-
                 }
             );
-
         }
 
         select.disabled =
@@ -415,134 +351,107 @@ document.addEventListener("DOMContentLoaded", function () {
                 )
             );
 
-
         if (checkboxFiltro) {
-
             checkboxFiltro.checked =
                 seleccionados.length > 0;
-
         }
 
         actualizarFiltrosModal();
 
-
         closeModal();
-
     };
 
-function actualizarFiltrosModal() {
-
-    const form =
-        document.getElementById(
-            "formReporteBuque"
-        );
-
-    if (!form) {
-        return;
-    }
-
-    form.querySelectorAll(
-        ".filtro-modal-hidden"
-    ).forEach(
-        function (elemento) {
-
-            elemento.remove();
-
-        }
-    );
-
-    const nombreMap = {
-
-        buques:
-            "sel_buque_modal",
-
-        tipos_nave:
-            "sel_tiponave_modal",
-
-        armadores:
-            "sel_armador_modal",
-
-        procedencias:
-            "sel_procedencia_modal",
-
-        destinos:
-            "sel_destino_modal",
-
-        estados:
-            "sel_estado_modal"
-
-    };
-
-    Object.keys(
-        filtrosMultiples
-    ).forEach(
-        function (key) {
-
-            const valores =
-                filtrosMultiples[key];
-
-
-            if (
-                !valores ||
-                valores.length === 0
-            ) {
-                return;
-            }
-
-
-            const nombre =
-                nombreMap[key];
-
-
-            valores.forEach(
-                function (valor) {
-
-                    const input =
-                        document.createElement(
-                            "input"
-                        );
-
-                    input.type =
-                        "hidden";
-
-                    input.name =
-                        nombre;
-
-                    input.value =
-                        valor;
-
-                    input.className =
-                        "filtro-modal-hidden";
-
-
-                    form.appendChild(
-                        input
-                    );
-
-                }
+    function actualizarFiltrosModal() {
+        const form =
+            document.getElementById(
+                "formReporteBuque"
             );
 
+        if (!form) {
+            return;
         }
-    );
-}
+
+        form.querySelectorAll(
+            ".filtro-modal-hidden"
+        ).forEach(
+            function (elemento) {
+                elemento.remove();
+            }
+        );
+
+        const nombreMap = {
+            buques:
+                "sel_buque_modal",
+            tipos_nave:
+                "sel_tiponave_modal",
+            armadores:
+                "sel_armador_modal",
+            procedencias:
+                "sel_procedencia_modal",
+            destinos:
+                "sel_destino_modal",
+            estados:
+                "sel_estado_modal"
+        };
+
+        Object.keys(
+            filtrosMultiples
+        ).forEach(
+            function (key) {
+                const valores =
+                    filtrosMultiples[key];
+
+                if (
+                    !valores ||
+                    valores.length === 0
+                ) {
+                    return;
+                }
+
+                const nombre =
+                    nombreMap[key];
+
+                valores.forEach(
+                    function (valor) {
+                        const input =
+                            document.createElement(
+                                "input"
+                            );
+
+                        input.type =
+                            "hidden";
+
+                        input.name =
+                            nombre;
+
+                        input.value =
+                            valor;
+
+                        input.className =
+                            "filtro-modal-hidden";
+
+                        form.appendChild(
+                            input
+                        );
+                    }
+                );
+            }
+        );
+    }
 
     filtros.forEach(function (nombre) {
-
         const select =
             document.getElementById(
                 "sel_" + nombre
             );
 
-
         if (!select) {
             return;
         }
 
-
         select.addEventListener(
             "change",
             function () {
-
                 const keyMap = {
                     buque: "buques",
                     tiponave: "tipos_nave",
@@ -551,7 +460,6 @@ function actualizarFiltrosModal() {
                     destino: "destinos",
                     estado: "estados"
                 };
-
 
                 const key =
                     keyMap[nombre];
@@ -563,56 +471,40 @@ function actualizarFiltrosModal() {
                         "formReporteBuque"
                     );
 
-
                 const hiddenName =
                     "sel_" +
                     nombre +
                     "_modal";
 
-
                 form.querySelectorAll(
                     `input[name="${hiddenName}"]`
                 ).forEach(
                     function (input) {
-
                         input.remove();
-
                     }
                 );
-
             }
         );
-
     });
 
     window.closeModal = function () {
-
-    const modal =
-        document.getElementById(
-            "multiModal"
-        );
-
-    modal.style.display = "none";
+        const modal = document.getElementById("multiModal");
+        if (modal) {
+            modal.style.display = "none";
+        }
     };
 
-
-    if (modal) {
-
-        modal.addEventListener(
+    // Corrección definitiva para que funcione el cierre al hacer clic fuera del modal
+    const modalElement = document.getElementById("multiModal");
+    if (modalElement) {
+        modalElement.addEventListener(
             "click",
             function (event) {
-
-                if (
-                    event.target === modal
-                ) {
-
+                if (event.target === modalElement) {
                     closeModal();
-
                 }
-
             }
         );
-
     }
 
 });
