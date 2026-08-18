@@ -5,6 +5,7 @@ from datetime import date
 import io
 import os
 
+
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
@@ -28,6 +29,9 @@ from .services import (
     obtener_siguiente_codigo_tarifa,
     guardar_tarifa,
     anular_tarifa,
+    obtener_catalogos_reporte_buques,
+    obtener_datos_reporte_buques,
+    exportar_reporte_buques_excel,
 )
 
 logger = logging.getLogger(__name__)
@@ -1852,15 +1856,6 @@ def exportar_tarifas_view(request):
         current_date_str = datetime.now().strftime("%d/%m/%Y")
         ws.cell(row=4, column=1, value=f"Fecha de Emisión : {current_date_str}")
 
-        # 4. Escribir los datos en el excel a partir de la fila 8
-        # Las columnas correspondientes son:
-        # Col 1: Cod.tarifa (sctarifa / codigo)
-        # Col 2: Tarifa (tarifa)
-        # Col 3: Valor (valor)
-        # Col 4: Formula (formula)
-        # Col 5: Detalle (detalle)
-        # Col 6: Cod.partida (partida_cod / scpartida)
-        # Col 7: Partida (partida_desc)
         start_row = 8
         for idx, t in enumerate(tarifas):
             row_num = start_row + idx
@@ -1878,7 +1873,6 @@ def exportar_tarifas_view(request):
             ws.cell(row=row_num, column=6, value=t.get("partida_cod", ""))
             ws.cell(row=row_num, column=7, value=t.get("partida_desc", ""))
 
-        # 5. Generar respuesta HTTP para la descarga
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
@@ -1889,3 +1883,685 @@ def exportar_tarifas_view(request):
     except Exception as exc:
         logger.exception("Error al exportar tarifas a excel")
         return HttpResponse(f"Error interno al exportar Excel: {str(exc)}", status=500)
+
+
+def obtener_filtro_multiple(request, nombre):
+
+    valores_modal = request.POST.getlist(
+        f"{nombre}_modal"
+    )
+
+    valor_select = request.POST.get(
+        nombre,
+        "",
+    ).strip()
+
+    if valores_modal:
+        return valores_modal
+
+    if valor_select:
+        return [valor_select]
+
+    return []
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def reporte_buque_view(request):
+    """
+    Vista principal del reporte de buques.
+    """
+
+    idusuario = request.session.get(
+        "usuario_id"
+    )
+
+    contexto_base = {
+        "usuario_nombre": request.session.get(
+            "usuario_nombre",
+            "",
+        ),
+
+        "usuario_login": request.session.get(
+            "usuario_login",
+            "",
+        ),
+
+        "usuario_cargo": request.session.get(
+            "usuario_cargo",
+            "",
+        ),
+    }
+
+
+    if not idusuario:
+        return redirect("login")
+
+
+    contexto = {
+
+        "f_desde": "",
+        "f_hasta": "",
+
+        "fechas_aplicadas": False,
+
+
+        "chk_buque": False,
+        "sel_buque": [],
+
+        "chk_tiponave": False,
+        "sel_tiponave": [],
+
+        "chk_armador": False,
+        "sel_armador": [],
+
+        "chk_procedencia": False,
+        "sel_procedencia": [],
+
+        "chk_destino": False,
+        "sel_destino": [],
+
+        "chk_estado": False,
+        "sel_estado": [],
+
+        "en_puerto_filtro": False,
+
+
+        "registros": [],
+
+
+        "buques": [],
+        "tipos_nave": [],
+        "armadores": [],
+        "procedencias": [],
+        "destinos": [],
+        "estados": [],
+
+        "banderas": [],
+        "scregistros": [],
+
+
+        "mensaje_error": "",
+    }
+
+
+    contexto.update(
+        contexto_base
+    )
+
+
+    if request.method == "POST":
+
+        accion = request.POST.get(
+            "accion",
+            "",
+        )
+
+        if accion == "aplicar_fechas":
+
+            f_desde = request.POST.get(
+                "f_desde",
+                "",
+            ).strip()
+
+            f_hasta = request.POST.get(
+                "f_hasta",
+                "",
+            ).strip()
+
+
+            contexto["f_desde"] = f_desde
+            contexto["f_hasta"] = f_hasta
+
+
+            if not f_desde or not f_hasta:
+
+                contexto["mensaje_error"] = (
+                    "Debe seleccionar la fecha desde y hasta."
+                )
+
+            else:
+
+                try:
+
+                    fecha_desde = datetime.strptime(
+                        f_desde,
+                        "%Y-%m-%d",
+                    ).date()
+
+                    fecha_hasta = datetime.strptime(
+                        f_hasta,
+                        "%Y-%m-%d",
+                    ).date()
+
+
+                    if fecha_desde > fecha_hasta:
+
+                        contexto["mensaje_error"] = (
+                            "La fecha desde no puede ser "
+                            "mayor que la fecha hasta."
+                        )
+
+                    else:
+
+                        contexto[
+                            "fechas_aplicadas"
+                        ] = True
+
+
+                        catalogos = (
+                            obtener_catalogos_reporte_buques(
+                                f_desde,
+                                f_hasta,
+                            )
+                        )
+
+
+                        contexto.update(
+                            catalogos
+                        )
+
+
+                        contexto["registros"] = (
+                            obtener_datos_reporte_buques(
+                                f_desde=f_desde,
+                                f_hasta=f_hasta,
+                            )
+                        )
+
+
+                except ValueError:
+
+                    contexto["mensaje_error"] = (
+                        "Las fechas seleccionadas "
+                        "no son válidas."
+                    )
+
+
+                except (
+                    DatabaseConfigurationError,
+                    DatabaseContractError,
+                ) as exc:
+
+                    logger.exception(
+                        "Error consultando "
+                        "reporte de buques"
+                    )
+
+                    contexto["mensaje_error"] = str(
+                        exc
+                    )
+
+
+                except Exception:
+
+                    logger.exception(
+                        "Error inesperado "
+                        "consultando reporte de buques"
+                    )
+
+                    contexto["mensaje_error"] = (
+                        "No se pudo obtener "
+                        "el reporte de buques."
+                    )
+
+        elif accion == "filtrar":
+
+            contexto["f_desde"] = request.POST.get(
+                "f_desde",
+                "",
+            ).strip()
+
+            contexto["f_hasta"] = request.POST.get(
+                "f_hasta",
+                "",
+            ).strip()
+
+            contexto["chk_buque"] = (
+                request.POST.get(
+                    "chk_buque"
+                ) == "on"
+            )
+
+
+            contexto["chk_tiponave"] = (
+                request.POST.get(
+                    "chk_tiponave"
+                ) == "on"
+            )
+
+
+            contexto["chk_armador"] = (
+                request.POST.get(
+                    "chk_armador"
+                ) == "on"
+            )
+
+
+            contexto["chk_procedencia"] = (
+                request.POST.get(
+                    "chk_procedencia"
+                ) == "on"
+            )
+
+
+            contexto["chk_destino"] = (
+                request.POST.get(
+                    "chk_destino"
+                ) == "on"
+            )
+
+
+            contexto["chk_estado"] = (
+                request.POST.get(
+                    "chk_estado"
+                ) == "on"
+            )
+
+
+            contexto["en_puerto_filtro"] = (
+                request.POST.get(
+                    "en_puerto_filtro"
+                ) == "on"
+            )
+
+
+            valores_buque = obtener_filtro_multiple(
+                request,
+                "sel_buque",
+            )
+
+
+            valores_tiponave = obtener_filtro_multiple(
+                request,
+                "sel_tiponave",
+            )
+
+
+            valores_armador = obtener_filtro_multiple(
+                request,
+                "sel_armador",
+            )
+
+
+            valores_procedencia = obtener_filtro_multiple(
+                request,
+                "sel_procedencia",
+            )
+
+
+            valores_destino = obtener_filtro_multiple(
+                request,
+                "sel_destino",
+            )
+
+
+            valores_estado = obtener_filtro_multiple(
+                request,
+                "sel_estado",
+            )
+
+            contexto["sel_buque"] = valores_buque
+
+            contexto["sel_tiponave"] = valores_tiponave
+
+            contexto["sel_armador"] = valores_armador
+
+            contexto["sel_procedencia"] = valores_procedencia
+
+            contexto["sel_destino"] = valores_destino
+
+            contexto["sel_estado"] = valores_estado
+
+
+            f_desde = contexto["f_desde"]
+
+            f_hasta = contexto["f_hasta"]
+
+            if not f_desde or not f_hasta:
+
+                contexto["mensaje_error"] = (
+                    "Debe seleccionar las fechas "
+                    "antes de filtrar."
+                )
+
+            else:
+
+                try:
+
+                    fecha_desde = datetime.strptime(
+                        f_desde,
+                        "%Y-%m-%d",
+                    ).date()
+
+
+                    fecha_hasta = datetime.strptime(
+                        f_hasta,
+                        "%Y-%m-%d",
+                    ).date()
+
+
+                    if fecha_desde > fecha_hasta:
+
+                        contexto["mensaje_error"] = (
+                            "La fecha desde no puede ser "
+                            "mayor que la fecha hasta."
+                        )
+
+                    else:
+
+                        contexto[
+                            "fechas_aplicadas"
+                        ] = True
+
+
+                        catalogos = (
+                            obtener_catalogos_reporte_buques(
+                                f_desde,
+                                f_hasta,
+                            )
+                        )
+
+
+                        contexto.update(
+                            catalogos
+                        )
+
+                        contexto["registros"] = (
+                            obtener_datos_reporte_buques(
+
+                                f_desde=f_desde,
+
+                                f_hasta=f_hasta,
+
+
+                                chk_buque=contexto[
+                                    "chk_buque"
+                                ],
+
+                                sel_buque=valores_buque,
+
+
+                                chk_tiponave=contexto[
+                                    "chk_tiponave"
+                                ],
+
+                                sel_tiponave=valores_tiponave,
+
+
+                                chk_armador=contexto[
+                                    "chk_armador"
+                                ],
+
+                                sel_armador=valores_armador,
+
+
+                                chk_procedencia=contexto[
+                                    "chk_procedencia"
+                                ],
+
+                                sel_procedencia=valores_procedencia,
+
+
+                                chk_destino=contexto[
+                                    "chk_destino"
+                                ],
+
+                                sel_destino=valores_destino,
+
+
+                                chk_estado=contexto[
+                                    "chk_estado"
+                                ],
+
+                                sel_estado=valores_estado,
+
+
+                                en_puerto_filtro=contexto[
+                                    "en_puerto_filtro"
+                                ],
+                            )
+                        )
+
+
+                except ValueError:
+
+                    contexto["mensaje_error"] = (
+                        "Las fechas seleccionadas "
+                        "no son válidas."
+                    )
+
+
+                except (
+                    DatabaseConfigurationError,
+                    DatabaseContractError,
+                ) as exc:
+
+                    logger.exception(
+                        "Error consultando "
+                        "reporte de buques"
+                    )
+
+                    contexto["mensaje_error"] = str(
+                        exc
+                    )
+
+
+                except Exception:
+
+                    logger.exception(
+                        "Error inesperado "
+                        "consultando reporte de buques"
+                    )
+
+                    contexto["mensaje_error"] = (
+                        "No se pudo obtener "
+                        "el reporte de buques."
+                    )
+
+
+    return render(
+        request,
+        "bitacora/reporteBuque.html",
+        contexto,
+    )
+
+@require_http_methods(["POST"])
+def exportar_reporte_buques(request):
+    """
+    Exporta a Excel los registros del reporte de buques
+    utilizando los filtros seleccionados.
+    """
+
+    idusuario = request.session.get("usuario_id")
+
+    if not idusuario:
+        return redirect("login")
+
+
+    f_desde = request.POST.get(
+        "f_desde",
+        "",
+    ).strip()
+
+    f_hasta = request.POST.get(
+        "f_hasta",
+        "",
+    ).strip()
+
+    if not f_desde or not f_hasta:
+        return HttpResponse(
+            "Debe seleccionar las fechas.",
+            status=400,
+        )
+
+    try:
+
+        fecha_desde = datetime.strptime(
+            f_desde,
+            "%Y-%m-%d",
+        ).date()
+
+        fecha_hasta = datetime.strptime(
+            f_hasta,
+            "%Y-%m-%d",
+        ).date()
+
+    except ValueError:
+
+        return HttpResponse(
+            "Las fechas seleccionadas no son válidas.",
+            status=400,
+        )
+
+    if fecha_desde > fecha_hasta:
+        return HttpResponse(
+            "La fecha desde no puede ser mayor "
+            "que la fecha hasta.",
+            status=400,
+        )
+
+    chk_buque = (
+        request.POST.get("chk_buque") == "on"
+    )
+
+    sel_buque = request.POST.get(
+        "sel_buque",
+        "",
+    ).strip()
+
+    chk_tiponave = (
+        request.POST.get("chk_tiponave") == "on"
+    )
+
+    sel_tiponave = request.POST.get(
+        "sel_tiponave",
+        "",
+    ).strip()
+
+    chk_armador = (
+        request.POST.get("chk_armador") == "on"
+    )
+
+    sel_armador = request.POST.get(
+        "sel_armador",
+        "",
+    ).strip()
+
+    chk_procedencia = (
+        request.POST.get("chk_procedencia") == "on"
+    )
+
+    sel_procedencia = request.POST.get(
+        "sel_procedencia",
+        "",
+    ).strip()
+
+    chk_destino = (
+        request.POST.get("chk_destino") == "on"
+    )
+
+    sel_destino = request.POST.get(
+        "sel_destino",
+        "",
+    ).strip()
+
+    chk_estado = (
+        request.POST.get("chk_estado") == "on"
+    )
+
+    sel_estado = request.POST.get(
+        "sel_estado",
+        "",
+    ).strip()
+
+    en_puerto_filtro = (
+        request.POST.get(
+            "en_puerto_filtro"
+        ) == "on"
+    )
+
+    try:
+
+        registros = obtener_datos_reporte_buques(
+            f_desde=f_desde,
+            f_hasta=f_hasta,
+
+            chk_buque=chk_buque,
+            sel_buque=sel_buque,
+
+            chk_tiponave=chk_tiponave,
+            sel_tiponave=sel_tiponave,
+
+            chk_armador=chk_armador,
+            sel_armador=sel_armador,
+
+            chk_procedencia=chk_procedencia,
+            sel_procedencia=sel_procedencia,
+
+            chk_destino=chk_destino,
+            sel_destino=sel_destino,
+
+            chk_estado=chk_estado,
+            sel_estado=sel_estado,
+
+            en_puerto_filtro=en_puerto_filtro,
+        )
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+
+        logger.exception(
+            "Error exportando reporte de buques"
+        )
+
+        return HttpResponse(
+            str(exc),
+            status=500,
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Error inesperado exportando "
+            "reporte de buques"
+        )
+
+        return HttpResponse(
+            f"No se pudo exportar el reporte: {exc}",
+            status=500,
+        )
+
+    usuario_nombre = request.session.get(
+        "usuario_nombre",
+        "",
+    )
+
+    usuario_cargo = request.session.get(
+        "usuario_cargo",
+        "",
+    )
+
+    try:
+
+        return exportar_reporte_buques_excel(
+            rows=registros,
+            fecha_inicio=fecha_desde,
+            fecha_fin=fecha_hasta,
+            usuario_nombre=usuario_nombre,
+            usuario_cargo=usuario_cargo,
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "Error generando Excel "
+            "del reporte de buques"
+        )
+
+        return HttpResponse(
+            f"No se pudo generar el Excel: {exc}",
+            status=500,
+        )
+   

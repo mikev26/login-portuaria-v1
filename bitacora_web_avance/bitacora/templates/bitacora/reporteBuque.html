@@ -1,0 +1,703 @@
+{% extends "bitacora/base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Registros de Buques - Autoridad Portuaria de Manta
+{% endblock %}
+
+{% block content %}
+
+<link
+    rel="stylesheet"
+    href="{% static 'bitacora/css/reportebuque.css' %}"
+>
+
+<div class="reporte-buque-page">
+
+    <div class="window-panel">
+
+        <div class="window-header">
+            Registros de Buques - Autoridad Portuaria de Manta
+        </div>
+
+        <div class="window-body">
+
+            {% if mensaje_error %}
+                <div class="error-message" role="alert">
+                    {{ mensaje_error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" id="formReporteBuque">
+
+                {% csrf_token %}
+
+                <!-- ========================= -->
+                <!-- FECHAS -->
+                <!-- ========================= -->
+
+                <div class="date-box">
+
+                    <div class="date-field">
+
+                        <label for="f_desde">
+                            <strong>F. desde:</strong>
+                        </label>
+
+                        <input
+                            type="date"
+                            id="f_desde"
+                            name="f_desde"
+                            value="{{ f_desde }}"
+                        >
+
+                    </div>
+
+                    <div class="date-field">
+
+                        <label for="f_hasta">
+                            <strong>Hasta:</strong>
+                        </label>
+
+                        <input
+                            type="date"
+                            id="f_hasta"
+                            name="f_hasta"
+                            value="{{ f_hasta }}"
+                        >
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        name="accion"
+                        value="aplicar_fechas"
+                        class="btn-action btn-apply"
+                    >
+                        Aplicar Fechas
+                    </button>
+
+                </div>
+
+
+                {% if fechas_aplicadas %}
+
+                <div class="filter-section">
+
+                    <!-- BUQUE -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_buque"
+                            name="chk_buque"
+                            {% if chk_buque %}checked{% endif %}
+                        >
+
+                        <label for="chk_buque">
+                            Buque
+                        </label>
+
+                        <select
+                            id="sel_buque"
+                            name="sel_buque"
+                            {% if not chk_buque %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for b in buques %}
+
+                                <option
+                                    value="{{ b }}"
+                                    {% if b in sel_buque %}selected{% endif %}
+                                >
+                                    {{ b }}
+                                </option>
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Buque', 'buques','sel_buque')"
+                            title="Selección múltiple"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- TIPO DE NAVE -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_tiponave"
+                            name="chk_tiponave"
+                            {% if chk_tiponave %}checked{% endif %}
+                        >
+
+                        <label for="chk_tiponave">
+                            Tipo de Nave
+                        </label>
+
+                        <select
+                            id="sel_tiponave"
+                            name="sel_tiponave"
+                            {% if not chk_tiponave %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for t in tipos_nave %}
+
+                                <option
+                                    value="{{ t }}"
+                                    {% if t in sel_tiponave %}selected{% endif %}
+                                >
+                                    {{ t }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Tipo de Nave', 'tipos_nave', 'sel_tiponave')"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- ARMADOR -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_armador"
+                            name="chk_armador"
+                            {% if chk_armador %}checked{% endif %}
+                        >
+
+                        <label for="chk_armador">
+                            Armador
+                        </label>
+
+                        <select
+                            id="sel_armador"
+                            name="sel_armador"
+                            {% if not chk_armador %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for a in armadores %}
+
+                                <option
+                                    value="{{ a }}"
+                                    {% if a in sel_armador %}selected{% endif %}
+                                    
+                                >
+                                    {{ a }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Armador', 'armadores', 'sel_armador')"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- PROCEDENCIA -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_procedencia"
+                            name="chk_procedencia"
+                            {% if chk_procedencia %}checked{% endif %}
+                        >
+
+                        <label for="chk_procedencia">
+                            Procedencia
+                        </label>
+
+                        <select
+                            id="sel_procedencia"
+                            name="sel_procedencia"
+                            {% if not chk_procedencia %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for p in procedencias %}
+
+                                <option
+                                    value="{{ p }}"
+                                    {% if p in sel_procedencia %}selected{% endif %}
+                                >
+                                    {{ p }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Procedencia', 'procedencias', 'sel_procedencia')"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- DESTINO -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_destino"
+                            name="chk_destino"
+                            {% if chk_destino %}checked{% endif %}
+                        >
+
+                        <label for="chk_destino">
+                            Destino
+                        </label>
+
+                        <select
+                            id="sel_destino"
+                            name="sel_destino"
+                            {% if not chk_destino %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for d in destinos %}
+
+                                <option
+                                    value="{{ d }}"
+                                    {% if d in sel_detino %}selected{% endif %}
+                                >
+                                    {{ d }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Destino', 'destinos', 'sel_destino')"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- ESTADO -->
+                    <div class="filter-row">
+
+                        <input
+                            type="checkbox"
+                            id="chk_estado"
+                            name="chk_estado"
+                            {% if chk_estado %}checked{% endif %}
+                        >
+
+                        <label for="chk_estado">
+                            Estado
+                        </label>
+
+                        <select
+                            id="sel_estado"
+                            name="sel_estado"
+                            {% if not chk_estado %}disabled{% endif %}
+                        >
+
+                            <option value="">
+                                -- Seleccione --
+                            </option>
+
+                            {% for e in estados %}
+
+                                <option
+                                    value="{{ e }}"
+                                    {% if e in sel_estado %}selected{% endif %}
+                                >
+                                    {{ e }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <button
+                            type="button"
+                            class="btn-multi"
+                            onclick="openModal('Estado', 'estados', 'sel_estado')"
+                        >
+                            ≡
+                        </button>
+
+                    </div>
+
+
+                    <!-- EN PUERTO -->
+                    <div class="filter-row filter-footer">
+
+                        <input
+                            type="checkbox"
+                            id="en_puerto_filtro"
+                            name="en_puerto_filtro"
+                            {% if en_puerto_filtro %}checked{% endif %}
+                        >
+
+                        <label
+                            for="en_puerto_filtro"
+                            class="label-puerto"
+                        >
+                            <strong>En Puerto</strong>
+                        </label>
+
+                        <button
+                            type="submit"
+                            name="accion"
+                            value="filtrar"
+                            class="btn-action btn-filter"
+                        >
+                            Filtrar
+                        </button>
+
+                    </div>
+
+                </div>
+
+                {% endif %}
+
+            </form>
+
+        </div>
+
+    </div>
+
+    {% if fechas_aplicadas %}
+
+    <div class="table-container">
+
+        <div class="table-header">
+
+            <span>
+                Resultados de Registros
+                ({{ registros|length }} encontrados)
+            </span>
+
+            <!-- EXPORTAR -->
+
+            <form
+                action="{% url 'exportar_reporte_buques' %}"
+                method="POST"
+                class="export-form"
+            >
+
+                {% csrf_token %}
+
+                <input
+                    type="hidden"
+                    name="f_desde"
+                    value="{{ f_desde }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="f_hasta"
+                    value="{{ f_hasta }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="chk_buque"
+                    value="{% if chk_buque %}on{% endif %}"
+                >
+
+                {% for buque in sel_buque %}
+                    <input
+                        type="hidden"
+                        name="sel_buque"
+                        value="{{ buque }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="chk_tiponave"
+                    value="{% if chk_tiponave %}on{% endif %}"
+                >
+
+                {% for tipo in sel_tiponave %}
+                    <input
+                        type="hidden"
+                        name="sel_tiponave"
+                        value="{{ tipo }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="chk_armador"
+                    value="{% if chk_armador %}on{% endif %}"
+                >
+
+                {% for armador in sel_armador %}
+                    <input
+                        type="hidden"
+                        name="sel_armador"
+                        value="{{ armador }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="chk_procedencia"
+                    value="{% if chk_procedencia %}on{% endif %}"
+                >
+
+                {% for procedencia in sel_procedencia %}
+                    <input
+                        type="hidden"
+                        name="sel_procedencia"
+                        value="{{ procedencia }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="chk_destino"
+                    value="{% if chk_destino %}on{% endif %}"
+                >
+
+                {% for destino in sel_destino %}
+                    <input
+                        type="hidden"
+                        name="sel_destino"
+                        value="{{ destino }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="chk_estado"
+                    value="{% if chk_estado %}on{% endif %}"
+                >
+
+                {% for estado in sel_estado %}
+                    <input
+                        type="hidden"
+                        name="sel_estado"
+                        value="{{ estado }}"
+                    >
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="en_puerto_filtro"
+                    value="{% if en_puerto_filtro %}on{% endif %}"
+                >
+
+                <button
+                    type="submit"
+                    class="btn-action btn-excel"
+                >
+                    Exportar Excel
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Registro</th>
+                        <th>Buque</th>
+                        <th>Bandera</th>
+                        <th>SC-Registro</th>
+                        <th>Tipo Nave</th>
+                        <th>Armador</th>
+                        <th>Procedencia</th>
+                        <th>Destino</th>
+                        <th>Estado</th>
+                        <th>F. Arribo</th>
+                        <th>F. Zarpe</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for r in registros %}
+
+                    <tr>
+
+                        <td>{{ r.idregistro }}</td>
+
+                        <td>{{ r.buque }}</td>
+
+                        <td>{{ r.bandera }}</td>
+
+                        <td>{{ r.scregistro }}</td>
+
+                        <td>{{ r.tipo_de_trafico }}</td>
+
+                        <td>{{ r.armador }}</td>
+
+                        <td>{{ r.procedencia }}</td>
+
+                        <td>{{ r.destino }}</td>
+
+                        <td>
+                            <strong>{{ r.estado }}</strong>
+                        </td>
+
+                        <td>
+
+                            {% if r.fecha_arribo %}
+                                {{ r.fecha_arribo|date:"Y-m-d H:i" }}
+
+                            {% elif r.fecha_arrivo %}
+                                {{ r.fecha_arrivo|date:"Y-m-d H:i" }}
+
+                            {% else %}
+                                <span class="empty-value">
+                                    -
+                                </span>
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if r.fecha_zarpe %}
+
+                                {{ r.fecha_zarpe|date:"Y-m-d H:i" }}
+
+                            {% else %}
+
+                                <span class="empty-value">
+                                    NULL
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="11"
+                            class="text-center no-results"
+                        >
+                            No se encontraron registros.
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <div
+        id="multiModal"
+        class="modal"
+    >
+
+        <div class="modal-content">
+
+            <div
+                id="modalTitle"
+                class="modal-header"
+            >
+                Seleccionar Elementos
+            </div>
+
+            <div
+                id="modalList"
+                class="modal-list"
+            ></div>
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn-action btn-modal-accept"
+                    onclick="acceptModal()"
+                >
+                    Aceptar
+                </button>
+
+            </div>
+            
+
+        </div>
+
+    </div>
+
+</div>
+{{ buques|json_script:"buques-data" }}
+{{ tipos_nave|json_script:"tipos-nave-data" }}
+{{ armadores|json_script:"armadores-data" }}
+{{ procedencias|json_script:"procedencias-data" }}
+{{ destinos|json_script:"destinos-data" }}
+{{ estados|json_script:"estados-data" }}
+
+<script src="{% static 'bitacora/js/reportebuque.js' %}"></script>
+
+{% endblock %}
