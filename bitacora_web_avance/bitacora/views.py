@@ -12,13 +12,14 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, RegistroCombustibleFilterForm
+from .forms import LoginForm, RegistroCombustibleFilterForm, DatosAbiertosFilterForm
 from .services import (
     DatabaseConfigurationError,
     DatabaseContractError,
     obtener_buques_artesanales,
     obtener_buques_industriales,
     obtener_reporte_combustible,
+    obtener_reporte_datos_abiertos,
     obtener_turnos_usuario,
     validar_usuario,
     obtener_reporte_inec,
@@ -31,6 +32,27 @@ from .services import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _normalizar_fila_datos_abiertos(row):
+    if not isinstance(row, dict):
+        return {}
+
+    mapeo = {
+        "Registro": row.get("Registro", row.get("REGISTRO", row.get("registro"))),
+        "CodBuque": row.get("CodBuque", row.get("CODBUQUE", row.get("codbuque"))),
+        "Matrícula": row.get("Matrícula", row.get("MATRÍCULA", row.get("matrícula", row.get("matricula")))),
+        "Buque": row.get("Buque", row.get("BUQUE", row.get("buque"))),
+        "Tipo de Nave": row.get("Tipo de Nave", row.get("TipoNave", row.get("TIPONAVE", row.get("tiponave")))),
+        "Arribo": row.get("Arribo", row.get("ARRIBO", row.get("arribo"))),
+        "Zarpe": row.get("Zarpe", row.get("ZARPE", row.get("zarpe"))),
+        "Bandera": row.get("Bandera", row.get("BANDERA", row.get("bandera"))),
+        "TRB": row.get("TRB", row.get("trb")),
+        "TRN": row.get("TRN", row.get("trn")),
+        "Agencia": row.get("Agencia", row.get("AGENCIA", row.get("agencia"))),
+        "Total Descarga": row.get("Total Descarga", row.get("TotalDescarga", row.get("TOTALDESCARGA", row.get("totaldescarga")))),
+    }
+    return {key: value for key, value in mapeo.items() if value is not None}
 
 
 def _iniciar_sesion(request, datos_usuario, turnos):
@@ -960,6 +982,93 @@ def registro_combustible_home(request):
             "fecha_hasta": fecha_hasta,
         },
     )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def datos_abiertos_home(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    form = DatosAbiertosFilterForm(request.GET or None)
+    registros: list[dict[str, object]] = []
+
+    fecha_emision = date.today()
+    anio_sel = None
+    semestre_sel = None
+
+    ajax_response = {
+        "fecha_emision": fecha_emision.isoformat(),
+        "anio": "",
+        "semestre": "",
+        "rows": [],
+        "messages": [],
+    }
+
+    if form.is_valid():
+        anio_sel = form.cleaned_data.get("anio")
+        semestre_sel = form.cleaned_data.get("semestre")
+        ajax_response["anio"] = str(anio_sel)
+        ajax_response["semestre"] = semestre_sel
+
+    if request.GET.get("buscar") == "1":
+        if form.is_valid():
+            try:
+                semestre_num = 1 if semestre_sel == "1er" else 2
+                fecha_inicio = date(anio_sel, 1, 1) if semestre_num == 1 else date(anio_sel, 7, 1)
+                fecha_fin = date(anio_sel, 6, 30) if semestre_num == 1 else date(anio_sel, 12, 31)
+
+                registros = obtener_reporte_datos_abiertos(anio_sel, semestre_num)
+
+                if not registros:
+                    msg = "No existen registros para el año y semestre seleccionados."
+                    messages.info(request, msg)
+                    ajax_response["messages"].append({"text": msg, "tags": "info"})
+            except (DatabaseConfigurationError, DatabaseContractError) as exc:
+                logger.exception("Error de base de datos al obtener el reporte de datos abiertos")
+                generic_msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
+                messages.error(request, generic_msg)
+                ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
+            except Exception:
+                logger.exception("Error inesperado al obtener el reporte de datos abiertos")
+                generic_msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
+                messages.error(request, generic_msg)
+                ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    ajax_response["messages"].append({"text": f"{field.capitalize()}: {str(error)}", "tags": "error"})
+            messages.error(
+                request,
+                "Complete correctamente el Año y el Semestre antes de buscar.",
+            )
+
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("accept", "")
+
+    if is_ajax:
+        ajax_response["rows"] = [
+            _normalizar_fila_datos_abiertos(registro)
+            for registro in registros
+        ]
+        return JsonResponse(ajax_response)
+
+    return render(
+        request,
+        "bitacora/datos_abiertos.html",
+        {
+            "demo_mode": settings.DEMO_MODE,
+            "form": form,
+            "registros": registros,
+            "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
+            "fecha_emision": fecha_emision,
+            "anio": anio_sel,
+            "semestre": semestre_sel,
+            "current_year": fecha_emision.year,
+        },
+    )
+
+
 
 
 def _obtener_datos_exportacion(request):

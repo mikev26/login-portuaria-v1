@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
+
+from bitacora.services.datos_abiertos import obtener_reporte_datos_abiertos
 
 
 class ProjectSmokeTest(TestCase):
@@ -286,3 +288,82 @@ class ProjectSmokeTest(TestCase):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         self.assertIn("attachment", response["Content-Disposition"])
+
+    @override_settings(DEMO_MODE=False)
+    @patch("bitacora.services.datos_abiertos.execute_procedure")
+    def test_datos_abiertos_backend_uses_numeric_semester_for_sp(self, mock_execute):
+        mock_execute.return_value = [
+            {
+                "REGISTRO": 101,
+                "CODBUQUE": "B-99",
+                "MATRÍCULA": "M-345",
+                "BUQUE": "Estrella del Mar",
+                "TipoNave": "Pesquero",
+                "Arribo": "2026-05-08 07:15:00",
+                "Zarpe": "2026-05-09 18:40:00",
+                "Bandera": "ECUADOR",
+                "TRB": "10.50",
+                "TRN": "8.10",
+                "Agencia": "AGENCIA PORTUARIA MANTA S.A.",
+                "TotalDescarga": "2450",
+            }
+        ]
+
+        resultado = obtener_reporte_datos_abiertos(2026, "1er")
+
+        self.assertEqual(resultado[0]["Registro"], 101)
+        mock_execute.assert_called_once_with(
+            "dbo.SPJ_DatosAbiertosTPyC",
+            (("@sPeriodo", 2026), ("@sSemestre", 1)),
+        )
+
+    @patch("bitacora.views.obtener_reporte_datos_abiertos")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_datos_abiertos_loads_and_filters(self, mock_validar, mock_turnos, mock_reporte):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Inspector"}]
+        mock_reporte.return_value = [
+            {
+                "REGISTRO": 101,
+                "CODBUQUE": "B-99",
+                "MATRÍCULA": "M-345",
+                "BUQUE": "Estrella del Mar",
+                "TipoNave": "Pesquero",
+                "Arribo": "2026-05-08 07:15:00",
+                "Zarpe": "2026-05-09 18:40:00",
+                "Bandera": "ECU",
+                "TRB": "10.50",
+                "TRN": "8.10",
+                "Agencia": "APM",
+                "TotalDescarga": "2450",
+            }
+        ]
+
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        response = self.client.get("/datos-abiertos/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Datos Abiertos")
+
+        response_ajax = self.client.get(
+            "/datos-abiertos/?anio=2026&semestre=1er&buscar=1",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+        self.assertEqual(response_ajax.status_code, 200)
+        json_data = response_ajax.json()
+        self.assertEqual(json_data["anio"], "2026")
+        self.assertEqual(json_data["semestre"], "1er")
+        self.assertEqual(len(json_data["rows"]), 1)
+        self.assertEqual(json_data["rows"][0]["Registro"], 101)
+        self.assertEqual(json_data["rows"][0]["CodBuque"], "B-99")
+        self.assertEqual(json_data["rows"][0]["Total Descarga"], "2450")
+

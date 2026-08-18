@@ -105,7 +105,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-
+# reload trigger comment
 DEMO_MODE = env_bool("DEMO_MODE", False)
 
 RUTA_PLANTILLA_INEC = (

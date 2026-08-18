@@ -1,0 +1,295 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Datos Abiertos{% endblock %}
+
+{% block header_title %}
+    DATOS ABIERTOS
+{% endblock %}
+
+{% block body_class %}
+    report-page combustible-page
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'bitacora/css/datos_abiertos.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="report-shell">
+
+    <!-- Encabezado del reporte -->
+    <section class="report-header">
+
+        <div class="report-header-content">
+
+            <div class="report-logo">
+                <img
+                    src="{% static 'bitacora/img/logo_manta.png' %}"
+                    alt="Logo institucional"
+                >
+            </div>
+
+            <div class="report-header-text">
+
+                <div class="report-title">
+                    AUTORIDAD PORTUARIA DE MANTA
+                </div>
+
+                <div class="report-subtitle">
+                    DPTO. DE OPERACIONES - TERMINAL PESQUERO Y CABOTAJE
+                </div>
+
+                <div class="report-small-title">
+                    DATOS ABIERTOS
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="page-label">
+            Página<br>
+            <strong>1</strong>
+        </div>
+
+    </section>
+
+
+    <div class="section-line"></div>
+
+
+    <!-- Información del reporte -->
+    <section class="info-block">
+
+        <!-- Mensajes -->
+        <div id="report-messages">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-banner {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+                {% for _ in messages %}{% endfor %}  <!-- limpia los mensajes -->
+            {% endif %}
+
+        </div>
+
+
+        <!-- Fecha de emisión -->
+        <div class="field-box">
+
+            <div>
+
+                <div class="field-label">
+                    Fecha de emisión
+                </div>
+
+                <div class="field-value">
+                    Manta, {{ fecha_emision|date:"d/m/Y" }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Año y Semestre seleccionados -->
+        <div class="info-row">
+
+            <div class="field-box">
+
+                <div>
+
+                    <div class="field-label">
+                        Año
+                    </div>
+
+                    <div
+                        id="header-anio"
+                        class="field-value"
+                    >
+                        {% if anio %}
+                            {{ anio }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="field-box">
+
+                <div>
+
+                    <div class="field-label">
+                        Semestre
+                    </div>
+
+                    <div
+                        id="header-semestre"
+                        class="field-value"
+                    >
+                        {% if semestre %}
+                            {{ semestre }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Filtros -->
+        <form method="get" class="date-range-form">
+
+            <div class="date-range">
+
+                <label>
+
+                    <span class="field-label">
+                        Año
+                    </span>
+
+                    {{ form.anio }}
+
+                    {% if form.anio.errors %}
+                        <span class="field-error">
+                            {{ form.anio.errors|join:", " }}
+                        </span>
+                    {% endif %}
+
+                </label>
+
+
+                <label>
+
+                    <span class="field-label">
+                        Semestre
+                    </span>
+
+                    {{ form.semestre }}
+
+                    {% if form.semestre.errors %}
+                        <span class="field-error">
+                            {{ form.semestre.errors|join:", " }}
+                        </span>
+                    {% endif %}
+
+                </label>
+
+
+                <input
+                    type="hidden"
+                    name="buscar"
+                    value="1"
+                >
+
+
+                <button
+                    type="submit"
+                    class="search-button"
+                >
+                    Buscar
+                </button>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- Resultados -->
+    <section class="section report-results">
+
+        <div class="section-title">
+            Datos Abiertos
+        </div>
+
+
+        <div class="table-wrapper datos-abiertos-table-wrapper">
+
+            <table class="report-table datos-abiertos-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Registro</th>
+                        <th>CodBuque</th>
+                        <th>Matrícula</th>
+                        <th>Buque</th>
+                        <th>Tipo de Nave</th>
+                        <th>Arribo</th>
+                        <th>Zarpe</th>
+                        <th>Bandera</th>
+                        <th>TRB</th>
+                        <th>TRN</th>
+                        <th>Agencia</th>
+                        <th>Total Descarga</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="report-table-body">
+
+                    {% if registros %}
+
+                        {% for registro in registros %}
+
+                            <tr>
+
+                                <td>{{ registro.Registro }}</td>
+                                <td>{{ registro.CodBuque }}</td>
+                                <td>{{ registro.Matricula|default:registro.Matrícula }}</td>
+                                <td>{{ registro.Buque }}</td>
+                                <td>{{ registro.TipoNave|default:registro.Tipo_de_Nave|default:registro.TipoNave }}</td>
+                                <td>{{ registro.Arribo }}</td>
+                                <td>{{ registro.Zarpe }}</td>
+                                <td>{{ registro.Bandera }}</td>
+                                <td>{{ registro.TRB }}</td>
+                                <td>{{ registro.TRN }}</td>
+                                <td>{{ registro.Agencia }}</td>
+                                <td>{{ registro.TotalDescarga|default:registro.Total_Descarga }}</td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr class="table-placeholder">
+
+                            <td colspan="12">
+                                No hay datos disponibles.
+                                Seleccione año y semestre, y presione Buscar.
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'bitacora/js/datos_abiertos.js' %}"></script>
+{% endblock %}

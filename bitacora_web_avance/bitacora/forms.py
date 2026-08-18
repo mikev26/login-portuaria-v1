@@ -49,3 +49,19 @@ class RegistroCombustibleFilterForm(forms.Form):
             )
 
         return cleaned_data
+
+
+class DatosAbiertosFilterForm(forms.Form):
+    anio = forms.IntegerField(
+        required=True,
+        label="Año",
+        min_value=2000,
+        max_value=2100,
+        widget=forms.NumberInput(attrs={"type": "number", "placeholder": "AAAA"}),
+    )
+    semestre = forms.ChoiceField(
+        required=True,
+        label="Semestre",
+        choices=[("1er", "1er"), ("2do", "2do")],
+        widget=forms.Select(),
+    )
