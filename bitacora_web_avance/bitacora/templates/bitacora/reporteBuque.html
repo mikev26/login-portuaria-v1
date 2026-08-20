@@ -210,7 +210,6 @@
                                 <option
                                     value="{{ a }}"
                                     {% if a in sel_armador %}selected{% endif %}
-                                    
                                 >
                                     {{ a }}
                                 </option>
@@ -685,18 +684,47 @@
 
             </div>
             
-
         </div>
 
     </div>
 
 </div>
+
+<!-- Inyección de datos mediante JSON Script -->
 {{ buques|json_script:"buques-data" }}
 {{ tipos_nave|json_script:"tipos-nave-data" }}
 {{ armadores|json_script:"armadores-data" }}
 {{ procedencias|json_script:"procedencias-data" }}
 {{ destinos|json_script:"destinos-data" }}
 {{ estados|json_script:"estados-data" }}
+
+<!-- Script de control para los checkboxes y el comportamiento modal -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const filtros = [
+        { chk: "chk_buque", sel: "sel_buque" },
+        { chk: "chk_tiponave", sel: "sel_tiponave" },
+        { chk: "chk_armador", sel: "sel_armador" },
+        { chk: "chk_procedencia", sel: "sel_procedencia" },
+        { chk: "chk_destino", sel: "sel_destino" },
+        { chk: "chk_estado", sel: "sel_estado" }
+    ];
+
+    filtros.forEach(item => {
+        const checkbox = document.getElementById(item.chk);
+        const select = document.getElementById(item.sel);
+
+        if (checkbox && select) {
+            checkbox.addEventListener("change", function () {
+                select.disabled = !this.checked;
+                if (!this.checked) {
+                    select.value = "";
+                }
+            });
+        }
+    });
+});
+</script>
 
 <script src="{% static 'bitacora/js/reportebuque.js' %}"></script>
 
