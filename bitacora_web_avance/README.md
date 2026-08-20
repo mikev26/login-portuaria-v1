@@ -66,9 +66,3 @@ Contraseña: Demo1234
 
 Antes de una prueba real vuelve a colocar `DEMO_MODE=false`.
 
-## Orden recomendado en SQL Server
-
-1. Ejecutar `sql/00_diagnostico_login.sql` en `op_claves`.
-2. Entregar al desarrollador el resultado del procedimiento de autenticación.
-3. Pedir al ingeniero revisar y ejecutar `sql/01_procedimientos_lectura.sql` en `dim_sis_puerto_v1`.
-4. Configurar los nombres reales en `.env`.

@@ -28,5 +28,7 @@ urlpatterns = [
     path("api/buscar-partida/", views.api_buscar_partida, name="api_buscar_partida"), # <--- RUTA NUEVA
     path("api/buscar-tasa/", views.api_buscar_tasa, name="api_buscar_tasa"),
     path("api/siguiente-codigo-tarifa/", views.api_siguiente_codigo, name="api_siguiente_codigo"),
+    path( "reporte/buques/", views.reporte_buque_view, name="reporte_buque",),
+    path( "reporte/buques/exportar/", views.exportar_reporte_buques, name="exportar_reporte_buques"),
     path("salir/", views.logout_view, name="logout"),
 ]
