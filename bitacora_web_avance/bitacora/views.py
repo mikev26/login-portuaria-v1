@@ -1086,6 +1086,7 @@ def exportar_excel(request):
 
             if cell.__class__.__name__ != "MergedCell":
                 cell.value = val
+                cell.font = Font(name="Calibri", size=11, color="000000", bold=False)
 
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
 
@@ -1886,21 +1887,21 @@ def exportar_tarifas_view(request):
 
 
 def obtener_filtro_multiple(request, nombre):
+    # Detectar dinámicamente el método de la petición
+    data = request.POST if request.method == "POST" else request.GET
 
-    valores_modal = request.POST.getlist(
-        f"{nombre}_modal"
-    )
-
-    valor_select = request.POST.get(
-        nombre,
-        "",
-    ).strip()
+    valores_modal = data.getlist(f"{nombre}_modal")
+    valor_select = data.get(nombre, "").strip()
+    valores_directos = data.getlist(nombre)
 
     if valores_modal:
         return valores_modal
-
+    if len(valores_directos) > 1:
+        return valores_directos
     if valor_select:
         return [valor_select]
+    if valores_directos:
+        return valores_directos
 
     return []
 
