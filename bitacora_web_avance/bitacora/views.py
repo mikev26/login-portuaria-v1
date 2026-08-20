@@ -1,10 +1,7 @@
+from datetime import datetime, date
 import logging
-from datetime import datetime
-from django.http import HttpResponse, request
-from datetime import date
 import io
 import os
-
 
 from django.conf import settings
 from django.contrib import messages
@@ -161,6 +158,7 @@ def tarifa_view(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
+
 
 def exportar_reporte_inec_excel(
     rows,
@@ -2051,11 +2049,8 @@ def exportar_reporte_buques(request):
             chk_estado=chk_estado, sel_estado=sel_estado,
             en_puerto_filtro=en_puerto_filtro,
         )
-    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+    except Exception as exc: # Ajustar según tus excepciones personalizadas si aplica
         logger.exception("Error exportando reporte de buques")
-        return HttpResponse(str(exc), status=500)
-    except Exception as exc:
-        logger.exception("Error inesperado exportando reporte de buques")
         return HttpResponse(f"No se pudo exportar el reporte: {exc}", status=500)
 
     usuario_nombre = request.session.get("usuario_nombre", "")
