@@ -317,7 +317,7 @@ document.addEventListener("DOMContentLoaded", function () {
             );
         } else {
             seleccionados.forEach(
-                function (valor, index) {
+                function (valor) {
                     const option =
                         document.createElement(
                             "option"
@@ -329,9 +329,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     option.textContent =
                         valor;
 
-                    if (index === 0) {
-                        option.selected = true;
-                    }
+                    // Marcamos TODAS las opciones seleccionadas para que el select múltiple funcione correctamente
+                    option.selected = true;
 
                     select.appendChild(
                         option
@@ -494,7 +493,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    // Corrección definitiva para que funcione el cierre al hacer clic fuera del modal
     const modalElement = document.getElementById("multiModal");
     if (modalElement) {
         modalElement.addEventListener(
