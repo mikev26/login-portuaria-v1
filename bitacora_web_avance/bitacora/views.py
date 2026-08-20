@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from django.http import HttpResponse
+from django.http import HttpResponse, request
 from datetime import date
 import io
 import os
@@ -2420,131 +2420,55 @@ def exportar_reporte_buques(request):
             status=400,
         )
 
-    chk_buque = (
-        request.POST.get("chk_buque") == "on"
-    )
+    chk_buque = (request.POST.get("chk_buque") == "on")
+    sel_buque = obtener_filtro_multiple(request, "sel_buque")
 
-    sel_buque = request.POST.get(
-        "sel_buque",
-        "",
-    ).strip()
+    chk_tiponave = (request.POST.get("chk_tiponave") == "on")
+    sel_tiponave = obtener_filtro_multiple(request, "sel_tiponave")
 
-    chk_tiponave = (
-        request.POST.get("chk_tiponave") == "on"
-    )
+    chk_armador = (request.POST.get("chk_armador") == "on")
+    sel_armador = obtener_filtro_multiple(request, "sel_armador")
 
-    sel_tiponave = request.POST.get(
-        "sel_tiponave",
-        "",
-    ).strip()
+    chk_procedencia = (request.POST.get("chk_procedencia") == "on")
+    sel_procedencia = obtener_filtro_multiple(request, "sel_procedencia")
 
-    chk_armador = (
-        request.POST.get("chk_armador") == "on"
-    )
+    chk_destino = (request.POST.get("chk_destino") == "on")
+    sel_destino = obtener_filtro_multiple(request, "sel_destino")
 
-    sel_armador = request.POST.get(
-        "sel_armador",
-        "",
-    ).strip()
+    chk_estado = (request.POST.get("chk_estado") == "on")
+    sel_estado = obtener_filtro_multiple(request, "sel_estado")
 
-    chk_procedencia = (
-        request.POST.get("chk_procedencia") == "on"
-    )
-
-    sel_procedencia = request.POST.get(
-        "sel_procedencia",
-        "",
-    ).strip()
-
-    chk_destino = (
-        request.POST.get("chk_destino") == "on"
-    )
-
-    sel_destino = request.POST.get(
-        "sel_destino",
-        "",
-    ).strip()
-
-    chk_estado = (
-        request.POST.get("chk_estado") == "on"
-    )
-
-    sel_estado = request.POST.get(
-        "sel_estado",
-        "",
-    ).strip()
-
-    en_puerto_filtro = (
-        request.POST.get(
-            "en_puerto_filtro"
-        ) == "on"
-    )
+    en_puerto_filtro = (request.POST.get("en_puerto_filtro") == "on")
 
     try:
-
         registros = obtener_datos_reporte_buques(
             f_desde=f_desde,
             f_hasta=f_hasta,
-
             chk_buque=chk_buque,
             sel_buque=sel_buque,
-
             chk_tiponave=chk_tiponave,
             sel_tiponave=sel_tiponave,
-
             chk_armador=chk_armador,
             sel_armador=sel_armador,
-
             chk_procedencia=chk_procedencia,
             sel_procedencia=sel_procedencia,
-
             chk_destino=chk_destino,
             sel_destino=sel_destino,
-
             chk_estado=chk_estado,
             sel_estado=sel_estado,
-
             en_puerto_filtro=en_puerto_filtro,
         )
-
-    except (
-        DatabaseConfigurationError,
-        DatabaseContractError,
-    ) as exc:
-
-        logger.exception(
-            "Error exportando reporte de buques"
-        )
-
-        return HttpResponse(
-            str(exc),
-            status=500,
-        )
-
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error exportando reporte de buques")
+        return HttpResponse(str(exc), status=500)
     except Exception as exc:
+        logger.exception("Error inesperado exportando reporte de buques")
+        return HttpResponse(f"No se pudo exportar el reporte: {exc}", status=500)
 
-        logger.exception(
-            "Error inesperado exportando "
-            "reporte de buques"
-        )
-
-        return HttpResponse(
-            f"No se pudo exportar el reporte: {exc}",
-            status=500,
-        )
-
-    usuario_nombre = request.session.get(
-        "usuario_nombre",
-        "",
-    )
-
-    usuario_cargo = request.session.get(
-        "usuario_cargo",
-        "",
-    )
+    usuario_nombre = request.session.get("usuario_nombre", "")
+    usuario_cargo = request.session.get("usuario_cargo", "")
 
     try:
-
         return exportar_reporte_buques_excel(
             rows=registros,
             fecha_inicio=fecha_desde,
@@ -2552,16 +2476,6 @@ def exportar_reporte_buques(request):
             usuario_nombre=usuario_nombre,
             usuario_cargo=usuario_cargo,
         )
-
     except Exception as exc:
-
-        logger.exception(
-            "Error generando Excel "
-            "del reporte de buques"
-        )
-
-        return HttpResponse(
-            f"No se pudo generar el Excel: {exc}",
-            status=500,
-        )
-   
+        logger.exception("Error generando Excel del reporte de buques")
+        return HttpResponse(f"No se pudo generar el Excel: {exc}", status=500)
