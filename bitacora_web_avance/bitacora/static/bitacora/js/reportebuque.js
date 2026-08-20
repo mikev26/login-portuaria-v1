@@ -111,44 +111,28 @@ document.addEventListener("DOMContentLoaded", function () {
             modalSelectId
         );
 
-        if (
-            !filtrosMultiples[key] ||
-            filtrosMultiples[key].length === 0
-        ) {
-            filtrosMultiples[key] = [];
-
-            if (
-                select &&
-                select.value
-            ) {
-                filtrosMultiples[key].push(
-                    select.value
-                );
-            }
-
-            const form =
-                document.getElementById(
-                    "formReporteBuque"
-                );
-
-            const hiddenInputs =
-                form.querySelectorAll(
-                    `input[name="${modalSelectId}_modal"]`
-                );
-
-            hiddenInputs.forEach(function (input) {
-                if (
-                    input.value &&
-                    !filtrosMultiples[key].includes(
-                        input.value
-                    )
-                ) {
-                    filtrosMultiples[key].push(
-                        input.value
-                    );
+        // --- CORRECCIÓN AQUÍ: Leer todas las opciones seleccionadas actualmente del select principal ---
+        filtrosMultiples[key] = [];
+        if (select) {
+            const selectedOptions = Array.from(select.selectedOptions);
+            selectedOptions.forEach(function(opt) {
+                if (opt.value && !filtrosMultiples[key].includes(opt.value)) {
+                    filtrosMultiples[key].push(opt.value);
                 }
             });
         }
+
+        // Si aún así está vacío, revisamos los hidden inputs por seguridad
+        if (filtrosMultiples[key].length === 0) {
+            const form = document.getElementById("formReporteBuque");
+            const hiddenInputs = form.querySelectorAll(`input[name="${modalSelectId}_modal"]`);
+            hiddenInputs.forEach(function (input) {
+                if (input.value && !filtrosMultiples[key].includes(input.value)) {
+                    filtrosMultiples[key].push(input.value);
+                }
+            });
+        }
+        // --------------------------------------------------------------------------------------------
 
         const items = dataLists[key] || [];
 
@@ -191,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         "_"
                     );
 
-            // Marcar selección anterior
+            // Marcar selección anterior basándose en el arreglo sincronizado
             if (
                 filtrosMultiples[key].includes(
                     item
@@ -329,7 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     option.textContent =
                         valor;
 
-                    // Marcamos TODAS las opciones seleccionadas para que el select múltiple funcione correctamente
+                    // Marcamos TODAS las opciones como seleccionadas
                     option.selected = true;
 
                     select.appendChild(
