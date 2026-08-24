@@ -52,7 +52,7 @@ def _iniciar_sesion(request, datos_usuario, turnos):
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.session.get("usuario_id"):
-        return redirect("bitacora_home")
+        return redirect("datos_practicaje")
 
     form = LoginForm(request.POST or None)
 
@@ -77,7 +77,7 @@ def login_view(request):
                         )
                     else:
                         _iniciar_sesion(request, datos_usuario, turnos)
-                        return redirect("bitacora_home")
+                        return redirect("datos_practicaje")
 
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Configuración o contrato de base de datos inválido")
