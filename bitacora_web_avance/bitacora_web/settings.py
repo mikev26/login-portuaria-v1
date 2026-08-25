@@ -117,3 +117,6 @@ RUTA_PLANTILLA_COMB = (
 RUTA_PLANTILLA_TARI = (
     BASE_DIR / "plantilla" / "plantilla_tarifas.xlsx"
 )
+RUTA_PLANTILLA_BITACORA = (
+    BASE_DIR / "plantilla" / "plantilla_bitacora.xlsx"
+)

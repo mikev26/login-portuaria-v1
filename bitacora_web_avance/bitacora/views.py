@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
@@ -34,6 +35,7 @@ from .services import (
 from .services.bitacora_service import (
     guardar_novedad_bitacora,
     obtener_historial_turno,
+    obtener_bitacora_completa,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,37 +101,301 @@ def login_view(request):
     )
 
 TIPOS_NOVEDAD_BITACORA = {
-    "industrial": 1,
-    "artesanal": 2,
+    "inicio_turno": 44,
+    "finaliza_turno": 45,
+    "novedad": 46,
+    "reportes": 46,
+    "consignas": 46,
+    "industrial": 47,
+    "artesanal": 48,
 }
+
+
+MESES_BITACORA = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
+
+MESES_BITACORA_NOMBRES = dict(MESES_BITACORA)
+
+
+def _entero_filtro(valor, minimo=None, maximo=None):
+    """Convierte un filtro GET a entero y valida su rango."""
+    if valor is None:
+        return None
+
+    texto = str(valor).strip()
+    if not texto:
+        return None
+
+    try:
+        numero = int(texto)
+    except (TypeError, ValueError):
+        return None
+
+    if minimo is not None and numero < minimo:
+        return None
+
+    if maximo is not None and numero > maximo:
+        return None
+
+    return numero
+
+
+def _convertir_fecha_bitacora(valor):
+    """Normaliza fechaHora de SQL Server para poder filtrar por mes/año."""
+    if valor is None:
+        return None
+
+    if isinstance(valor, datetime):
+        return valor
+
+    if isinstance(valor, date):
+        return datetime.combine(valor, datetime.min.time())
+
+    texto = str(valor).strip()
+    if not texto:
+        return None
+
+    # Primero intentamos ISO, que cubre los formatos habituales de SQL Server.
+    try:
+        return datetime.fromisoformat(texto.replace("Z", "+00:00"))
+    except ValueError:
+        pass
+
+    formatos = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y",
+    ]
+
+    for formato in formatos:
+        try:
+            return datetime.strptime(texto, formato)
+        except ValueError:
+            continue
+
+    return None
+
+
+def _obtener_anios_bitacora(bitacora):
+    """Devuelve los años realmente presentes en las novedades."""
+    anios = set()
+
+    for bloque in bitacora:
+        for novedad in bloque.get("novedades", []):
+            fecha = _convertir_fecha_bitacora(
+                novedad.get("fecha_hora")
+            )
+
+            if fecha is not None:
+                anios.add(fecha.year)
+
+    return sorted(anios, reverse=True)
+
+
+def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
+    """
+    Filtra por la fecha real de cada novedad.
+    Conserva únicamente los turnos que tengan al menos una novedad
+    dentro del período solicitado.
+    """
+    if anio is None and mes is None:
+        return bitacora
+
+    resultado = []
+
+    for bloque in bitacora:
+        novedades_filtradas = []
+
+        for novedad in bloque.get("novedades", []):
+            fecha = _convertir_fecha_bitacora(
+                novedad.get("fecha_hora")
+            )
+
+            if fecha is None:
+                continue
+
+            if anio is not None and fecha.year != anio:
+                continue
+
+            if mes is not None and fecha.month != mes:
+                continue
+
+            novedades_filtradas.append(novedad)
+
+        if novedades_filtradas:
+            bloque_filtrado = dict(bloque)
+            bloque_filtrado["novedades"] = novedades_filtradas
+            resultado.append(bloque_filtrado)
+
+    return resultado
+
+
 @never_cache
 @require_http_methods(["GET", "POST"])
-
 def bitacora_home(request):
     idusuario = request.session.get("usuario_id")
 
     if not idusuario:
         return redirect("login")
 
+    # ======================================================
+    # FILTROS DEL HISTORIAL
+    # ======================================================
+    filtro_anio = request.GET.get("anio", "").strip()
+    filtro_mes = request.GET.get("mes", "").strip()
+
+    anio_seleccionado = _entero_filtro(
+        filtro_anio,
+        minimo=1900,
+        maximo=9999,
+    )
+    mes_seleccionado = _entero_filtro(
+        filtro_mes,
+        minimo=1,
+        maximo=12,
+    )
+
+    # Si llegó un valor inválido, lo limpiamos para no dejarlo
+    # seleccionado en la interfaz.
+    if filtro_anio and anio_seleccionado is None:
+        filtro_anio = ""
+
+    if filtro_mes and mes_seleccionado is None:
+        filtro_mes = ""
+
+    anios_disponibles = []
+
     try:
+        # ======================================================
         # OBTENER TURNOS ACTIVOS DEL USUARIO
+        # ======================================================
         turnos = obtener_turnos_usuario(idusuario)
 
         if not turnos:
             request.session.flush()
-
             messages.error(
                 request,
                 "Su turno ya no está activo o perdió el permiso de bitácora.",
             )
-
             return redirect("login")
-        
-        # RECUPERAR HISTORIAL DE NOVEDADES
-        # El procedimiento dbo.SPJ_ReporteBitacoraTurno recibe
-        # el id del turno y devuelve las novedades registradas
-        # correspondientes a dicho turno.
 
+        # ======================================================
+        # ASIGNAR HORARIO OPERATIVO A LOS TURNOS ACTIVOS
+        # ======================================================
+        for turno in turnos:
+            fecha_inicio = turno.get("fecha_inicio")
+            hora_inicio = None
+
+            if fecha_inicio is not None:
+                if hasattr(fecha_inicio, "hour"):
+                    hora_inicio = fecha_inicio.hour
+                else:
+                    fecha_texto = str(fecha_inicio).strip()
+                    formatos = [
+                        "%d/%m/%Y %H:%M",
+                        "%d/%m/%Y %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S.%f",
+                        "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%S.%f",
+                    ]
+                    for formato in formatos:
+                        try:
+                            fecha_convertida = datetime.strptime(fecha_texto, formato)
+                            hora_inicio = fecha_convertida.hour
+                            break
+                        except ValueError:
+                            continue
+
+            if hora_inicio is None:
+                turno["hora_turno_inicio"] = "—"
+                turno["hora_turno_fin"] = "—"
+            elif 7 <= hora_inicio < 15:
+                turno["hora_turno_inicio"] = "07:00"
+                turno["hora_turno_fin"] = "15:00"
+            elif 15 <= hora_inicio < 23:
+                turno["hora_turno_inicio"] = "15:00"
+                turno["hora_turno_fin"] = "23:00"
+            else:
+                turno["hora_turno_inicio"] = "23:00"
+                turno["hora_turno_fin"] = "07:00"
+
+        # ======================================================
+        # OBTENER HISTORIAL GENERAL DE LA BITÁCORA
+        # ======================================================
+        bitacora_completa = obtener_bitacora_completa()
+
+        # Los años se obtienen ANTES de filtrar para que el selector
+        # siempre muestre todos los años que tienen registros.
+        anios_disponibles = _obtener_anios_bitacora(
+            bitacora_completa
+        )
+
+        # Aplicar el filtro por la fecha real de cada novedad.
+        bitacora_completa = _filtrar_bitacora_por_periodo(
+            bitacora_completa,
+            anio=anio_seleccionado,
+            mes=mes_seleccionado,
+        )
+
+        # ======================================================
+        # ASIGNAR HORARIO OPERATIVO AL HISTORIAL GENERAL
+        # ======================================================
+        for bloque in bitacora_completa:
+            fecha_inicio = bloque.get("fecha_inicio")
+            hora_inicio = None
+
+            if fecha_inicio is not None:
+                if hasattr(fecha_inicio, "hour"):
+                    hora_inicio = fecha_inicio.hour
+                else:
+                    fecha_texto = str(fecha_inicio).strip()
+                    formatos = [
+                        "%d/%m/%Y %H:%M",
+                        "%d/%m/%Y %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S.%f",
+                        "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%S.%f",
+                    ]
+                    for formato in formatos:
+                        try:
+                            fecha_convertida = datetime.strptime(fecha_texto, formato)
+                            hora_inicio = fecha_convertida.hour
+                            break
+                        except ValueError:
+                            continue
+
+            if hora_inicio is None:
+                bloque["hora_turno_inicio"] = "—"
+                bloque["hora_turno_fin"] = "—"
+            elif 7 <= hora_inicio < 15:
+                bloque["hora_turno_inicio"] = "07:00"
+                bloque["hora_turno_fin"] = "15:00"
+            elif 15 <= hora_inicio < 23:
+                bloque["hora_turno_inicio"] = "15:00"
+                bloque["hora_turno_fin"] = "23:00"
+            else:
+                bloque["hora_turno_inicio"] = "23:00"
+                bloque["hora_turno_fin"] = "07:00"
+
+        # Historial correspondiente a cada turno activo del usuario
         for turno in turnos:
             idturno_historial = turno.get("idturno")
 
@@ -150,93 +416,47 @@ def bitacora_home(request):
         # GUARDAR NUEVA NOVEDAD
         # ======================================================
         if request.method == "POST":
-            idturno_raw = request.POST.get(
-                "idturno",
-                "",
-            ).strip()
+            idturno_raw = request.POST.get("idturno", "").strip()
+            tipo_novedad = request.POST.get("tipo_novedad", "").strip()
+            idbuque_raw = request.POST.get("idbuque", "").strip()
+            idregistro_raw = request.POST.get("idregistro", "").strip()
+            scregistro_raw = request.POST.get("scregistro", "").strip()
+            detalle = request.POST.get("detalle", "").strip()
 
-            tipo_novedad = request.POST.get(
-                "tipo_novedad",
-                "",
-            ).strip()
-
-            idbuque_raw = request.POST.get(
-                "idbuque",
-                "",
-            ).strip()
-
-            idregistro_raw = request.POST.get(
-                "idregistro",
-                "",
-            ).strip()
-
-            scregistro_raw = request.POST.get(
-                "scregistro",
-                "",
-            ).strip()
-
-            detalle = request.POST.get(
-                "detalle",
-                "",
-            ).strip()
-
-            # 1 = Industrial
-            # 2 = Artesanal
-            id_tipo_novedad = TIPOS_NOVEDAD_BITACORA.get(
-                tipo_novedad
-            )
+            id_tipo_novedad = TIPOS_NOVEDAD_BITACORA.get(tipo_novedad)
 
             # ==================================================
-            # VALIDACIONES
+            # VALIDACIONES GENERALES
             # ==================================================
             if id_tipo_novedad is None:
                 messages.error(
                     request,
                     "Debe seleccionar un tipo de novedad válido.",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
             if not idturno_raw:
                 messages.error(
                     request,
                     "No se recibió el turno.",
                 )
-                return redirect(request.path)
-
-            if not idbuque_raw or not idregistro_raw:
-                messages.error(
-                    request,
-                    "Debe seleccionar un buque.",
-                )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
             if not detalle:
                 messages.error(
                     request,
                     "Debe ingresar el detalle de la novedad.",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
             try:
                 idturno = int(idturno_raw)
-                idbuque = int(idbuque_raw)
-                idregistro = int(idregistro_raw)
-
-                scregistro = (
-                    int(scregistro_raw)
-                    if scregistro_raw
-                    else None
-                )
-
             except (TypeError, ValueError):
                 messages.error(
                     request,
-                    (
-                        "Los datos recibidos para registrar "
-                        "la novedad no son válidos."
-                    ),
+                    "El turno recibido no es válido.",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
             # ==================================================
             # VERIFICAR QUE EL TURNO ESTÉ ACTIVO
@@ -252,86 +472,125 @@ def bitacora_home(request):
                     request,
                     "El turno seleccionado no está activo.",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
-            # ==================================================
-            # VERIFICAR QUE EL BUQUE PERTENEZCA
-            # AL TIPO SELECCIONADO
-            # ==================================================
-            buques_validos = (
-                industriales
-                if tipo_novedad == "industrial"
-                else artesanales
+            # Solo estos dos tipos necesitan un buque real.
+            requiere_buque = tipo_novedad in (
+                "industrial",
+                "artesanal",
             )
 
-            buque_valido = any(
-                str(buque.get("idbuque")) == str(idbuque)
-                and
-                str(buque.get("idregistro")) == str(idregistro)
-                for buque in buques_validos
-            )
+            # ==================================================
+            # NOVEDADES ASOCIADAS A UN BUQUE
+            # ==================================================
+            if requiere_buque:
+                if not idbuque_raw or not idregistro_raw:
+                    messages.error(
+                        request,
+                        "Debe seleccionar un buque.",
+                    )
+                    return redirect(request.get_full_path())
 
-            if not buque_valido:
-                messages.error(
-                    request,
-                    (
-                        "El buque seleccionado no corresponde "
-                        "al tipo de novedad."
-                    ),
+                try:
+                    idbuque = int(idbuque_raw)
+                    idregistro = int(idregistro_raw)
+                    scregistro = (
+                        int(scregistro_raw)
+                        if scregistro_raw
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    messages.error(
+                        request,
+                        "Los datos recibidos del buque no son válidos.",
+                    )
+                    return redirect(request.get_full_path())
+
+                buques_validos = (
+                    industriales
+                    if tipo_novedad == "industrial"
+                    else artesanales
                 )
-                return redirect(request.path)
+
+                buque_valido = any(
+                    str(buque.get("idbuque")) == str(idbuque)
+                    and str(buque.get("idregistro")) == str(idregistro)
+                    for buque in buques_validos
+                )
+
+                if not buque_valido:
+                    messages.error(
+                        request,
+                        (
+                            "El buque seleccionado no corresponde "
+                            "al tipo de novedad."
+                        ),
+                    )
+                    return redirect(request.get_full_path())
+
+            # ==================================================
+            # NOVEDADES SIN BUQUE
+            # ==================================================
+            else:
+                # SPJ_Insert_Bitacora exige idBuque e idRegistro.
+                # Para novedades que no corresponden a un buque,
+                # se utiliza 0 y scRegistro queda NULL.
+                idbuque = 0
+                idregistro = 0
+                scregistro = None
+
+            # ==================================================
+            # DIFERENCIAR REPORTES Y CONSIGNAS
+            # ==================================================
+            # En base ambos se registran con idTipoNovedad = 46 (Novedad).
+            # La marca se guarda en el detalle para que después podamos
+            # mostrarlos por separado en la web y en la exportación Excel.
+            detalle_bd = detalle
+
+            if tipo_novedad == "reportes":
+                detalle_bd = f"[REPORTE] {detalle}"
+            elif tipo_novedad == "consignas":
+                detalle_bd = f"[CONSIGNA] {detalle}"
 
             # ==================================================
             # GUARDAR MEDIANTE dbo.SPJ_Insert_Bitacora
             # ==================================================
             nuevo_id = guardar_novedad_bitacora(
                 idturno=idturno,
-                fecha_hora=timezone.now(),
+                fecha_hora=timezone.localtime().replace(tzinfo=None),
                 id_tipo_novedad=id_tipo_novedad,
                 id_buque=idbuque,
                 id_registro=idregistro,
                 sc_registro=scregistro,
-                detalle=detalle,
+                detalle=detalle_bd,
             )
 
-            # Solo mostrar mensaje si ocurrió un problema.
-            # Si se guarda correctamente, el redirect hará que
-            # SPJ_ReporteBitacoraTurno vuelva a consultar el
-            # historial y la novedad aparecerá directamente abajo.
             if nuevo_id is None:
                 messages.error(
                     request,
-                    (
-                        "No fue posible confirmar "
-                        "el registro de la novedad."
-                    ),
+                    "No fue posible confirmar el registro de la novedad.",
                 )
 
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
     except (
         DatabaseConfigurationError,
         DatabaseContractError,
     ) as exc:
-
         logger.exception(
             "Error de configuración al abrir la bitácora"
         )
-
-        messages.error(
-            request,
-            str(exc),
-        )
+        messages.error(request, str(exc))
 
         turnos = []
         industriales = []
         artesanales = []
+        bitacora_completa = []
 
     except Exception:
         logger.exception(
             "Error inesperado al cargar la bitácora"
         )
-
         messages.error(
             request,
             (
@@ -343,23 +602,29 @@ def bitacora_home(request):
         turnos = []
         industriales = []
         artesanales = []
+        bitacora_completa = []
 
     return render(
         request,
         "bitacora/home.html",
         {
-            "usuario_nombre": request.session.get(
-                "usuario_nombre"
-            ),
-            "usuario_login": request.session.get(
-                "usuario_login"
-            ),
-            "usuario_cargo": request.session.get(
-                "usuario_cargo"
-            ),
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
             "turnos": turnos,
             "buques_industriales": industriales,
             "buques_artesanales": artesanales,
+            "bitacora_completa": bitacora_completa,
+            "filtro_anio": filtro_anio,
+            "filtro_mes": filtro_mes,
+            "anio_seleccionado": anio_seleccionado,
+            "mes_seleccionado": mes_seleccionado,
+            "anios_disponibles": anios_disponibles,
+            "meses_bitacora": MESES_BITACORA,
+            "filtro_activo": bool(
+                anio_seleccionado is not None
+                or mes_seleccionado is not None
+            ),
             "demo_mode": settings.DEMO_MODE,
         },
     )
@@ -1873,7 +2138,430 @@ def exportar_excel_validar(request):
         "ok": True,
     })
 
+@never_cache
+@require_http_methods(["GET"])
+def exportar_bitacora_excel(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
 
+    # Los mismos filtros usados por la página se reciben por GET.
+    filtro_anio = request.GET.get("anio", "").strip()
+    filtro_mes = request.GET.get("mes", "").strip()
+
+    anio_seleccionado = _entero_filtro(
+        filtro_anio,
+        minimo=1900,
+        maximo=9999,
+    )
+    mes_seleccionado = _entero_filtro(
+        filtro_mes,
+        minimo=1,
+        maximo=12,
+    )
+
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    except ImportError:
+        messages.error(
+            request,
+            "La dependencia openpyxl no está instalada."
+        )
+        return redirect("bitacora_home")
+
+    # ======================================================
+    # OBTENER INFORMACIÓN DE LA BITÁCORA
+    # ======================================================
+    try:
+        bitacora = obtener_bitacora_completa()
+
+        bitacora = _filtrar_bitacora_por_periodo(
+            bitacora,
+            anio=anio_seleccionado,
+            mes=mes_seleccionado,
+        )
+
+    except Exception:
+        logger.exception("Error al obtener datos para exportar la bitácora")
+        messages.error(
+            request,
+            "No fue posible obtener los datos de la bitácora."
+        )
+        return redirect("bitacora_home")
+
+    if not bitacora:
+        messages.info(
+            request,
+            "No existen registros de bitácora para exportar "
+            "con los filtros seleccionados."
+        )
+
+        destino = "bitacora_home"
+
+        # Si había filtros válidos, volver al historial conservándolos.
+        if anio_seleccionado is not None or mes_seleccionado is not None:
+            query = []
+
+            if anio_seleccionado is not None:
+                query.append(f"anio={anio_seleccionado}")
+
+            if mes_seleccionado is not None:
+                query.append(f"mes={mes_seleccionado}")
+
+            return redirect(
+                f"{reverse('bitacora_home')}?{'&'.join(query)}"
+            )
+
+        return redirect(destino)
+
+    # ======================================================
+    # CARGAR PLANTILLA
+    # ======================================================
+    template_path = getattr(
+        settings,
+        "RUTA_PLANTILLA_BITACORA",
+        "",
+    )
+
+    if not template_path:
+        messages.error(
+            request,
+            "No se ha configurado RUTA_PLANTILLA_BITACORA."
+        )
+        return redirect("bitacora_home")
+
+    template_path = os.fspath(template_path)
+
+    if not os.path.exists(template_path):
+        messages.error(
+            request,
+            f"No se encontró la plantilla: {template_path}"
+        )
+        return redirect("bitacora_home")
+
+    try:
+        workbook = openpyxl.load_workbook(template_path)
+
+        if "Guia_Parametros" in workbook.sheetnames:
+            del workbook["Guia_Parametros"]
+
+        worksheet = (
+            workbook["Bitacora"]
+            if "Bitacora" in workbook.sheetnames
+            else workbook.active
+        )
+
+        # ==================================================
+        # LOGO DE LA PLANTILLA
+        # ==================================================
+        # No se modifica worksheet._images. Con Pillow instalado,
+        # openpyxl conserva automáticamente las imágenes embebidas.
+        logger.info(
+            "Imágenes detectadas en plantilla Bitácora: %s",
+            len(getattr(worksheet, "_images", [])),
+        )
+
+        # ==================================================
+        # FECHA DE EMISIÓN
+        # ==================================================
+        worksheet["A6"] = (
+            "Fecha de Emisión: "
+            + timezone.localdate().strftime("%d/%m/%Y")
+        )
+
+        # ==================================================
+        # ESTILOS
+        # ==================================================
+        azul = "17365D"
+        azul_claro = "D9E5F6"
+        blanco = "FFFFFF"
+        negro = "000000"
+
+        borde_fino = Side(
+            style="thin",
+            color="808080",
+        )
+
+        borde = Border(
+            left=borde_fino,
+            right=borde_fino,
+            top=borde_fino,
+            bottom=borde_fino,
+        )
+
+        # ==================================================
+        # OBTENER HORARIO OPERATIVO
+        # ==================================================
+        def obtener_horario(fecha_inicio):
+            hora_inicio = None
+
+            if fecha_inicio is not None:
+                if hasattr(fecha_inicio, "hour"):
+                    hora_inicio = fecha_inicio.hour
+                else:
+                    fecha_texto = str(fecha_inicio).strip()
+
+                    formatos = [
+                        "%d/%m/%Y %H:%M",
+                        "%d/%m/%Y %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S.%f",
+                        "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%S.%f",
+                    ]
+
+                    for formato in formatos:
+                        try:
+                            fecha_convertida = datetime.strptime(
+                                fecha_texto,
+                                formato
+                            )
+                            hora_inicio = fecha_convertida.hour
+                            break
+                        except ValueError:
+                            continue
+
+            if hora_inicio is None:
+                return "----"
+
+            if 7 <= hora_inicio < 15:
+                return "0700-1500"
+
+            if 15 <= hora_inicio < 23:
+                return "1500-2300"
+
+            return "2300-0700"
+
+        # ==================================================
+        # VOLCADO DE DATOS
+        # ==================================================
+        fila = 8
+
+        for bloque in bitacora:
+            nombre = str(
+                bloque.get("nombre") or ""
+            ).upper()
+
+            horario = obtener_horario(
+                bloque.get("fecha_inicio")
+            )
+
+            # ----------------------------------------------
+            # ENCABEZADO DEL INSPECTOR
+            # ----------------------------------------------
+            worksheet.merge_cells(
+                start_row=fila,
+                start_column=1,
+                end_row=fila,
+                end_column=2,
+            )
+
+            celda_nombre = worksheet.cell(
+                row=fila,
+                column=1,
+            )
+            celda_nombre.value = nombre
+            celda_nombre.font = Font(
+                bold=True,
+                size=11,
+                color=negro,
+            )
+            celda_nombre.fill = PatternFill(
+                "solid",
+                fgColor=azul_claro,
+            )
+            celda_nombre.alignment = Alignment(
+                vertical="center",
+            )
+
+            celda_horario = worksheet.cell(
+                row=fila,
+                column=3,
+            )
+            celda_horario.value = horario
+            celda_horario.font = Font(
+                bold=True,
+                size=11,
+                color=negro,
+            )
+            celda_horario.fill = PatternFill(
+                "solid",
+                fgColor=azul_claro,
+            )
+            celda_horario.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+            )
+
+            for columna in range(1, 4):
+                worksheet.cell(
+                    row=fila,
+                    column=columna,
+                ).border = borde
+
+            worksheet.row_dimensions[fila].height = 22
+
+            fila += 1
+
+            # ----------------------------------------------
+            # CABECERA DE LA TABLA
+            # ----------------------------------------------
+            encabezados = [
+                "HORA",
+                "BUQUE / NOVEDAD",
+                "DETALLE",
+            ]
+
+            for columna, texto in enumerate(
+                encabezados,
+                start=1,
+            ):
+                celda = worksheet.cell(
+                    row=fila,
+                    column=columna,
+                )
+
+                celda.value = texto
+                celda.font = Font(
+                    bold=True,
+                    color=blanco,
+                )
+                celda.fill = PatternFill(
+                    "solid",
+                    fgColor=azul,
+                )
+                celda.alignment = Alignment(
+                    horizontal="center",
+                    vertical="center",
+                )
+                celda.border = borde
+
+            worksheet.row_dimensions[fila].height = 20
+
+            fila += 1
+
+            # ----------------------------------------------
+            # NOVEDADES DEL TURNO
+            # ----------------------------------------------
+            for novedad in bloque.get("novedades", []):
+                valores = [
+                    novedad.get("hora") or "",
+                    novedad.get("buque_novedad") or "",
+                    novedad.get("detalle") or "",
+                ]
+
+                for columna, valor in enumerate(
+                    valores,
+                    start=1,
+                ):
+                    celda = worksheet.cell(
+                        row=fila,
+                        column=columna,
+                    )
+
+                    celda.value = valor
+                    celda.border = borde
+                    celda.alignment = Alignment(
+                        vertical="top",
+                        wrap_text=True,
+                    )
+
+                    if columna == 1:
+                        celda.alignment = Alignment(
+                            horizontal="center",
+                            vertical="top",
+                        )
+
+                fila += 1
+
+            # Una fila vacía entre inspectores
+            fila += 1
+
+        # ==================================================
+        # ANCHOS DE COLUMNAS
+        # ==================================================
+        worksheet.column_dimensions["A"].width = 16
+        worksheet.column_dimensions["B"].width = 34
+        worksheet.column_dimensions["C"].width = 76
+
+        # Eliminar filas vacías sobrantes de la plantilla
+        if worksheet.max_row >= fila:
+            worksheet.delete_rows(
+                fila,
+                worksheet.max_row - fila + 1,
+            )
+
+        # ==================================================
+        # GENERAR ARCHIVO
+        # ==================================================
+        output = io.BytesIO()
+
+        workbook.save(output)
+        output.seek(0)
+
+        # ==================================================
+        # NOMBRE DEL ARCHIVO SEGÚN EL FILTRO
+        # ==================================================
+        if (
+            anio_seleccionado is not None
+            and mes_seleccionado is not None
+        ):
+            nombre_mes = MESES_BITACORA_NOMBRES.get(
+                mes_seleccionado,
+                str(mes_seleccionado),
+            )
+
+            sufijo_archivo = (
+                f"{nombre_mes}_{anio_seleccionado}"
+            )
+
+        elif anio_seleccionado is not None:
+            sufijo_archivo = str(anio_seleccionado)
+
+        elif mes_seleccionado is not None:
+            nombre_mes = MESES_BITACORA_NOMBRES.get(
+                mes_seleccionado,
+                str(mes_seleccionado),
+            )
+
+            sufijo_archivo = nombre_mes
+
+        else:
+            sufijo_archivo = timezone.localdate().strftime(
+                "%d-%m-%Y"
+            )
+
+        filename = (
+            f"Bitacora_Movimientos_Buques_"
+            f"{sufijo_archivo}.xlsx"
+        )
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+        response["Content-Disposition"] = (
+            f'attachment; filename="{filename}"'
+        )
+
+        return response
+
+    except Exception:
+        logger.exception(
+            "Error al generar Excel de la bitácora"
+        )
+
+        messages.error(
+            request,
+            "Ocurrió un error al generar el Excel de la bitácora."
+        )
+
+        return redirect("bitacora_home")
+    
 @require_http_methods(["POST"])
 def logout_view(request):
     request.session.flush()

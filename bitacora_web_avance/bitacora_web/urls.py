@@ -7,6 +7,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.login_view, name="login"),
     path("bitacora/", views.bitacora_home, name="bitacora_home"),
+    path("bitacora/exportar-excel/",views.exportar_bitacora_excel,name="bitacora_exportar_excel",),
     path("tarifario/", views.tarifa_view, name="tarifa"),
     path("reporte/inec/", views.reporte_inec_view, name="reporte_inec"),
     path("registro-combustible/", views.registro_combustible_home, name="registro_combustible"),

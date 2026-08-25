@@ -404,3 +404,178 @@ tbody tr:nth-child(even) {
     text-align: center;
     color: var(--muted);
 }
+
+/* =========================================================
+   HISTORIAL GENERAL DE BITÁCORA
+
+   Estos estilos afectan únicamente a los bloques del
+   historial general de la Bitácora Electrónica.
+   ========================================================= */
+
+.bitacora-historial {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin-top: 14px;
+}
+
+
+/* Contenedor de cada turno */
+.bitacora-turno {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   ENCABEZADO DEL TURNO
+   Inspector + número de turno + inicio + fin
+   ========================================================= */
+
+.bitacora-turno-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 13px 15px;
+
+    background: #f7f9fb;
+    border-bottom: 1px solid var(--border);
+}
+
+
+/* Datos principales del inspector */
+.bitacora-inspector {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.bitacora-etiqueta {
+    display: block;
+
+    margin-bottom: 3px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+
+    color: var(--muted);
+}
+
+
+.bitacora-inspector-nombre {
+    font-size: 14px;
+    font-weight: 700;
+
+    color: var(--navy-deep);
+}
+
+
+.bitacora-inspector-cargo {
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    color: var(--muted);
+}
+
+
+/* =========================================================
+   INFORMACIÓN DEL TURNO
+   ========================================================= */
+
+.bitacora-turno-info {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 28px;
+}
+
+
+.bitacora-dato {
+    min-width: 110px;
+
+    font-size: 11px;
+
+    color: var(--text);
+}
+
+
+.bitacora-dato strong {
+    display: block;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLA DE NOVEDADES
+   ========================================================= */
+
+.bitacora-table-wrap {
+    border: 0;
+    border-radius: 0;
+}
+
+
+.bitacora-table {
+    width: 100%;
+    margin: 0;
+}
+
+
+.bitacora-hora {
+    width: 120px;
+
+    white-space: nowrap;
+}
+
+
+.bitacora-novedad {
+    width: 31%;
+
+    font-weight: 600;
+}
+
+
+.bitacora-detalle {
+    width: auto;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+    .bitacora-turno-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+
+    .bitacora-turno-info {
+        width: 100%;
+
+        justify-content: flex-start;
+        flex-wrap: wrap;
+
+        gap: 12px 24px;
+    }
+
+
+    .bitacora-dato {
+        min-width: 130px;
+    }
+}
