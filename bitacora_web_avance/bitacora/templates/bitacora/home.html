@@ -22,6 +22,13 @@
 {% endif %}
 
 
+<div
+    id="serverClock"
+    data-server-now="{{ fecha_hora_servidor_iso }}"
+    hidden
+></div>
+
+
 {% if turnos %}
 
 <!-- ====================================================== -->
@@ -154,6 +161,7 @@
                         id="fecha{{ forloop.counter }}"
                         class="current-date"
                         type="date"
+                        value="{{ fecha_servidor }}"
                         readonly
                     >
 
@@ -170,6 +178,7 @@
                         id="hora{{ forloop.counter }}"
                         class="current-time"
                         type="time"
+                        value="{{ hora_servidor }}"
                         readonly
                     >
 
@@ -551,6 +560,19 @@
                     {{ bloque.nombre }}
                 </strong>
 
+                {% if bloque.fecha_dia %}
+                    <span
+                        style="
+                            margin-left: 8px;
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: #475569;
+                        "
+                    >
+                        — {{ bloque.fecha_dia }}
+                    </span>
+                {% endif %}
+
                 <div
                     style="
                         margin-top: 4px;
@@ -653,6 +675,6 @@
 {{ buques_industriales|json_script:"industrialShips" }}
 {{ buques_artesanales|json_script:"artisanalShips" }}
 
-<script src="{% static 'bitacora/js/home.js' %}?v=20260824-2"></script>
+<script src="{% static 'bitacora/js/home.js' %}?v=20260826-3"></script>
 
 {% endblock %}

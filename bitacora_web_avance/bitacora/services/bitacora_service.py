@@ -6,6 +6,26 @@ from datetime import datetime
 
 from .db_connection import execute_procedure, execute_query
 
+def obtener_fecha_hora_servidor():
+    rows = execute_query(
+        """
+        SELECT GETDATE() AS fecha_hora_sql
+        """
+    )
+
+    if not rows:
+        raise RuntimeError(
+            "SQL Server no devolvió la fecha y hora actual."
+        )
+
+    fecha_hora = rows[0].get("fecha_hora_sql")
+
+    if fecha_hora is None:
+        raise RuntimeError(
+            "No fue posible obtener la fecha y hora de SQL Server."
+        )
+
+    return fecha_hora
 
 def guardar_novedad_bitacora(
     idturno: int,

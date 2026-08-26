@@ -6,6 +6,11 @@ const artisanalShips = JSON.parse(
     document.getElementById('artisanalShips')?.textContent || '[]'
 );
 
+
+/* =========================================================
+   ETIQUETA DE BUQUE
+   ========================================================= */
+
 function shipLabel(ship) {
     const parts = [
         ship.scbuque,
@@ -18,15 +23,21 @@ function shipLabel(ship) {
 
 
 /* =========================================================
-   SPJ_INSERT_BITACORA
+   LIMPIAR BUQUE SELECCIONADO
    ========================================================= */
 
 function clearSelectedShip(form) {
     if (!form) return;
 
-    const idBuque = form.querySelector('.selected-idbuque');
-    const idRegistro = form.querySelector('.selected-idregistro');
-    const scRegistro = form.querySelector('.selected-scregistro');
+    const idBuque =
+        form.querySelector('.selected-idbuque');
+
+    const idRegistro =
+        form.querySelector('.selected-idregistro');
+
+    const scRegistro =
+        form.querySelector('.selected-scregistro');
+
 
     if (idBuque) {
         idBuque.value = '';
@@ -42,13 +53,22 @@ function clearSelectedShip(form) {
 }
 
 
+/* =========================================================
+   SINCRONIZAR BUQUE SELECCIONADO
+   ========================================================= */
+
 function syncSelectedShip(shipSelect) {
-    const form = shipSelect.closest('.novedad-form');
+    const form =
+        shipSelect.closest('.novedad-form');
 
     if (!form) return;
 
+
     const selectedOption =
-        shipSelect.options[shipSelect.selectedIndex];
+        shipSelect.options[
+            shipSelect.selectedIndex
+        ];
+
 
     if (!selectedOption?.dataset.ship) {
         clearSelectedShip(form);
@@ -56,33 +76,50 @@ function syncSelectedShip(shipSelect) {
         return;
     }
 
+
     try {
+
         const ship = JSON.parse(
             selectedOption.dataset.ship
         );
 
+
         const idBuque =
-            form.querySelector('.selected-idbuque');
+            form.querySelector(
+                '.selected-idbuque'
+            );
 
         const idRegistro =
-            form.querySelector('.selected-idregistro');
+            form.querySelector(
+                '.selected-idregistro'
+            );
 
         const scRegistro =
-            form.querySelector('.selected-scregistro');
+            form.querySelector(
+                '.selected-scregistro'
+            );
+
 
         if (idBuque) {
-            idBuque.value = ship.idbuque ?? '';
+            idBuque.value =
+                ship.idbuque ?? '';
         }
+
 
         if (idRegistro) {
-            idRegistro.value = ship.idregistro ?? '';
+            idRegistro.value =
+                ship.idregistro ?? '';
         }
+
 
         if (scRegistro) {
-            scRegistro.value = ship.scbuque ?? '';
+            scRegistro.value =
+                ship.scbuque ?? '';
         }
 
+
     } catch (error) {
+
         console.error(
             'No fue posible leer los datos del buque:',
             error
@@ -91,28 +128,41 @@ function syncSelectedShip(shipSelect) {
         clearSelectedShip(form);
     }
 
+
     updateSaveButton(form);
 }
 
 
+/* =========================================================
+   ACTUALIZAR SELECT DE BUQUES
+   ========================================================= */
+
 function refreshShipSelect(typeSelect) {
+
     const shipSelect =
         document.getElementById(
             typeSelect.dataset.shipSelect
         );
 
+
     if (!shipSelect) return;
+
 
     const help =
         document.getElementById(
             shipSelect.id + 'Help'
         );
 
+
     const form =
-        typeSelect.closest('.novedad-form');
+        typeSelect.closest(
+            '.novedad-form'
+        );
+
 
     const type =
         typeSelect.value;
+
 
     clearSelectedShip(form);
 
@@ -154,9 +204,11 @@ function refreshShipSelect(typeSelect) {
             )
         );
 
+
         if (help) {
             help.textContent = '';
         }
+
 
         updateSaveButton(form);
 
@@ -184,9 +236,11 @@ function refreshShipSelect(typeSelect) {
             )
         );
 
+
         if (help) {
-            help.textContent ='';
+            help.textContent = '';
         }
+
 
         updateSaveButton(form);
 
@@ -195,12 +249,13 @@ function refreshShipSelect(typeSelect) {
 
 
     /* =====================================================
-       SI NO EXISTEN BUQUES ACTIVOS
+       NO EXISTEN BUQUES ACTIVOS
        ===================================================== */
 
     if (!ships.length) {
 
         shipSelect.disabled = true;
+
 
         shipSelect.add(
             new Option(
@@ -208,6 +263,7 @@ function refreshShipSelect(typeSelect) {
                 ''
             )
         );
+
 
         if (help) {
 
@@ -217,6 +273,7 @@ function refreshShipSelect(typeSelect) {
                     : 'La consulta no devolvió registros.';
         }
 
+
         updateSaveButton(form);
 
         return;
@@ -224,10 +281,11 @@ function refreshShipSelect(typeSelect) {
 
 
     /* =====================================================
-       CARGAR BUQUES
+       CARGAR BUQUES DISPONIBLES
        ===================================================== */
 
     shipSelect.disabled = false;
+
 
     shipSelect.add(
         new Option(
@@ -239,13 +297,18 @@ function refreshShipSelect(typeSelect) {
 
     ships.forEach((ship) => {
 
-        const option = new Option(
-            shipLabel(ship),
-            String(ship.idregistro ?? '')
-        );
+        const option =
+            new Option(
+                shipLabel(ship),
+                String(
+                    ship.idregistro ?? ''
+                )
+            );
+
 
         option.dataset.ship =
             JSON.stringify(ship);
+
 
         shipSelect.add(option);
     });
@@ -267,22 +330,38 @@ function refreshShipSelect(typeSelect) {
    ========================================================= */
 
 function updateSaveButton(form) {
+
     if (!form) return;
 
+
     const button =
-        form.querySelector('.save-novelty-button');
+        form.querySelector(
+            '.save-novelty-button'
+        );
+
 
     const type =
-        form.querySelector('.novelty-type')?.value || '';
+        form.querySelector(
+            '.novelty-type'
+        )?.value || '';
+
 
     const idBuque =
-        form.querySelector('.selected-idbuque')?.value || '';
+        form.querySelector(
+            '.selected-idbuque'
+        )?.value || '';
+
 
     const idRegistro =
-        form.querySelector('.selected-idregistro')?.value || '';
+        form.querySelector(
+            '.selected-idregistro'
+        )?.value || '';
+
 
     const detalle =
-        form.querySelector('.novelty-detail')?.value.trim() || '';
+        form.querySelector(
+            '.novelty-detail'
+        )?.value.trim() || '';
 
 
     const requiresShip =
@@ -293,15 +372,15 @@ function updateSaveButton(form) {
     let valid = false;
 
 
-    /*
-        Industrial / Artesanal:
+    /* =====================================================
+       INDUSTRIAL / ARTESANAL
 
-        necesita:
-        - tipo
-        - buque
-        - registro
-        - detalle
-    */
+       Requiere:
+       - tipo
+       - buque
+       - registro
+       - detalle
+       ===================================================== */
 
     if (requiresShip) {
 
@@ -313,14 +392,13 @@ function updateSaveButton(form) {
         );
 
 
-    /*
-        Inicio / Finaliza / Novedad /
-        Reportes / Consignas:
+    /* =====================================================
+       RESTO DE NOVEDADES
 
-        necesita únicamente:
-        - tipo
-        - detalle
-    */
+       Requiere:
+       - tipo
+       - detalle
+       ===================================================== */
 
     } else {
 
@@ -338,28 +416,36 @@ function updateSaveButton(form) {
 
 
 /* =========================================================
-   FIN SPJ_INSERT_BITACORA
-   ========================================================= */
-
-
-/* =========================================================
    CAMBIO DE TURNO ACTIVO
    ========================================================= */
 
 function refreshTurn() {
+
     const select =
-        document.getElementById('turnoSelect');
+        document.getElementById(
+            'turnoSelect'
+        );
+
 
     if (!select) return;
 
+
     const selected =
-        select.options[select.selectedIndex];
+        select.options[
+            select.selectedIndex
+        ];
+
 
     const turnoInicio =
-        document.getElementById('turnoInicio');
+        document.getElementById(
+            'turnoInicio'
+        );
+
 
     const turnoFin =
-        document.getElementById('turnoFin');
+        document.getElementById(
+            'turnoFin'
+        );
 
 
     if (turnoInicio) {
@@ -372,15 +458,19 @@ function refreshTurn() {
     if (turnoFin) {
 
         turnoFin.value =
-            selected.dataset.fin || '.NULL.';
+            selected.dataset.fin || '';
     }
 
 
     document
-        .querySelectorAll('.panel-turno')
+        .querySelectorAll(
+            '.panel-turno'
+        )
         .forEach((panel) => {
 
-            panel.classList.remove('visible');
+            panel.classList.remove(
+                'visible'
+            );
         });
 
 
@@ -391,57 +481,241 @@ function refreshTurn() {
 
 
     if (currentPanel) {
-        currentPanel.classList.add('visible');
+
+        currentPanel.classList.add(
+            'visible'
+        );
     }
 }
 
 
 /* =========================================================
-   RELOJ
+   RELOJ BASADO EN LA HORA DEL SERVIDOR
+
+   IMPORTANTE:
+   NO usamos la hora actual del computador.
+
+   Django coloca inicialmente en los inputs:
+   - fecha_servidor
+   - hora_servidor
+
+   A partir de esos valores se hace avanzar visualmente
+   el reloj utilizando únicamente el tiempo transcurrido.
    ========================================================= */
 
-function refreshClock() {
-    const now = new Date();
+let servidorFechaBase = null;
+let servidorInicioContador = null;
+
+
+/* =========================================================
+   OBTENER FECHA/HORA INICIAL DEL SERVIDOR
+   ========================================================= */
+
+function iniciarRelojServidor() {
+
+    const fechaInput =
+        document.querySelector(
+            '.current-date'
+        );
+
+
+    const horaInput =
+        document.querySelector(
+            '.current-time'
+        );
+
+
+    if (!fechaInput || !horaInput) {
+        return;
+    }
+
+
+    const fecha =
+        fechaInput.value;
+
+
+    const hora =
+        horaInput.value;
+
+
+    if (!fecha || !hora) {
+        return;
+    }
+
+
+    const partesFecha =
+        fecha.split('-');
+
+
+    const partesHora =
+        hora.split(':');
+
+
+    if (
+        partesFecha.length !== 3 ||
+        partesHora.length < 2
+    ) {
+        return;
+    }
+
+
+    const anio =
+        Number(partesFecha[0]);
+
+    const mes =
+        Number(partesFecha[1]);
+
+    const dia =
+        Number(partesFecha[2]);
+
+    const horas =
+        Number(partesHora[0]);
+
+    const minutos =
+        Number(partesHora[1]);
+
+
+    if (
+        Number.isNaN(anio) ||
+        Number.isNaN(mes) ||
+        Number.isNaN(dia) ||
+        Number.isNaN(horas) ||
+        Number.isNaN(minutos)
+    ) {
+        return;
+    }
+
+
+    /*
+        La fecha base viene de SQL Server.
+
+        No se utiliza:
+            new Date()
+
+        como fuente de la hora actual del computador.
+    */
+
+    servidorFechaBase =
+        new Date(
+            anio,
+            mes - 1,
+            dia,
+            horas,
+            minutos,
+            0,
+            0
+        );
+
+
+    /*
+        performance.now() mide únicamente
+        tiempo transcurrido.
+
+        No depende de que el usuario tenga
+        mal configurada la fecha/hora de Windows.
+    */
+
+    servidorInicioContador =
+        performance.now();
+
+
+    actualizarRelojServidor();
+}
+
+
+/* =========================================================
+   ACTUALIZAR RELOJ VISIBLE
+   ========================================================= */
+
+function actualizarRelojServidor() {
+
+    if (
+        !servidorFechaBase ||
+        servidorInicioContador === null
+    ) {
+        return;
+    }
+
+
+    const tiempoTranscurrido =
+        performance.now() -
+        servidorInicioContador;
+
+
+    const fechaActual =
+        new Date(
+            servidorFechaBase.getTime() +
+            tiempoTranscurrido
+        );
+
 
     const yyyy =
-        now.getFullYear();
+        fechaActual.getFullYear();
+
 
     const mm =
         String(
-            now.getMonth() + 1
-        ).padStart(2, '0');
+            fechaActual.getMonth() + 1
+        ).padStart(
+            2,
+            '0'
+        );
+
 
     const dd =
         String(
-            now.getDate()
-        ).padStart(2, '0');
+            fechaActual.getDate()
+        ).padStart(
+            2,
+            '0'
+        );
+
 
     const hh =
         String(
-            now.getHours()
-        ).padStart(2, '0');
+            fechaActual.getHours()
+        ).padStart(
+            2,
+            '0'
+        );
+
 
     const min =
         String(
-            now.getMinutes()
-        ).padStart(2, '0');
+            fechaActual.getMinutes()
+        ).padStart(
+            2,
+            '0'
+        );
+
+
+    const fechaTexto =
+        `${yyyy}-${mm}-${dd}`;
+
+
+    const horaTexto =
+        `${hh}:${min}`;
 
 
     document
-        .querySelectorAll('.current-date')
+        .querySelectorAll(
+            '.current-date'
+        )
         .forEach((input) => {
 
             input.value =
-                `${yyyy}-${mm}-${dd}`;
+                fechaTexto;
         });
 
 
     document
-        .querySelectorAll('.current-time')
+        .querySelectorAll(
+            '.current-time'
+        )
         .forEach((input) => {
 
             input.value =
-                `${hh}:${min}`;
+                horaTexto;
         });
 }
 
@@ -455,8 +729,14 @@ document.addEventListener(
     () => {
 
         const turnSelect =
-            document.getElementById('turnoSelect');
+            document.getElementById(
+                'turnoSelect'
+            );
 
+
+        /* =====================================================
+           CAMBIO DE TURNO
+           ===================================================== */
 
         if (turnSelect) {
 
@@ -467,50 +747,63 @@ document.addEventListener(
         }
 
 
-        /* ===============================
+        /* =====================================================
            TIPOS DE NOVEDAD
-           =============================== */
+           ===================================================== */
 
         document
-            .querySelectorAll('.novelty-type')
+            .querySelectorAll(
+                '.novelty-type'
+            )
             .forEach((select) => {
 
                 select.addEventListener(
                     'change',
                     () => {
 
-                        refreshShipSelect(select);
+                        refreshShipSelect(
+                            select
+                        );
                     }
                 );
 
-                refreshShipSelect(select);
+
+                refreshShipSelect(
+                    select
+                );
             });
 
 
-        /* ===============================
+        /* =====================================================
            BUQUES
-           =============================== */
+           ===================================================== */
 
         document
-            .querySelectorAll('.ship-select')
+            .querySelectorAll(
+                '.ship-select'
+            )
             .forEach((select) => {
 
                 select.addEventListener(
                     'change',
                     () => {
 
-                        syncSelectedShip(select);
+                        syncSelectedShip(
+                            select
+                        );
                     }
                 );
             });
 
 
-        /* ===============================
+        /* =====================================================
            DETALLE
-           =============================== */
+           ===================================================== */
 
         document
-            .querySelectorAll('.novelty-detail')
+            .querySelectorAll(
+                '.novelty-detail'
+            )
             .forEach((textarea) => {
 
                 textarea.addEventListener(
@@ -527,13 +820,29 @@ document.addEventListener(
             });
 
 
+        /* =====================================================
+           ESTADO INICIAL DEL TURNO
+           ===================================================== */
+
         refreshTurn();
 
-        refreshClock();
+
+        /* =====================================================
+           RELOJ DESDE SQL SERVER
+           ===================================================== */
+
+        iniciarRelojServidor();
+
+
+        /*
+            La hora REAL que se guarda al registrar
+            la novedad vuelve a consultarse en
+            SQL Server desde views.py.
+        */
 
         setInterval(
-            refreshClock,
-            30000
+            actualizarRelojServidor,
+            1000
         );
     }
 );

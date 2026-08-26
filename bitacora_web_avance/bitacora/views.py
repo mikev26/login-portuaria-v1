@@ -36,6 +36,7 @@ from .services.bitacora_service import (
     guardar_novedad_bitacora,
     obtener_historial_turno,
     obtener_bitacora_completa,
+    obtener_fecha_hora_servidor,
 )
 
 logger = logging.getLogger(__name__)
@@ -246,6 +247,57 @@ def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
     return resultado
 
 
+def _agrupar_bitacora_por_fecha(bitacora):
+    """
+    Separa cada bloque de inspector/turno por la fecha real de sus novedades.
+
+    Esto evita que registros realizados en días distintos aparezcan mezclados
+    bajo un mismo encabezado cuando SQL Server reutiliza el mismo idturno.
+    """
+    resultado = []
+
+    for bloque in bitacora:
+        grupos = {}
+        orden_fechas = []
+
+        for novedad in bloque.get("novedades", []):
+            fecha = _convertir_fecha_bitacora(
+                novedad.get("fecha_hora")
+            )
+
+            if fecha is None:
+                clave_fecha = "sin-fecha"
+                fecha_texto = "Sin fecha"
+            else:
+                clave_fecha = fecha.strftime("%Y-%m-%d")
+                fecha_texto = fecha.strftime("%d/%m/%Y")
+
+            if clave_fecha not in grupos:
+                grupos[clave_fecha] = {
+                    "fecha_texto": fecha_texto,
+                    "novedades": [],
+                }
+                orden_fechas.append(clave_fecha)
+
+            grupos[clave_fecha]["novedades"].append(novedad)
+
+        for clave_fecha in orden_fechas:
+            grupo = grupos[clave_fecha]
+
+            bloque_fecha = dict(bloque)
+            bloque_fecha["fecha_dia"] = grupo["fecha_texto"]
+            bloque_fecha["fecha_dia_iso"] = (
+                ""
+                if clave_fecha == "sin-fecha"
+                else clave_fecha
+            )
+            bloque_fecha["novedades"] = grupo["novedades"]
+
+            resultado.append(bloque_fecha)
+
+    return resultado
+
+
 @never_cache
 @require_http_methods(["GET", "POST"])
 def bitacora_home(request):
@@ -281,7 +333,23 @@ def bitacora_home(request):
 
     anios_disponibles = []
 
+    # Fecha/hora mostrada en el formulario.
+    # Se obtiene desde SQL Server, no desde el reloj del equipo del inspector.
+    fecha_hora_servidor = None
+    fecha_servidor = ""
+    hora_servidor = ""
+    fecha_hora_servidor_iso = ""
+
     try:
+        fecha_hora_servidor = obtener_fecha_hora_servidor()
+
+        fecha_servidor = fecha_hora_servidor.strftime(
+            "%Y-%m-%d"
+        )
+        hora_servidor = fecha_hora_servidor.strftime(
+            "%H:%M"
+        )
+        fecha_hora_servidor_iso = fecha_hora_servidor.isoformat()
         # ======================================================
         # OBTENER TURNOS ACTIVOS DEL USUARIO
         # ======================================================
@@ -352,6 +420,12 @@ def bitacora_home(request):
             bitacora_completa,
             anio=anio_seleccionado,
             mes=mes_seleccionado,
+        )
+
+        # Separar el historial por fecha real de la novedad.
+        # Un mismo idturno puede contener registros de distintos días.
+        bitacora_completa = _agrupar_bitacora_por_fecha(
+            bitacora_completa
         )
 
         # ======================================================
@@ -557,7 +631,7 @@ def bitacora_home(request):
             # ==================================================
             nuevo_id = guardar_novedad_bitacora(
                 idturno=idturno,
-                fecha_hora=timezone.localtime().replace(tzinfo=None),
+                fecha_hora=obtener_fecha_hora_servidor(),
                 id_tipo_novedad=id_tipo_novedad,
                 id_buque=idbuque,
                 id_registro=idregistro,
@@ -615,6 +689,9 @@ def bitacora_home(request):
             "buques_industriales": industriales,
             "buques_artesanales": artesanales,
             "bitacora_completa": bitacora_completa,
+            "fecha_servidor": fecha_servidor,
+            "hora_servidor": hora_servidor,
+            "fecha_hora_servidor_iso": fecha_hora_servidor_iso,
             "filtro_anio": filtro_anio,
             "filtro_mes": filtro_mes,
             "anio_seleccionado": anio_seleccionado,
@@ -2181,6 +2258,10 @@ def exportar_bitacora_excel(request):
             mes=mes_seleccionado,
         )
 
+        bitacora = _agrupar_bitacora_por_fecha(
+            bitacora
+        )
+
     except Exception:
         logger.exception("Error al obtener datos para exportar la bitácora")
         messages.error(
@@ -2264,9 +2345,11 @@ def exportar_bitacora_excel(request):
         # ==================================================
         # FECHA DE EMISIÓN
         # ==================================================
+        fecha_emision_sql = obtener_fecha_hora_servidor()
+
         worksheet["A6"] = (
             "Fecha de Emisión: "
-            + timezone.localdate().strftime("%d/%m/%Y")
+            + fecha_emision_sql.strftime("%d/%m/%Y")
         )
 
         # ==================================================
@@ -2378,7 +2461,16 @@ def exportar_bitacora_excel(request):
                 row=fila,
                 column=3,
             )
-            celda_horario.value = horario
+
+            fecha_dia = str(
+                bloque.get("fecha_dia") or ""
+            ).strip()
+
+            celda_horario.value = (
+                f"{fecha_dia}   {horario}"
+                if fecha_dia
+                else horario
+            )
             celda_horario.font = Font(
                 bold=True,
                 size=11,
