@@ -6,8 +6,62 @@
 {% block body_class %}tarifa-page{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'bitacora/css/tarifa.css' %}">
-<link rel="stylesheet" href="{% static 'bitacora/css/tarifa_inflacion.css' %}">
+<link rel="stylesheet" href="{% static 'bitacora/css/tarifa.css' %}?v={% now 'U' %}">
+<link rel="stylesheet" href="{% static 'bitacora/css/tarifa_inflacion.css' %}?v={% now 'U' %}">
+<style>
+    .filter-bar {
+        background: #f8fafc !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        padding: 18px 20px !important;
+        margin-bottom: 14px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-end !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+    .filter-bar .field {
+        flex-shrink: 0 !important;
+    }
+    .filter-bar .field-detail {
+        flex: 1 1 auto !important;
+        min-width: 250px !important;
+    }
+    .filter-bar .field label {
+        margin-bottom: 6px !important;
+        color: var(--navy) !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+    }
+    .filter-actions-row {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 12px !important;
+        width: 100% !important;
+        margin-bottom: 22px !important;
+    }
+    @media (max-width: 768px) {
+        .filter-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 14px !important;
+        }
+        .filter-bar .field,
+        .filter-bar .field-detail {
+            width: 100% !important;
+        }
+        .filter-actions-row {
+            justify-content: space-between !important;
+        }
+        .btn-apply, .btn-export-excel {
+            flex: 1 !important;
+            text-align: center !important;
+            justify-content: center !important;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -17,34 +71,42 @@
 <section class="section">
     <div class="section-title">Ajuste de Tarifas por Inflación Anual</div>
 
-    <!-- Barra de Filtros / Controles -->
+    <!-- Recuadro Gris de Controles (Solo contiene los 4 inputs) -->
     <div class="filter-bar">
-        <div class="field" style="width: 130px;">
+        <div class="field" style="width: 170px; min-width: 150px; flex-shrink: 0;">
+            <label for="inputFechaInflacion">Fecha Inflacion</label>
+            <input type="date" id="inputFechaInflacion" name="fecha_inflacion">
+        </div>
+
+        <div class="field" style="width: 120px; min-width: 100px; flex-shrink: 0;">
             <label for="selectAnio">AÑO:</label>
-            <select id="selectAnio" name="anio">
-                <option value="2026">2026</option>
-                <option value="2025" selected>2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
+            <select id="selectAnio" name="anio" disabled style="background-color: #f1f3f5; cursor: not-allowed; color: #495057; appearance: none; -webkit-appearance: none; -moz-appearance: none;">
+                <option value="{% now 'Y' %}" selected>{% now 'Y' %}</option>
             </select>
         </div>
         
-        <div class="field" style="width: 200px;">
-            <label for="inputInflacion">Porcentaje Inflación (%)</label>
+        <div class="field" style="width: 190px; min-width: 160px; flex-shrink: 0;">
+            <label for="inputInflacion">Porcentaje Inflacion (%)</label>
             <input type="number" id="inputInflacion" name="porcentaje" step="0.01" value="" min="0" max="100" placeholder="Ej: 2.00">
         </div>
 
-        <div class="filter-actions">
-            <button type="button" id="btnAplicar" class="btn-apply">APLICAR</button>
-            <button type="button" id="btnExportar" class="btn-export-excel">
-                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-                Exportar
-            </button>
+        <div class="field field-detail" style="flex: 1 1 auto; min-width: 250px;">
+            <label for="inputDetalle">Detalle</label>
+            <input type="text" id="inputDetalle" name="detalle" placeholder="Justificación" maxlength="252">
         </div>
     </div>
 
+    <!-- Fila de Botones: APLICAR y Exportar (Fuera del recuadro, alineados a la derecha) -->
+    <div class="filter-actions-row">
+        <button type="button" id="btnAplicar" class="btn-apply">APLICAR</button>
+        <button type="button" id="btnExportar" class="btn-export-excel" title="Exportar reporte a PDF">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            Exportar PDF
+        </button>
+    </div>
+
     <!-- Mensaje Placeholder inicial -->
-    <div id="placeholderMessage" style="background: #ffffff; padding: 45px 30px; border-radius: 10px; border: 1px dashed var(--border); text-align: center; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+    <div id="placeholderMessage" style="display: none; background: #ffffff; padding: 45px 30px; border-radius: 10px; border: 1px dashed var(--border); text-align: center; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
         <div style="font-size: 44px; margin-bottom: 15px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">📊</div>
         <h3 style="font-size: 16.5px; color: var(--navy-deep); margin-bottom: 8px; font-weight: 700;">Simulación de Ajuste Tarifario</h3>
         <p style="color: var(--muted); font-size: 13.5px; margin: 0; max-width: 500px; margin: 0 auto; line-height: 1.5;">
@@ -53,33 +115,31 @@
     </div>
 
     <!-- Tabla con datos de base de datos (Oculta por defecto) -->
-    <div class="table-wrap" id="tablaTarifasWrapper" style="display: none;">
+    <div class="table-wrap" id="tablaTarifasWrapper" style="display: block;">
         <table>
             <thead>
                 <tr>
-                    <th style="width: 5%;" class="text-center">Item</th>
-                    <th style="width: 15%;">Tasa</th>
-                    <th style="width: 10%;" class="text-center">Cod.Tarifa</th>
-                    <th style="width: 36%;">Tarifa</th>
-                    <th style="width: 11%;" class="text-right">TarifaAño</th>
-                    <th style="width: 11%;" class="text-right">TarifaInflacion</th>
-                    <th style="width: 12%;" class="text-right" id="headerValorTarifa">ValorFinalTarifa 2025</th>
+                    <th style="width: 6%;" class="text-center">Item</th>
+                    <th style="width: 12%;" class="text-center">Cod.Tarifa</th>
+                    <th style="width: 44%;">Tarifa</th>
+                    <th style="width: 12%;" class="text-right" id="headerTarifaAnioAnterior">Tarifa {{ anio_anterior|default:"2025" }}</th>
+                    <th style="width: 12%;" class="text-right">% Inflación</th>
+                    <th style="width: 14%;" class="text-right" id="headerValorTarifa">Tarifa {{ anio_actual|default:"2026" }}</th>
                 </tr>
             </thead>
             <tbody id="tablaTarifasBody">
                 {% for t in tarifas %}
                 <tr data-base-val="{{ t.valor }}">
                     <td class="text-center">{{ forloop.counter }}</td>
-                    <td>{{ t.tasa }}</td>
                     <td class="text-center">{{ t.codigo }}</td>
                     <td>{{ t.tarifa }}</td>
                     <td class="text-right">$ {{ t.valor }}</td>
-                    <td class="text-right text-calc-inflacion" style="color: var(--muted); font-weight: 500;">$ 0.00</td>
-                    <td class="text-right text-calc-total" style="font-weight: 600; color: var(--navy-deep);">$ 0.00</td>
+                    <td class="text-right text-calc-inflacion" style="color: var(--muted); font-weight: 500;"></td>
+                    <td class="text-right text-calc-total" style="font-weight: 600; color: var(--navy-deep);"></td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="empty">No existen tarifas configuradas con aplicación de inflación.</td>
+                    <td colspan="6" class="empty">No existen tarifas configuradas con aplicación de inflación.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -87,11 +147,40 @@
     </div>
 
     <!-- Botón Guardar (Oculto por defecto) -->
-    <div class="bottom-actions" id="bottomActionsWrapper" style="display: none;">
+    <div class="bottom-actions" id="bottomActionsWrapper" style="display: flex;">
         <button type="button" id="btnGuardar" class="btn-save-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="fill: white;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
             Guardar
         </button>
+    </div>
+
+    <!-- Ventana Modal Personalizada de Confirmación (Aceptar / Cancelar) -->
+    <div class="custom-modal-overlay" id="confirmModalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="custom-modal-box">
+            <div class="custom-modal-header">
+                <div class="custom-modal-title" id="modalTitle">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    Confirmación de Ajuste
+                </div>
+                <button type="button" class="custom-modal-close-btn" id="btnModalClose" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="custom-modal-body">
+                <p class="custom-modal-message" id="modalMessageText">
+                    ¿Está seguro de que desea guardar el ajuste por inflación?
+                </p>
+                <div class="custom-modal-alert">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    <span>Esta acción incrementará el valor de las tarifas activas con inflación habilitada y actualizará el historial de auditoría. <strong>Esta acción es irreversible.</strong></span>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn-modal-cancel" id="btnModalCancel">Cancelar</button>
+                <button type="button" class="btn-modal-confirm" id="btnModalConfirm">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    Aceptar
+                </button>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -109,13 +198,53 @@
         const placeholderMessage = document.getElementById('placeholderMessage');
         const tablaTarifasWrapper = document.getElementById('tablaTarifasWrapper');
         const bottomActionsWrapper = document.getElementById('bottomActionsWrapper');
+        const inputDetalle = document.getElementById('inputDetalle');
+        const inputFechaInflacion = document.getElementById('inputFechaInflacion');
         
-        // 1. Cambiar el encabezado de año dinámicamente
-        selectAnio.addEventListener('change', () => {
-            const anio = selectAnio.value;
-            headerValorTarifa.textContent = `ValorFinalTarifa ${anio}`;
-            showToast(`Año seleccionado cambiado a ${anio}`, 'info');
+        // Elementos del Modal Personalizado
+        const confirmModalOverlay = document.getElementById('confirmModalOverlay');
+        const modalMessageText = document.getElementById('modalMessageText');
+        const btnModalClose = document.getElementById('btnModalClose');
+        const btnModalCancel = document.getElementById('btnModalCancel');
+        const btnModalConfirm = document.getElementById('btnModalConfirm');
+
+        let pendingFormData = null;
+        let pendingInflacion = 0;
+
+        function openConfirmModal(porcentaje, formData) {
+            pendingFormData = formData;
+            pendingInflacion = porcentaje;
+            modalMessageText.innerHTML = `¿Está seguro de que desea guardar el ajuste? Esta acción incrementará en un <strong>${porcentaje.toFixed(2)}%</strong> el valor de las tarifas activas con inflación habilitada.`;
+            confirmModalOverlay.classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            confirmModalOverlay.classList.remove('active');
+            pendingFormData = null;
+            pendingInflacion = 0;
+        }
+
+        btnModalClose.addEventListener('click', closeConfirmModal);
+        btnModalCancel.addEventListener('click', closeConfirmModal);
+        
+        confirmModalOverlay.addEventListener('click', (e) => {
+            if (e.target === confirmModalOverlay) {
+                closeConfirmModal();
+            }
         });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && confirmModalOverlay.classList.contains('active')) {
+                closeConfirmModal();
+            }
+        });
+
+        // 1. Establecer el encabezado de año al año actual y anterior
+        const currentYear = new Date().getFullYear();
+        const prevYear = currentYear - 1;
+        const headerTarifaAnioAnterior = document.getElementById('headerTarifaAnioAnterior');
+        if (headerTarifaAnioAnterior) headerTarifaAnioAnterior.textContent = `Tarifa ${prevYear}`;
+        if (headerValorTarifa) headerValorTarifa.textContent = `Tarifa ${currentYear}`;
 
         // 2. Función para aplicar el cálculo de inflación en el frontend
         function calcularInflacion(showToastAlert = false) {
@@ -153,19 +282,102 @@
             calcularInflacion(true);
         });
 
-        // 3. Botón de Exportar simulado
+        // 3. Botón de Exportar a PDF
         btnExportar.addEventListener('click', () => {
             const inflacion = parseFloat(inputInflacion.value);
             if (isNaN(inflacion) || inflacion < 0) {
-                showToast('Por favor ingrese y aplique un porcentaje antes de exportar.', 'warning');
+                showToast('Por favor ingrese un porcentaje de inflación antes de exportar.', 'warning');
+                inputInflacion.focus();
                 return;
             }
-            showToast('Simulación de exportación a Excel iniciada...', 'success');
+
+            const anio = selectAnio ? selectAnio.value : currentYear;
+            const fechaInflacion = inputFechaInflacion ? inputFechaInflacion.value : '';
+            const detalle = inputDetalle ? inputDetalle.value.trim() : '';
+
+            showToast('Generando y descargando documento PDF...', 'info');
+
+            const params = new URLSearchParams({
+                porcentaje: inflacion,
+                anio: anio,
+                fecha_inflacion: fechaInflacion,
+                detalle: detalle
+            });
+
+            const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
+            
+            const link = document.createElement('a');
+            link.href = exportUrl;
+            link.download = `Tarifario_Inflacion_${anio}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
 
-        // 4. Botón de Guardar simulado
+        // 4. Botón de Guardar -> Abre ventana modal personalizada
         btnGuardar.addEventListener('click', () => {
-            showToast('Registro de inflación guardado correctamente en la simulación (modo prototipo).', 'success');
+            const inflacion = parseFloat(inputInflacion.value);
+            if (isNaN(inflacion) || inflacion < 0) {
+                showToast('Por favor ingrese un porcentaje de inflación válido y presione APLICAR.', 'error');
+                return;
+            }
+
+            const detalle = inputDetalle.value.trim();
+            const fechaInflacion = inputFechaInflacion.value;
+
+            if (!fechaInflacion) {
+                showToast('Debe ingresar la fecha de inflación.', 'error');
+                inputFechaInflacion.focus();
+                return;
+            }
+
+            if (inflacion === 0 && !detalle) {
+                showToast('Debe ingresar un detalle o justificación cuando el porcentaje de inflación es 0%.', 'error');
+                inputDetalle.focus();
+                return;
+            }
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const formData = new FormData();
+            formData.append('porcentaje', inflacion);
+            formData.append('anio', selectAnio.value);
+            formData.append('detalle', detalle);
+            formData.append('fecha_inflacion', fechaInflacion);
+            formData.append('csrfmiddlewaretoken', csrfToken);
+
+            openConfirmModal(inflacion, formData);
+        });
+
+        // 5. Botón Aceptar del Modal -> Ejecuta guardado en servidor
+        btnModalConfirm.addEventListener('click', () => {
+            if (!pendingFormData) return;
+
+            const formDataToSend = pendingFormData;
+            const inflacionVal = pendingInflacion;
+            closeConfirmModal();
+
+            btnGuardar.disabled = true;
+
+            fetch("{% url 'tarifa_inflacion_guardar' %}", {
+                method: "POST",
+                body: formDataToSend
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Se guardó el ajuste de inflación de ${inflacionVal.toFixed(2)}% correctamente.`, 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast(data.error || 'Ocurrió un error al guardar.', 'error');
+                    btnGuardar.disabled = false;
+                }
+            })
+            .catch(error => {
+                showToast('Error de comunicación con el servidor.', 'error');
+                btnGuardar.disabled = false;
+            });
         });
 
         // Función auxiliar para notificaciones Toast

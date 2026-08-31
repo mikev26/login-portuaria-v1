@@ -222,6 +222,7 @@ class ProjectSmokeTest(TestCase):
             ticket=0,
             activo=1,
             cambio_factura=0,
+            aplica_inflacion=0,
         )
 
     @patch("bitacora.views.anular_tarifa")
@@ -288,3 +289,139 @@ class ProjectSmokeTest(TestCase):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         self.assertIn("attachment", response["Content-Disposition"])
+
+    @patch("bitacora.views.guardar_inflacion")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_guardar_tarifa_inflacion_view_success(self, mock_validar, mock_turnos, mock_guardar):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        mock_guardar.return_value = 1
+
+        # Authenticate via mocked login
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        # 1. Test saving > 0% inflation without date (should fail because date is always required)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "2.50"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "Debe especificar la fecha de inflación."})
+
+        # 2. Test saving > 0% inflation with valid date but no detail (should succeed)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "2.50", "fecha_inflacion": "2026-08-26"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True, "resul": 1})
+        
+        from datetime import date
+        current_year = date.today().year
+        mock_guardar.assert_any_call(2.50, current_year, 7, detalle="", fecha_inflacion="2026-08-26")
+
+        # 3. Test saving 0% inflation without date (should fail)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "0.00"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "Debe especificar la fecha de inflación."})
+
+        # 4. Test saving 0% inflation with date but without detail (should fail because detail is required for 0%)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "0.00", "fecha_inflacion": "2026-08-26"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "Debe especificar el detalle o justificación cuando el porcentaje de inflación es 0%."})
+
+        # 5. Test saving 0% inflation with detail and invalid date (should fail)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "0.00", "detalle": "Detalle de prueba", "fecha_inflacion": "2026/08/26"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "La fecha de inflación debe tener un formato válido (AAAA-MM-DD)."})
+
+        # 6. Test saving 0% inflation with detail and valid date (should succeed)
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "0.00", "detalle": "Detalle de prueba", "fecha_inflacion": "2026-08-26"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True, "resul": 1})
+        mock_guardar.assert_any_call(0.00, current_year, 7, detalle="Detalle de prueba", fecha_inflacion="2026-08-26")
+
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_guardar_tarifa_inflacion_view_invalid_percentage(self, mock_validar, mock_turnos):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+
+        # Authenticate
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        # Negative percentage
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "-1.50"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "El porcentaje debe estar entre 0.00 y 100.00."})
+
+        # Not a number
+        response = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "abc"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": False, "error": "El porcentaje de inflación debe ser un número válido."})
+
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_exportar_tarifa_inflacion_pdf_view_authenticated(self, mock_validar, mock_turnos):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+
+        # Authenticate
+        self.client.post(
+            "/",
+            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        )
+
+        response = self.client.get(
+            "/tarifa/inflacion/exportar-pdf/",
+            {"porcentaje": "1.91", "anio": "2026", "fecha_inflacion": "2026-01-08"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("Tarifario_Inflacion_2026.pdf", response["Content-Disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_exportar_tarifa_inflacion_pdf_view_unauthenticated(self):
+        response = self.client.get("/tarifa/inflacion/exportar-pdf/")
+        self.assertEqual(response.status_code, 302)
+

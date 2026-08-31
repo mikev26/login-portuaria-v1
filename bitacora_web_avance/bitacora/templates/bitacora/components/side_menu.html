@@ -25,7 +25,7 @@
             <div class="menu-dropdown-content" style="{% if '/tarifa/' in request.path or '/tarifario/' in request.path %}max-height: 120px;{% else %}max-height: 0;{% endif %} overflow: hidden; transition: max-height 0.25s ease-out; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
                 <a class="menu-link {% if request.path == '/tarifa/' or request.path == '/tarifario/' %}active{% endif %}" href="{% url 'tarifa' %}" style="min-height: 40px; font-size: 12.5px;">
                     <span class="menu-icon" aria-hidden="true">⚙</span>
-                    <span>Registro Maestro</span>
+                    <span>Registro Tarifas</span>
                 </a>
                 <a class="menu-link {% if request.path == '/tarifa/inflacion/' %}active{% endif %}" href="{% url 'tarifa_inflacion' %}" style="min-height: 40px; font-size: 12.5px;">
                     <span class="menu-icon" aria-hidden="true">📈</span>

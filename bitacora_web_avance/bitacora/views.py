@@ -28,6 +28,8 @@ from .services import (
     obtener_siguiente_codigo_tarifa,
     guardar_tarifa,
     anular_tarifa,
+    guardar_inflacion,
+    generar_pdf_tarifario_inflacion,
 )
 
 logger = logging.getLogger(__name__)
@@ -1630,6 +1632,7 @@ def tarifa_inflacion_view(request):
         logger.exception("Error al obtener tarifas para inflación")
         tarifas = []
 
+    current_year = date.today().year
     return render(
         request,
         "bitacora/tarifa_inflacion.html",
@@ -1639,8 +1642,108 @@ def tarifa_inflacion_view(request):
             "usuario_cargo": request.session.get("usuario_cargo"),
             "demo_mode": settings.DEMO_MODE,
             "tarifas": tarifas,
+            "anio_actual": current_year,
+            "anio_anterior": current_year - 1,
         },
     )
+
+
+@never_cache
+@require_http_methods(["POST"])
+def guardar_tarifa_inflacion_view(request):
+    """API Endpoint para actualizar el valor de las tarifas por inflación."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    porcentaje_raw = request.POST.get("porcentaje", "").strip()
+    try:
+        porcentaje = float(porcentaje_raw)
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "El porcentaje de inflación debe ser un número válido."})
+
+    if porcentaje < 0 or porcentaje > 100:
+        return JsonResponse({"success": False, "error": "El porcentaje debe estar entre 0.00 y 100.00."})
+
+    # Para evitar fraudes por manipulación del cliente, el año se obtiene del servidor
+    anio = date.today().year
+
+    detalle = request.POST.get("detalle", "").strip()
+    fecha_inflacion_raw = request.POST.get("fecha_inflacion", "").strip()
+
+    # La fecha de inflación es siempre obligatoria
+    if not fecha_inflacion_raw:
+        return JsonResponse({"success": False, "error": "Debe especificar la fecha de inflación."})
+    try:
+        datetime.strptime(fecha_inflacion_raw, "%Y-%m-%d")
+        fecha_inflacion = fecha_inflacion_raw
+    except ValueError:
+        return JsonResponse({"success": False, "error": "La fecha de inflación debe tener un formato válido (AAAA-MM-DD)."})
+
+    # El detalle es obligatorio únicamente cuando el porcentaje es 0%
+    if porcentaje == 0.0 and not detalle:
+        return JsonResponse({"success": False, "error": "Debe especificar el detalle o justificación cuando el porcentaje de inflación es 0%."})
+
+    if len(detalle) > 252:
+        return JsonResponse({"success": False, "error": "El detalle no puede superar los 252 caracteres."})
+
+    try:
+        resul = guardar_inflacion(porcentaje, anio, idusuario, detalle=detalle, fecha_inflacion=fecha_inflacion)
+        if resul == -1:
+            return JsonResponse({"success": False, "error": "Error interno en la base de datos al aplicar inflación."})
+        return JsonResponse({"success": True, "resul": resul})
+    except Exception as exc:
+        logger.exception("Error al aplicar inflación a las tarifas")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def exportar_tarifa_inflacion_pdf_view(request):
+    """Genera y descarga el reporte PDF de tarifas con ajuste de inflación basado en Plantilla_Inflacion.xlsx."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    # Obtener parámetros desde GET o POST
+    params = request.POST if request.method == "POST" else request.GET
+
+    porcentaje_raw = params.get("porcentaje", "0").strip()
+    try:
+        porcentaje = float(porcentaje_raw)
+    except (ValueError, TypeError):
+        porcentaje = 0.0
+
+    anio_raw = params.get("anio", "").strip()
+    try:
+        anio = int(anio_raw) if anio_raw else date.today().year
+    except (ValueError, TypeError):
+        anio = date.today().year
+
+    fecha_inflacion = params.get("fecha_inflacion", "").strip() or None
+    detalle = params.get("detalle", "").strip()
+
+    try:
+        tarifas = obtener_tarifas_existentes(estado=101)
+    except Exception as exc:
+        logger.exception("Error al obtener tarifas para PDF de inflación")
+        tarifas = []
+
+    try:
+        pdf_bytes = generar_pdf_tarifario_inflacion(
+            tarifas=tarifas,
+            anio=anio,
+            porcentaje=porcentaje,
+            fecha_inflacion=fecha_inflacion,
+            detalle=detalle,
+        )
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        filename = f"Tarifario_Inflacion_{anio}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as exc:
+        logger.exception("Error al generar PDF de tarifas por inflación")
+        return HttpResponse(f"Error al generar el documento PDF: {str(exc)}", status=500)
 
 
 @never_cache

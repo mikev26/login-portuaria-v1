@@ -49,6 +49,19 @@
         }
     }
 
+    // Update styling when a checkbox is toggled
+    function updateCheckboxSelection(checkboxEl) {
+        if (!checkboxEl) return;
+        const parent = checkboxEl.closest('.checkbox-option');
+        if (parent) {
+            if (checkboxEl.checked) {
+                parent.classList.add('selected');
+            } else {
+                parent.classList.remove('selected');
+            }
+        }
+    }
+
     // Clear form to initial empty state
     function clearForm() {
         document.getElementById('tarifaId').value = "0";
@@ -66,9 +79,14 @@
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
         document.getElementById('tarifaValor').value = "0.0000";
+        
         document.getElementById('tarifaIva').checked = false;
         document.getElementById('tarifaPermitirCambio').checked = false;
         document.getElementById('tarifaInflacion').checked = false;
+
+        updateCheckboxSelection(document.getElementById('tarifaIva'));
+        updateCheckboxSelection(document.getElementById('tarifaPermitirCambio'));
+        updateCheckboxSelection(document.getElementById('tarifaInflacion'));
 
         // Reset radio choices
         document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
@@ -164,6 +182,10 @@
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
         document.getElementById('tarifaPermitirCambio').checked = !!data.permitir_cambio_valor;
         document.getElementById('tarifaInflacion').checked = !!data.aplica_inflacion;
+
+        updateCheckboxSelection(document.getElementById('tarifaIva'));
+        updateCheckboxSelection(document.getElementById('tarifaPermitirCambio'));
+        updateCheckboxSelection(document.getElementById('tarifaInflacion'));
 
         // Check correct radio buttons
         const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);

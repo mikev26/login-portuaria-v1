@@ -389,3 +389,42 @@ tbody tr:hover {
     font-size: 13px;
     text-align: center;
 }
+
+/* Checkbox options matching radio buttons styling */
+.checkbox-option {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    background: #f8fafc !important;
+    border: 1px solid var(--border) !important;
+    padding: 10px 14px !important;
+    border-radius: 6px !important;
+    transition: all .2s !important;
+    box-sizing: border-box !important;
+}
+
+.checkbox-option input[type="checkbox"] {
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+}
+
+.checkbox-option:hover {
+    border-color: var(--blue) !important;
+    background: rgba(29,111,159,.05) !important;
+}
+
+.checkbox-option.selected {
+    border-color: var(--blue) !important;
+    background: rgba(29,111,159,.1) !important;
+    font-weight: 600 !important;
+    color: var(--navy) !important;
+}

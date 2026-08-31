@@ -528,3 +528,41 @@ def anular_tarifa(idtarifa: int | str) -> bool:
                 return True
     except Exception:
         raise
+
+
+def guardar_inflacion(porcentaje: float, anio: int, idusuario: int, detalle: str = "", fecha_inflacion: str | None = None) -> int:
+    """
+    Aplica el ajuste por inflación a todas las tarifas configuradas (inflacion = 1).
+    """
+    if settings.DEMO_MODE:
+        return 1
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    """
+                    SET NOCOUNT ON;
+                    DECLARE @res INT;
+                    EXEC dbo.SPJ_Update_Inflacion
+                        @pinflacion = ?,
+                        @pano = ?,
+                        @pidusuario = ?,
+                        @pdetalle = ?,
+                        @pfechaInflacion = ?,
+                        @sresul = @res OUTPUT;
+                    SELECT @res AS resul;
+                    """,
+                    porcentaje,
+                    int(anio),
+                    int(idusuario),
+                    detalle,
+                    fecha_inflacion,
+                )
+                row = cursor.fetchone()
+                connection.commit()
+                if row:
+                    return row[0]
+                return 1
+    except Exception:
+        raise
