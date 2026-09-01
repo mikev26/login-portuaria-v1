@@ -2262,6 +2262,54 @@ def exportar_bitacora_excel(request):
             bitacora
         )
 
+        # ======================================================
+        # ORDEN EXCLUSIVO PARA LA EXPORTACIÓN EXCEL
+        # ======================================================
+        # En la página web mantenemos el orden habitual (más reciente
+        # primero). Para el Excel, en cambio, el reporte se presenta
+        # cronológicamente: día 1, día 2, día 3... y, dentro de cada
+        # día, las novedades también se ordenan de la más antigua a la
+        # más reciente.
+        def _fecha_novedad_para_orden(novedad):
+            fecha = _convertir_fecha_bitacora(
+                novedad.get("fecha_hora")
+            )
+            return fecha or datetime.max
+
+        for bloque_excel in bitacora:
+            bloque_excel["novedades"] = sorted(
+                bloque_excel.get("novedades", []),
+                key=_fecha_novedad_para_orden,
+            )
+
+        def _fecha_bloque_para_orden(bloque_excel):
+            novedades = bloque_excel.get("novedades", [])
+
+            if novedades:
+                fecha = _fecha_novedad_para_orden(novedades[0])
+                if fecha != datetime.max:
+                    return fecha
+
+            fecha_iso = str(
+                bloque_excel.get("fecha_dia_iso") or ""
+            ).strip()
+
+            if fecha_iso:
+                try:
+                    return datetime.strptime(
+                        fecha_iso,
+                        "%Y-%m-%d",
+                    )
+                except ValueError:
+                    pass
+
+            return datetime.max
+
+        bitacora = sorted(
+            bitacora,
+            key=_fecha_bloque_para_orden,
+        )
+
     except Exception:
         logger.exception("Error al obtener datos para exportar la bitácora")
         messages.error(
@@ -2343,13 +2391,167 @@ def exportar_bitacora_excel(request):
         )
 
         # ==================================================
-        # FECHA DE EMISIÓN
+        # FECHA DE EMISIÓN + PERÍODO DEL REPORTE
         # ==================================================
+        # La plantilla ha tenido distintas versiones (fecha en A5 o A6).
+        # En vez de depender de una fila fija, localizamos la fila donde
+        # está "Fecha de Emisión" y escribimos el período justo debajo.
         fecha_emision_sql = obtener_fecha_hora_servidor()
 
-        worksheet["A6"] = (
+        fila_fecha = None
+
+        for numero_fila in range(1, 15):
+            valor_celda = worksheet.cell(
+                row=numero_fila,
+                column=1,
+            ).value
+
+            if (
+                valor_celda is not None
+                and "fecha de emisión" in str(valor_celda).strip().lower()
+            ):
+                fila_fecha = numero_fila
+                break
+
+        # Si la plantilla no trae el texto, usamos una posición segura.
+        if fila_fecha is None:
+            fila_fecha = 5
+
+        worksheet.cell(
+            row=fila_fecha,
+            column=1,
+        ).value = (
             "Fecha de Emisión: "
             + fecha_emision_sql.strftime("%d/%m/%Y")
+        )
+
+        worksheet.cell(
+            row=fila_fecha,
+            column=1,
+        ).font = Font(
+            bold=True,
+            size=11,
+        )
+
+        # ==================================================
+        # CONSTRUIR EL PERÍODO DEL REPORTE
+        # ==================================================
+        if (
+            anio_seleccionado is not None
+            and mes_seleccionado is not None
+        ):
+            nombre_mes_periodo = MESES_BITACORA_NOMBRES.get(
+                mes_seleccionado,
+                str(mes_seleccionado),
+            )
+            periodo_reporte = (
+                f"{nombre_mes_periodo} {anio_seleccionado}"
+            )
+
+        elif anio_seleccionado is not None:
+            periodo_reporte = f"Año {anio_seleccionado}"
+
+        elif mes_seleccionado is not None:
+            nombre_mes_periodo = MESES_BITACORA_NOMBRES.get(
+                mes_seleccionado,
+                str(mes_seleccionado),
+            )
+
+            # Si solo se filtró por mes, intentamos mostrar también el año
+            # cuando todos los registros exportados pertenecen al mismo año.
+            anios_en_datos = set()
+
+            for bloque_periodo in bitacora:
+                for novedad_periodo in bloque_periodo.get("novedades", []):
+                    fecha_periodo = _convertir_fecha_bitacora(
+                        novedad_periodo.get("fecha_hora")
+                    )
+
+                    if fecha_periodo is not None:
+                        anios_en_datos.add(fecha_periodo.year)
+
+            if len(anios_en_datos) == 1:
+                anio_dato = next(iter(anios_en_datos))
+                periodo_reporte = (
+                    f"{nombre_mes_periodo} {anio_dato}"
+                )
+            else:
+                periodo_reporte = nombre_mes_periodo
+
+        else:
+            # Sin filtros: si todo lo exportado pertenece a un mismo
+            # mes/año, lo mostramos; de lo contrario indicamos histórico.
+            periodos_en_datos = set()
+
+            for bloque_periodo in bitacora:
+                for novedad_periodo in bloque_periodo.get("novedades", []):
+                    fecha_periodo = _convertir_fecha_bitacora(
+                        novedad_periodo.get("fecha_hora")
+                    )
+
+                    if fecha_periodo is not None:
+                        periodos_en_datos.add(
+                            (fecha_periodo.year, fecha_periodo.month)
+                        )
+
+            if len(periodos_en_datos) == 1:
+                anio_dato, mes_dato = next(iter(periodos_en_datos))
+                nombre_mes_periodo = MESES_BITACORA_NOMBRES.get(
+                    mes_dato,
+                    str(mes_dato),
+                )
+                periodo_reporte = (
+                    f"{nombre_mes_periodo} {anio_dato}"
+                )
+            else:
+                periodo_reporte = "Histórico completo"
+
+        # ==================================================
+        # ESCRIBIR EL PERÍODO JUSTO DEBAJO DE LA FECHA
+        # ==================================================
+        fila_periodo = fila_fecha + 1
+
+        # Si esa fila no está combinada, la combinamos en A:C para que
+        # el texto tenga espacio suficiente. Si ya está combinada, se
+        # conserva la combinación existente de la plantilla.
+        rango_periodo_ya_combinado = False
+
+        for rango_combinado in worksheet.merged_cells.ranges:
+            if (
+                rango_combinado.min_row == fila_periodo
+                and rango_combinado.max_row == fila_periodo
+                and rango_combinado.min_col <= 1
+                and rango_combinado.max_col >= 3
+            ):
+                rango_periodo_ya_combinado = True
+                break
+
+        if not rango_periodo_ya_combinado:
+            worksheet.merge_cells(
+                start_row=fila_periodo,
+                start_column=1,
+                end_row=fila_periodo,
+                end_column=3,
+            )
+
+        worksheet.row_dimensions[fila_periodo].hidden = False
+        worksheet.row_dimensions[fila_periodo].height = 22
+
+        celda_periodo = worksheet.cell(
+            row=fila_periodo,
+            column=1,
+        )
+
+        celda_periodo.value = (
+            f"Período del reporte: {periodo_reporte}"
+        )
+        celda_periodo.font = Font(
+            bold=True,
+            size=11,
+            color="17365D",
+        )
+        celda_periodo.alignment = Alignment(
+            vertical="center",
         )
 
         # ==================================================
@@ -2416,11 +2618,113 @@ def exportar_bitacora_excel(request):
             return "2300-0700"
 
         # ==================================================
+        # FECHA LARGA EN ESPAÑOL PARA LOS SEPARADORES DIARIOS
+        # ==================================================
+        dias_semana_es = [
+            "Lunes",
+            "Martes",
+            "Miércoles",
+            "Jueves",
+            "Viernes",
+            "Sábado",
+            "Domingo",
+        ]
+
+        meses_es = {
+            1: "enero",
+            2: "febrero",
+            3: "marzo",
+            4: "abril",
+            5: "mayo",
+            6: "junio",
+            7: "julio",
+            8: "agosto",
+            9: "septiembre",
+            10: "octubre",
+            11: "noviembre",
+            12: "diciembre",
+        }
+
+        def fecha_larga_es(fecha_iso):
+            fecha_iso = str(fecha_iso or "").strip()
+
+            if not fecha_iso:
+                return "Sin fecha"
+
+            try:
+                fecha = datetime.strptime(
+                    fecha_iso,
+                    "%Y-%m-%d",
+                )
+            except ValueError:
+                return fecha_iso
+
+            return (
+                f"{dias_semana_es[fecha.weekday()]} "
+                f"{fecha.day} de "
+                f"{meses_es[fecha.month]} de "
+                f"{fecha.year}"
+            )
+
+        # ==================================================
         # VOLCADO DE DATOS
         # ==================================================
-        fila = 8
+        # Los datos comienzan dos filas después del período para
+        # conservar una separación visual, sin depender de una versión
+        # concreta de la plantilla.
+        fila = fila_periodo + 2
+        ultima_fecha_iso = None
 
         for bloque in bitacora:
+            fecha_dia_iso = str(
+                bloque.get("fecha_dia_iso") or ""
+            ).strip()
+
+            # ----------------------------------------------
+            # SEPARADOR DEL DÍA
+            # ----------------------------------------------
+            # Se escribe una sola vez por cada fecha. Como los bloques
+            # ya están ordenados de forma ascendente, el Excel queda:
+            # 1 de septiembre, 2 de septiembre, 3 de septiembre...
+            if fecha_dia_iso != ultima_fecha_iso:
+                worksheet.merge_cells(
+                    start_row=fila,
+                    start_column=1,
+                    end_row=fila,
+                    end_column=3,
+                )
+
+                celda_dia = worksheet.cell(
+                    row=fila,
+                    column=1,
+                )
+                celda_dia.value = fecha_larga_es(
+                    fecha_dia_iso
+                )
+                celda_dia.font = Font(
+                    bold=True,
+                    size=12,
+                    color="17365D",
+                )
+                celda_dia.fill = PatternFill(
+                    "solid",
+                    fgColor="EAF1F8",
+                )
+                celda_dia.alignment = Alignment(
+                    horizontal="left",
+                    vertical="center",
+                )
+
+                for columna_dia in range(1, 4):
+                    worksheet.cell(
+                        row=fila,
+                        column=columna_dia,
+                    ).border = borde
+
+                worksheet.row_dimensions[fila].height = 24
+                fila += 1
+                ultima_fecha_iso = fecha_dia_iso
+
             nombre = str(
                 bloque.get("nombre") or ""
             ).upper()
@@ -2462,15 +2766,9 @@ def exportar_bitacora_excel(request):
                 column=3,
             )
 
-            fecha_dia = str(
-                bloque.get("fecha_dia") or ""
-            ).strip()
-
-            celda_horario.value = (
-                f"{fecha_dia}   {horario}"
-                if fecha_dia
-                else horario
-            )
+            # La fecha ya aparece como separador general del día,
+            # por eso aquí dejamos únicamente el horario del inspector.
+            celda_horario.value = horario
             celda_horario.font = Font(
                 bold=True,
                 size=11,
