@@ -82,13 +82,14 @@ def exportar_datos_practicaje_excel(request):
         messages.info(request, "No existen registros de practicaje para exportar.")
         return redirect("datos_practicaje")
 
+    sano = ultima_busqueda.get("sano", "")
     try:
-        contenido = crear_excel_practicaje(ultima_busqueda["registros"])
+        contenido = crear_excel_practicaje(ultima_busqueda["registros"], sano=sano)
     except ImportError:
         messages.error(request, "La dependencia 'openpyxl' no está instalada.")
         return redirect("datos_practicaje")
 
-    sano = ultima_busqueda.get("sano", "sin_anio")
+    sano_filename = sano or "sin_anio"
     trimestre = ultima_busqueda.get("sTrimestre", "sin_trimestre")
     response = HttpResponse(
         contenido,
@@ -98,7 +99,7 @@ def exportar_datos_practicaje_excel(request):
         ),
     )
     response["Content-Disposition"] = (
-        f'attachment; filename="DatosPracticaje_{sano}_T{trimestre}.xlsx"'
+        f'attachment; filename="DatosPracticaje_{sano_filename}_T{trimestre}.xlsx"'
     )
     return response
 
