@@ -12,6 +12,12 @@ urlpatterns = [
     path("registro-combustible/", views.registro_combustible_home, name="registro_combustible"),
     path("datos-abiertos/", views.datos_abiertos_home, name="datos_abiertos"),
     path(
+        "datos-abiertos/exportar-excel/",
+        views.datos_abiertos_exportar_view,
+        name="datos_abiertos_exportar",
+    ),
+
+    path(
         "registro-combustible/exportar-excel/",
         views.exportar_excel,
         name="registro_combustible_exportar",

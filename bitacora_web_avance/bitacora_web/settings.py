@@ -117,3 +117,11 @@ RUTA_PLANTILLA_COMB = (
 RUTA_PLANTILLA_TARI = (
     BASE_DIR / "plantilla" / "plantilla_tarifas.xlsx"
 )
+RUTA_PLANTILLA_DATOS_ABIERTOS = os.getenv(
+    "RUTA_PLANTILLA_DATOS_ABIERTOS",
+    r"C:\Users\adm-equipos\Downloads\F004_GSW_DATO.xlsx",
+)
+RUTA_EXPORTACION_DATOS_ABIERTOS = os.getenv(
+    "RUTA_EXPORTACION_DATOS_ABIERTOS",
+    "",
+)

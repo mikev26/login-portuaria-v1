@@ -207,6 +207,15 @@ body {
     transform: translateY(-1px);
 }
 
+.export-button {
+    background: #166534;
+}
+
+.export-button:hover {
+    background: #14532d;
+}
+
+
 .message-banner {
     margin-bottom: 8px;
     padding: 12px 14px;

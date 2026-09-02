@@ -16,6 +16,7 @@ from .forms import LoginForm, RegistroCombustibleFilterForm, DatosAbiertosFilter
 from .services import (
     DatabaseConfigurationError,
     DatabaseContractError,
+    generar_excel_datos_abiertos,
     obtener_buques_artesanales,
     obtener_buques_industriales,
     obtener_reporte_combustible,
@@ -30,6 +31,7 @@ from .services import (
     guardar_tarifa,
     anular_tarifa,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -1067,6 +1069,120 @@ def datos_abiertos_home(request):
             "current_year": fecha_emision.year,
         },
     )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def datos_abiertos_exportar_view(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    is_ajax = (
+        request.headers.get("x-requested-with") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("accept", "")
+    )
+
+    form = DatosAbiertosFilterForm(request.GET or None)
+    buscar_flag = request.GET.get("buscar")
+
+    if not form.is_valid() or buscar_flag != "1":
+        msg = "Primero debe realizar una búsqueda antes de exportar la información."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
+                status=400,
+            )
+        messages.info(request, msg)
+        return redirect("datos_abiertos")
+
+    anio_sel = form.cleaned_data.get("anio")
+    semestre_sel = form.cleaned_data.get("semestre")
+
+    template_path = getattr(settings, "RUTA_PLANTILLA_DATOS_ABIERTOS", "")
+    template_str = os.fspath(template_path) if template_path else ""
+
+    if not template_str or not os.path.exists(template_str):
+        msg = f"No se encontró la plantilla Excel en la ruta configurada: {template_str}"
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
+                status=404,
+            )
+        messages.error(request, msg)
+        return redirect("datos_abiertos")
+
+    try:
+        semestre_num = 1 if semestre_sel in {"1er", "1", 1} else 2
+        registros = obtener_reporte_datos_abiertos(anio_sel, semestre_num)
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de base de datos al obtener reporte para exportación de datos abiertos")
+        msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
+                status=500,
+            )
+        messages.error(request, msg)
+        return redirect("datos_abiertos")
+    except Exception:
+        logger.exception("Error inesperado al obtener reporte para exportación de datos abiertos")
+        msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
+                status=500,
+            )
+        messages.error(request, msg)
+        return redirect("datos_abiertos")
+
+    if not registros:
+        msg = "No existen registros para exportar."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
+                status=200,
+            )
+        messages.info(request, msg)
+        return redirect("datos_abiertos")
+
+    output_dir = getattr(settings, "RUTA_EXPORTACION_DATOS_ABIERTOS", "")
+    try:
+        excel_bytes = generar_excel_datos_abiertos(
+            registros=registros,
+            template_path=template_str,
+            output_dir=output_dir,
+            fecha_emision=date.today(),
+        )
+    except FileNotFoundError as exc:
+        msg = str(exc)
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
+                status=404,
+            )
+        messages.error(request, msg)
+        return redirect("datos_abiertos")
+    except Exception:
+        logger.exception("Error al generar archivo Excel de Datos Abiertos")
+        msg = "Ocurrió un error técnico al generar el archivo Excel."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
+                status=500,
+            )
+        messages.error(request, msg)
+        return redirect("datos_abiertos")
+
+    fecha_str = date.today().strftime("%Y-%m-%d")
+    filename = f"F004_GSW_DATO_{fecha_str}.xlsx"
+
+    response = HttpResponse(
+        excel_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
 
 
 

@@ -121,3 +121,111 @@ def obtener_reporte_datos_abiertos(
     raise DatabaseConfigurationError(
         "El procedimiento configurado para datos abiertos no tiene un formato válido."
     )
+
+
+def generar_excel_datos_abiertos(
+    registros: list[dict[str, Any]],
+    template_path: str | Path,
+    output_dir: str | Path | None = None,
+    fecha_emision: Any = None,
+) -> bytes:
+    """Genera el archivo Excel de Datos Abiertos a partir de la plantilla institucional intacta.
+
+    Conserva el encabezado, formato de celda, bordes, alineaciones y la fecha de emisión.
+    No sobrescribe la plantilla original.
+    """
+    import copy
+    from datetime import date, datetime
+    import io
+    import os
+    from pathlib import Path
+    import openpyxl
+
+    template_str = os.fspath(template_path) if template_path else ""
+
+    if not template_str or not os.path.exists(template_str):
+        raise FileNotFoundError(
+            f"No se encontró la plantilla Excel en la ruta configurada: {template_str}"
+        )
+
+    with open(template_str, "rb") as f:
+        template_bytes = io.BytesIO(f.read())
+
+    wb = openpyxl.load_workbook(template_bytes)
+    ws = wb.active
+
+    # Fecha de emisión en celda D6
+    if isinstance(fecha_emision, (date, datetime)):
+        fecha_str = fecha_emision.strftime("%d/%m/%Y")
+    elif isinstance(fecha_emision, str) and fecha_emision.strip():
+        fecha_str = fecha_emision.strip()
+    else:
+        fecha_str = date.today().strftime("%d/%m/%Y")
+
+    ws.cell(6, 1).value = "Fecha de Emisión :"
+    ws.cell(6, 4).value = f"Manta, {fecha_str}"
+
+    start_row = 9
+    template_cells = [ws.cell(9, col) for col in range(1, 13)]
+
+    for idx, reg in enumerate(registros, start=start_row):
+        row_values = [
+            reg.get("Registro") if reg.get("Registro") is not None else reg.get("REGISTRO"),
+            reg.get("CodBuque") if reg.get("CodBuque") is not None else reg.get("CODBUQUE"),
+            reg.get("Matrícula") if reg.get("Matrícula") is not None else reg.get("Matricula") if reg.get("Matricula") is not None else reg.get("MATRÍCULA"),
+            reg.get("Buque") if reg.get("Buque") is not None else reg.get("BUQUE"),
+            reg.get("TipoNave") if reg.get("TipoNave") is not None else reg.get("Tipo de Nave"),
+            reg.get("Arribo") if reg.get("Arribo") is not None else reg.get("ARRIBO"),
+            reg.get("Zarpe") if reg.get("Zarpe") is not None else reg.get("ZARPE"),
+            reg.get("Bandera") if reg.get("Bandera") is not None else reg.get("BANDERA"),
+            reg.get("TRB") if reg.get("TRB") is not None else reg.get("trb"),
+            reg.get("TRN") if reg.get("TRN") is not None else reg.get("trn"),
+            reg.get("Agencia") if reg.get("Agencia") is not None else reg.get("AGENCIA"),
+            reg.get("TotalDescarga") if reg.get("TotalDescarga") is not None else reg.get("Total Descarga"),
+        ]
+
+        for col_idx, val in enumerate(row_values, start=1):
+            cell = ws.cell(row=idx, column=col_idx)
+            ref_cell = template_cells[col_idx - 1]
+
+            cell.value = val
+            if ref_cell.has_style:
+                from openpyxl.styles import Font
+                # Copy font but force color to black and ensure it's not bold
+                original_font = ref_cell.font
+                cell.font = Font(
+                    name=original_font.name,
+                    size=original_font.size,
+                    bold=False,  # Asegurar que el texto normal no esté en negrita
+                    italic=original_font.italic,
+                    vertAlign=original_font.vertAlign,
+                    underline=original_font.underline,
+                    strike=original_font.strike,
+                    color="FF000000"
+                )
+                cell.alignment = copy.copy(ref_cell.alignment)
+                cell.border = copy.copy(ref_cell.border)
+                cell.fill = copy.copy(ref_cell.fill)
+                cell.number_format = ref_cell.number_format
+
+    last_row = start_row + len(registros) - 1
+
+    # Limpiar celdas excedentes en filas pre-formateadas si hay menos registros que la plantilla
+    if ws.max_row > last_row:
+        for r in range(last_row + 1, ws.max_row + 1):
+            for col in range(1, 13):
+                ws.cell(r, col).value = None
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    excel_bytes = output_buffer.getvalue()
+
+    # Si se configuró un directorio de salida opcional, guardar una copia allí
+    if output_dir:
+        out_path = Path(output_dir)
+        if out_path.exists() and out_path.is_dir():
+            file_name = f"F004_GSW_DATO_{date.today().strftime('%Y-%m-%d')}.xlsx"
+            (out_path / file_name).write_bytes(excel_bytes)
+
+    return excel_bytes
+
