@@ -1023,27 +1023,20 @@ def datos_abiertos_home(request):
                 registros = obtener_reporte_datos_abiertos(anio_sel, semestre_num)
 
                 if not registros:
-                    msg = "No existen registros para el año y semestre seleccionados."
-                    messages.info(request, msg)
+                    msg = "No existen registros."
                     ajax_response["messages"].append({"text": msg, "tags": "info"})
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Error de base de datos al obtener el reporte de datos abiertos")
                 generic_msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
             except Exception:
                 logger.exception("Error inesperado al obtener el reporte de datos abiertos")
                 generic_msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
         else:
             for field, errors in form.errors.items():
                 for error in errors:
                     ajax_response["messages"].append({"text": f"{field.capitalize()}: {str(error)}", "tags": "error"})
-            messages.error(
-                request,
-                "Complete correctamente el Año y el Semestre antes de buscar.",
-            )
 
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("accept", "")
 

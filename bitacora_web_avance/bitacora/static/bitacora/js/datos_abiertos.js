@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const exportButton = document.querySelector("#btn-exportar-excel");
 
     const EMPTY_TABLE_MESSAGE = "No hay datos disponibles. Seleccione año y semestre, y presione Buscar.";
-    const NO_RESULTS_MESSAGE = "No se encontraron datos para el Año y Semestre seleccionados.";
+    const NO_RESULTS_MESSAGE = "No existen registros.";
 
     let hasSearched = false;
     let currentRowsCount = 0;
