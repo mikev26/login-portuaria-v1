@@ -7,6 +7,7 @@ SCRIPT: 04_alter_dim_TarifasAuditoria_idestado.sql
 OBJETIVO:
   1. Agregar el campo 'idestado' a la tabla dim_TarifasAuditoria con valor por defecto 0.
   2. Actualizar el Stored Procedure dbo.SPJ_Update_Inflacion para:
+     - Filtrar tarifas activas únicamente por [activo = 1] en dbo.dim_tarifa.
      - Asignar idestado = 7 a las auditorías previas de las tarifas que se van a actualizar.
      - Asignar idestado = 0 a las nuevas auditorías vinculadas al nuevo id_tarifaCab.
 ================================================================================
@@ -55,11 +56,11 @@ BEGIN
     SET NOCOUNT ON;
     SET @sresul = 1;
     BEGIN TRY
-        -- 1. Obtener el porcentaje de inflación anterior
+        -- 1. Obtener el porcentaje de inflación anterior de las tarifas activas
         DECLARE @porcentajeAnterior DECIMAL(12,4);
         SELECT TOP 1 @porcentajeAnterior = porcentajeInflacion 
         FROM dbo.dim_tarifa 
-        WHERE inflacion = 1 AND idestado <> 7;
+        WHERE inflacion = 1 AND activo = 1;
 
         IF @porcentajeAnterior IS NULL SET @porcentajeAnterior = 0;
 
@@ -77,20 +78,20 @@ BEGIN
           AND idtarifa IN (
               SELECT idtarifa 
               FROM dbo.dim_tarifa 
-              WHERE inflacion = 1 AND idestado <> 7
+              WHERE inflacion = 1 AND activo = 1
           );
 
         -- 4. Guardar el nuevo detalle de tarifas (auditoría) con estado vigente (idestado = 0)
         INSERT INTO dbo.dim_TarifasAuditoria (id_tarifaCab, idtarifa, valor, idestado)
             SELECT @new_cab_id, idtarifa, valor, 0
             FROM dbo.dim_tarifa
-            WHERE inflacion = 1 AND idestado <> 7;
+            WHERE inflacion = 1 AND activo = 1;
        
         -- 5. Actualizar el valor y porcentaje de las tarifas activas
         UPDATE dbo.dim_tarifa
         SET valor = CAST(valor * (1.0 + (@pinflacion / 100.00)) AS DECIMAL(10,4)), porcentajeInflacion = @pinflacion
         WHERE inflacion = 1
-          AND idestado <> 7;
+          AND activo = 1;
 
     END TRY
     BEGIN CATCH

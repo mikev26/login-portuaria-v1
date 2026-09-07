@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from datetime import date
 import io
 import os
+import threading
 
 from django.conf import settings
 from django.contrib import messages
@@ -29,7 +30,10 @@ from .services import (
     guardar_tarifa,
     anular_tarifa,
     guardar_inflacion,
+    obtener_historico_tarifas,
+    obtener_listado_cabeceras_historico,
     generar_pdf_tarifario_inflacion,
+    enviar_correo_ajuste_inflacion,
 )
 
 logger = logging.getLogger(__name__)
@@ -1627,7 +1631,7 @@ def tarifa_inflacion_view(request):
         return redirect("login")
 
     try:
-        tarifas = obtener_tarifas_existentes(estado=101)
+        tarifas = obtener_tarifas_existentes(estado=1)
     except Exception as exc:
         logger.exception("Error al obtener tarifas para inflación")
         tarifas = []
@@ -1688,9 +1692,28 @@ def guardar_tarifa_inflacion_view(request):
         return JsonResponse({"success": False, "error": "El detalle no puede superar los 252 caracteres."})
 
     try:
+        # Obtenemos las tarifas base (previas al incremento) para el cálculo exacto del PDF
+        try:
+            tarifas_base = obtener_tarifas_existentes(estado=1)
+        except Exception as exc_tar:
+            logger.warning("No se pudieron precargar las tarifas antes de guardar inflación: %s", exc_tar)
+            tarifas_base = []
+
         resul = guardar_inflacion(porcentaje, anio, idusuario, detalle=detalle, fecha_inflacion=fecha_inflacion)
         if resul == -1:
             return JsonResponse({"success": False, "error": "Error interno en la base de datos al aplicar inflación."})
+
+        # Envío de notificación por correo electrónico con PDF en segundo plano
+        try:
+            usuario_nombre = request.session.get("usuario_nombre", "Usuario")
+            threading.Thread(
+                target=enviar_correo_ajuste_inflacion,
+                args=(porcentaje, anio, fecha_inflacion, detalle, usuario_nombre, tarifas_base),
+                daemon=True,
+            ).start()
+        except Exception as mail_err:
+            logger.warning("No se pudo iniciar el hilo de envío de correo de inflación: %s", mail_err)
+
         return JsonResponse({"success": True, "resul": resul})
     except Exception as exc:
         logger.exception("Error al aplicar inflación a las tarifas")
@@ -1708,26 +1731,64 @@ def exportar_tarifa_inflacion_pdf_view(request):
     # Obtener parámetros desde GET o POST
     params = request.POST if request.method == "POST" else request.GET
 
-    porcentaje_raw = params.get("porcentaje", "0").strip()
-    try:
-        porcentaje = float(porcentaje_raw)
-    except (ValueError, TypeError):
-        porcentaje = 0.0
+    id_cabotaje_raw = params.get("id_cabotaje", "").strip() or params.get("id_tarifaCab", "").strip()
+    id_cabotaje = int(id_cabotaje_raw) if id_cabotaje_raw.isdigit() else None
 
-    anio_raw = params.get("anio", "").strip()
-    try:
-        anio = int(anio_raw) if anio_raw else date.today().year
-    except (ValueError, TypeError):
-        anio = date.today().year
+    anio_raw = params.get("anio", "").strip() or params.get("ano", "").strip()
+    anio_query = int(anio_raw) if anio_raw.isdigit() else None
 
-    fecha_inflacion = params.get("fecha_inflacion", "").strip() or None
-    detalle = params.get("detalle", "").strip()
+    es_historico = bool(id_cabotaje or params.get("es_historico") == "1")
 
-    try:
-        tarifas = obtener_tarifas_existentes(estado=101)
-    except Exception as exc:
-        logger.exception("Error al obtener tarifas para PDF de inflación")
-        tarifas = []
+    if es_historico:
+        try:
+            tarifas = obtener_historico_tarifas(id_cabotaje=id_cabotaje, ano=anio_query)
+        except Exception as exc:
+            logger.exception("Error al obtener histórico de tarifas para PDF")
+            tarifas = []
+
+        if tarifas:
+            first = tarifas[0]
+            porcentaje_cabecera = None
+            for t in tarifas:
+                p = t.get("porcentaje_actual") if t.get("porcentaje_actual") is not None else t.get("porcentaje_inflacion")
+                if p is not None and float(p) > 0:
+                    porcentaje_cabecera = p
+                    break
+            if porcentaje_cabecera is None:
+                porcentaje_cabecera = first.get("porcentaje_actual") or first.get("porcentaje_inflacion") or 0
+
+            porcentaje_raw = params.get("porcentaje", "").strip()
+            porcentaje = float(porcentaje_raw) if porcentaje_raw else float(porcentaje_cabecera or 0)
+
+            anio = anio_query if anio_query else int(first.get("ano") or date.today().year)
+
+            fecha_inflacion = params.get("fecha_inflacion", "").strip() or first.get("fecha_inflacion") or None
+            detalle = params.get("detalle", "").strip() or first.get("detalle") or ""
+        else:
+            porcentaje = 0.0
+            anio = anio_query or date.today().year
+            fecha_inflacion = None
+            detalle = ""
+    else:
+        porcentaje_raw = params.get("porcentaje", "0").strip()
+        try:
+            porcentaje = float(porcentaje_raw)
+        except (ValueError, TypeError):
+            porcentaje = 0.0
+
+        try:
+            anio = int(anio_raw) if anio_raw else date.today().year
+        except (ValueError, TypeError):
+            anio = date.today().year
+
+        fecha_inflacion = params.get("fecha_inflacion", "").strip() or None
+        detalle = params.get("detalle", "").strip()
+
+        try:
+            tarifas = obtener_tarifas_existentes(estado=1)
+        except Exception as exc:
+            logger.exception("Error al obtener tarifas para PDF de inflación")
+            tarifas = []
 
     try:
         pdf_bytes = generar_pdf_tarifario_inflacion(
@@ -1738,12 +1799,75 @@ def exportar_tarifa_inflacion_pdf_view(request):
             detalle=detalle,
         )
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        filename = f"Tarifario_Inflacion_{anio}.pdf"
+        filename = f"Tarifario_Inflacion_Historico_{anio_query or id_cabotaje}.pdf" if es_historico else f"Tarifario_Inflacion_{anio}.pdf"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
     except Exception as exc:
         logger.exception("Error al generar PDF de tarifas por inflación")
         return HttpResponse(f"Error al generar el documento PDF: {str(exc)}", status=500)
+
+
+@never_cache
+@require_http_methods(["GET"])
+def obtener_historico_tarifas_view(request):
+    """API Endpoint para consultar el histórico de tarifas por id_cabotaje o anio, o listar cabeceras."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    if request.GET.get("listar_cabeceras") == "1":
+        try:
+            cabeceras = obtener_listado_cabeceras_historico()
+            return JsonResponse({"success": True, "cabeceras": cabeceras})
+        except Exception as exc:
+            logger.exception("Error al listar cabeceras históricas")
+            return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+    id_cabotaje_raw = request.GET.get("id_cabotaje", "").strip() or request.GET.get("id_tarifaCab", "").strip()
+    id_cabotaje = int(id_cabotaje_raw) if id_cabotaje_raw.isdigit() else None
+
+    anio_raw = request.GET.get("anio", "").strip() or request.GET.get("ano", "").strip()
+    anio_query = int(anio_raw) if anio_raw.isdigit() else None
+
+    try:
+        tarifas_historicas = obtener_historico_tarifas(id_cabotaje=id_cabotaje, ano=anio_query)
+        if not tarifas_historicas:
+            msg_target = f"el año {anio_query}" if anio_query else f"el ID de cabotaje {id_cabotaje or ''}"
+            return JsonResponse({
+                "success": False,
+                "error": f"No se encontraron registros históricos para {msg_target}."
+            })
+
+        first = tarifas_historicas[0]
+        porcentaje_cabecera = None
+        for t in tarifas_historicas:
+            p = t.get("porcentaje_actual") if t.get("porcentaje_actual") is not None else t.get("porcentaje_inflacion")
+            if p is not None and float(p) > 0:
+                porcentaje_cabecera = p
+                break
+        if porcentaje_cabecera is None:
+            porcentaje_cabecera = first.get("porcentaje_actual") or first.get("porcentaje_inflacion") or 0
+
+        metadata = {
+            "id_tarifaCab": first.get("id_tarifaCab"),
+            "ano": first.get("ano"),
+            "ano_anterior": first.get("ano_anterior"),
+            "fecha_inflacion": first.get("fecha_inflacion"),
+            "fecha_registro": first.get("fecha_registro"),
+            "porcentaje_inflacion": porcentaje_cabecera,
+            "detalle": first.get("detalle"),
+            "id_usuario": first.get("id_usuario"),
+        }
+
+        return JsonResponse({
+            "success": True,
+            "id_cabotaje": metadata["id_tarifaCab"],
+            "metadata": metadata,
+            "tarifas": tarifas_historicas,
+        })
+    except Exception as exc:
+        logger.exception("Error al consultar histórico de tarifas")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
 
 @never_cache

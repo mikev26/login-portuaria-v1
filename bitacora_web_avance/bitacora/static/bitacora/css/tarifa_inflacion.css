@@ -1,5 +1,9 @@
 /* Estilos exclusivos del Registro de Inflación */
 
+.toast-container {
+    z-index: 100000 !important;
+}
+
 /* Contenedor de filtros superior (Recuadro gris exclusivo de inputs) */
 .filter-bar {
     background: #f8fafc;
@@ -29,14 +33,90 @@
     font-weight: 700;
 }
 
-/* Fila de acciones fuera del recuadro alineada a la derecha */
+/* Fila de acciones fuera del recuadro (Historial a la izquierda, acciones a la derecha) */
 .filter-actions-row {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
     width: 100%;
     margin-bottom: 22px;
+}
+
+.filter-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.filter-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-historial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--navy);
+    border: 1.5px solid var(--navy);
+    padding: 8px 18px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 38px;
+    letter-spacing: 0.3px;
+}
+
+.btn-historial:hover {
+    background: rgba(15, 45, 89, 0.08);
+    border-color: var(--navy-deep);
+    color: var(--navy-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15, 45, 89, 0.12);
+}
+
+.btn-historial:active {
+    transform: translateY(0);
+}
+
+.btn-historial svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* Botón Salir de Histórico */
+.btn-salir-historico {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff !important;
+    border: 1.5px solid #bfdbfe !important;
+    color: #1d4ed8 !important;
+    padding: 8px 16px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    height: 38px !important;
+    letter-spacing: 0.3px !important;
+}
+
+.btn-salir-historico:hover {
+    background: #dbeafe !important;
+    border-color: #93c5fd !important;
+    color: #1e40af !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(29, 78, 216, 0.15) !important;
+}
+
+.btn-salir-historico.active {
+    display: inline-flex !important;
 }
 
 
@@ -67,6 +147,62 @@
 
 .btn-apply:active {
     transform: translateY(0);
+}
+
+.btn-save-top {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: #15803d;
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 5px rgba(21, 128, 61, 0.2);
+}
+
+.btn-save-top:hover {
+    background: #166534;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(21, 128, 61, 0.3);
+}
+
+.btn-save-top:active {
+    transform: translateY(0);
+}
+
+.btn-save-top:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Estado sombreado / deshabilitado cuando se consulta un registro historico */
+.btn-apply.disabled-historico,
+.btn-save-top.disabled-historico,
+.btn-apply:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    background-color: #94a3b8 !important;
+    border-color: #94a3b8 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.btn-save-top svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
 }
 
 .btn-export-excel {

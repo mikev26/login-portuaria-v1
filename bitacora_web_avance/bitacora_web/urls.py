@@ -24,6 +24,7 @@ urlpatterns = [
     path("tarifa/inflacion/", views.tarifa_inflacion_view, name="tarifa_inflacion"),
     path("tarifa/inflacion/guardar/", views.guardar_tarifa_inflacion_view, name="tarifa_inflacion_guardar"),
     path("tarifa/inflacion/exportar-pdf/", views.exportar_tarifa_inflacion_pdf_view, name="tarifa_inflacion_exportar_pdf"),
+    path("tarifa/inflacion/historico/", views.obtener_historico_tarifas_view, name="tarifa_inflacion_historico"),
     path("tarifa/listado/", views.tarifa_listado_view, name="tarifa_listado"),
     path("tarifa/guardar/", views.guardar_tarifa_view, name="tarifa_guardar"),
     path("tarifa/anular/", views.anular_tarifa_view, name="tarifa_anular"),

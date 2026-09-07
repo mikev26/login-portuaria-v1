@@ -310,8 +310,37 @@ def generar_pdf_tarifario_inflacion(
         except (ValueError, TypeError):
             val_base = 0.0
 
-        inflacion_monto = val_base * (porcentaje / 100.0)
-        tarifa_total = val_base + inflacion_monto
+        # Determinar si la tarifa aplica inflación (1) o no (0)
+        aplica_inflacion = t.get("aplica_inflacion")
+        if isinstance(aplica_inflacion, str):
+            aplica = "aplica" in aplica_inflacion.lower() and "no aplica" not in aplica_inflacion.lower() or aplica_inflacion.strip() == "1"
+        elif isinstance(aplica_inflacion, bool):
+            aplica = aplica_inflacion
+        elif isinstance(aplica_inflacion, (int, float)):
+            aplica = int(aplica_inflacion) == 1
+        elif aplica_inflacion is None:
+            aplica = True
+        else:
+            aplica = bool(aplica_inflacion)
+
+        if "tarifa_inflacion" in t and "valor_final" in t:
+            try:
+                inflacion_monto = float(str(t.get("tarifa_inflacion", "0")).replace(",", "."))
+                tarifa_total = float(str(t.get("valor_final", "0")).replace(",", "."))
+            except (ValueError, TypeError):
+                if aplica:
+                    inflacion_monto = val_base * (porcentaje / 100.0)
+                    tarifa_total = val_base + inflacion_monto
+                else:
+                    inflacion_monto = 0.0
+                    tarifa_total = val_base
+        else:
+            if aplica:
+                inflacion_monto = val_base * (porcentaje / 100.0)
+                tarifa_total = val_base + inflacion_monto
+            else:
+                inflacion_monto = 0.0
+                tarifa_total = val_base
 
         row = [
             Paragraph(str(idx), tbl_cell_center),
@@ -326,7 +355,7 @@ def generar_pdf_tarifario_inflacion(
         table_data.append([
             Paragraph("1", tbl_cell_center),
             Paragraph("-", tbl_cell_center),
-            Paragraph("No existen tarifas configuradas con aplicación de inflación.", tbl_cell_left),
+            Paragraph("No existen tarifas activas registradas.", tbl_cell_left),
             Paragraph("$ 0.0000", tbl_cell_right),
             Paragraph("$ 0.0000", tbl_cell_right_bold),
         ])

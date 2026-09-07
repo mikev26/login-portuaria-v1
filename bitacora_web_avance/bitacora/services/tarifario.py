@@ -565,4 +565,244 @@ def guardar_inflacion(porcentaje: float, anio: int, idusuario: int, detalle: str
                     return row[0]
                 return 1
     except Exception:
+        raise
+
+
+def obtener_cabeceras_historico_inflacion() -> list[dict[str, Any]]:
+    """
+    Retorna la lista de cabeceras de ajustes por inflación históricos
+    disponibles en dbo.dim_TarifaCab.
+    """
+    if settings.DEMO_MODE:
+        return [
+            {
+                "id_tarifaCab": 1,
+                "anio_actual": 2026,
+                "anio_anterior": 2025,
+                "porcentaje_inflacion": 2.5000,
+                "porcentajeAnterior": 0.0000,
+                "detalle": "Ajuste anual por índice de inflación general 2026",
+                "fechaInflacion": "2026-01-15",
+                "fechaRegistro": "2026-01-15 10:30:00",
+                "idUsuario": 1,
+            }
+        ]
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute("EXEC dbo.SPJ_HistoricoTarifas @listarCabeceras = 1")
+                return _rows_as_dicts(cursor)
+    except Exception as exc:
+        if is_missing_object_error(exc):
+            return []
+        raise
+
+
+def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
+    """
+    Ejecuta dbo.SPJ_HistoricoTarifas @listarCabeceras = 1
+    para obtener el historial de cabeceras registradas (Año, fechaRegistro, porcentaje, detalle).
+    """
+    if settings.DEMO_MODE:
+        return [
+            {
+                "id_tarifaCab": 1,
+                "idCabotaje": 1,
+                "id": 1,
+                "ano": 2026,
+                "anio_actual": 2026,
+                "anio_anterior": 2025,
+                "porcentaje_inflacion": 2.50,
+                "porcentaje_actual": 2.50,
+                "detalle": "Ajuste tarifario anual 2026 demo",
+                "fecha_inflacion": "2026-01-15",
+                "fecha_registro": "2026-01-15 10:30",
+                "id_usuario": 1,
+            }
+        ]
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                cursor.execute("EXEC dbo.SPJ_HistoricoTarifas @listarCabeceras = 1")
+                rows = _rows_as_dicts(cursor)
+                result = []
+                for r in rows:
+                    def str_or_empty(val: Any, default: str = "") -> str:
+                        if val is None or str(val).strip().lower() == "none":
+                            return default
+                        return str(val).strip()
+
+                    fecha_reg = first_value(r, ["fecharegistro", "fecha_registro"])
+                    if hasattr(fecha_reg, "strftime"):
+                        fecha_reg_str = fecha_reg.strftime("%Y-%m-%d %H:%M")
+                    else:
+                        fecha_reg_str = str_or_empty(fecha_reg)
+
+                    fecha_inf = first_value(r, ["fechainflacion", "fecha_inflacion"])
+                    if hasattr(fecha_inf, "strftime"):
+                        fecha_inf_str = fecha_inf.strftime("%Y-%m-%d")
+                    else:
+                        fecha_inf_str = str_or_empty(fecha_inf)
+
+                    item = {
+                        "id_tarifaCab": first_value(r, ["id_tarifacab", "idcabotaje", "id"]),
+                        "idCabotaje": first_value(r, ["id_tarifacab", "idcabotaje", "id"]),
+                        "id": first_value(r, ["id_tarifacab", "idcabotaje", "id"]),
+                        "ano": first_value(r, ["ano", "anio_actual", "anio"]),
+                        "anio_actual": first_value(r, ["ano", "anio_actual", "anio"]),
+                        "anio_anterior": first_value(r, ["anio_anterior", "ano_anterior"]),
+                        "porcentaje_inflacion": float(first_value(r, ["porcentaje_inflacion", "porcentajeactual", "porcentaje_actual"]) or 0),
+                        "porcentaje_actual": float(first_value(r, ["porcentaje_inflacion", "porcentajeactual", "porcentaje_actual"]) or 0),
+                        "detalle": str_or_empty(first_value(r, ["detalle", "justificacion"])),
+                        "fecha_inflacion": fecha_inf_str,
+                        "fecha_registro": fecha_reg_str,
+                        "id_usuario": first_value(r, ["idusuario", "id_usuario"]),
+                    }
+                    result.append(item)
+                return result
+    except Exception:
+        logger.exception("Error al consultar listado de cabeceras históricas")
+        return []
+
+
+def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = None) -> list[dict[str, Any]]:
+    """
+    Ejecuta dbo.SPJ_HistoricoTarifas pasando idCabotaje o ano
+    para obtener el listado histórico de tarifas con sus valores congelados
+    y los cálculos de inflación aplicados en ese evento.
+    """
+    if settings.DEMO_MODE:
+        target_ano = int(ano) if ano else 2026
+        target_id = int(id_cabotaje) if id_cabotaje else 1
+        return [
+            {
+                "nro": 1,
+                "tasa": "TASA CABOTAJE",
+                "codigo": "01",
+                "tarifa": "USO DE MUELLES - MARGINALES",
+                "valor": "0.1600",
+                "valor_anterior": "0.1600",
+                "inflacion": 1,
+                "aplica_inflacion": 1,
+                "aplica_inflacion_txt": "Aplica inflación anual",
+                "porcentaje_inflacion": 2.5000,
+                "tarifa_inflacion": "0.0040",
+                "valor_final": "0.1640",
+                "idtarifa": 1,
+                "idtasa": 5,
+                "activo": 1,
+                "id_tarifaCab": target_id,
+                "ano": target_ano,
+                "ano_anterior": target_ano - 1,
+                "fecha_inflacion": "2026-01-15",
+                "detalle": "Ajuste histórico demo",
+            },
+            {
+                "nro": 2,
+                "tasa": "TASA CABOTAJE",
+                "codigo": "28",
+                "tarifa": "MUELLES MARGINALES.-MANTE.ABARLOAMIENTO",
+                "valor": "0.1400",
+                "valor_anterior": "0.1400",
+                "inflacion": 1,
+                "aplica_inflacion": 1,
+                "aplica_inflacion_txt": "Aplica inflación anual",
+                "porcentaje_inflacion": 2.5000,
+                "tarifa_inflacion": "0.0035",
+                "valor_final": "0.1435",
+                "idtarifa": 2,
+                "idtasa": 5,
+                "activo": 1,
+                "id_tarifaCab": target_id,
+                "ano": target_ano,
+                "ano_anterior": target_ano - 1,
+                "fecha_inflacion": "2026-01-15",
+                "detalle": "Ajuste histórico demo",
+            }
+        ]
+
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
+                id_val = int(id_cabotaje) if id_cabotaje else None
+                ano_val = int(ano) if ano else None
+                try:
+                    cursor.execute(
+                        "EXEC dbo.SPJ_HistoricoTarifas @id = ?, @ano = ?",
+                        id_val,
+                        ano_val,
+                    )
+                    rows = _rows_as_dicts(cursor)
+                except Exception:
+                    # Fallback si el procedimiento en la BD del usuario aún no incluye el parámetro @ano
+                    rows = []
+                    if not id_val and ano_val:
+                        cursor.execute(
+                            "SELECT id FROM dbo.dim_TarifaCab WHERE ano = ? ORDER BY id DESC",
+                            ano_val,
+                        )
+                        cab_ids = [row[0] for row in cursor.fetchall() if row and row[0]]
+                        for c_id in cab_ids:
+                            cursor.execute("EXEC dbo.SPJ_HistoricoTarifas @id = ?", c_id)
+                            rows.extend(_rows_as_dicts(cursor))
+                cab_user_map = {}
+                if any(first_value(r, ["idusuario", "id_usuario"]) is None for r in rows):
+                    try:
+                        cursor.execute("SELECT id, idUsuario FROM dbo.dim_TarifaCab")
+                        for u_row in cursor.fetchall():
+                            if u_row and u_row[0] is not None and u_row[1] is not None:
+                                cab_user_map[u_row[0]] = u_row[1]
+                    except Exception:
+                        pass
+
+                normalized = []
+                for r in rows:
+                    def str_or_empty(val: Any, default: str = "") -> str:
+                        if val is None or str(val).strip().lower() == "none":
+                            return default
+                        return str(val).strip()
+
+                    inflacion_val = first_value(r, ["inflacion", "aplicainflacion", "aplica_inflacion"])
+                    if isinstance(inflacion_val, str):
+                        aplica_inflacion = 1 if "aplica" in inflacion_val.lower() and "no aplica" not in inflacion_val.lower() else 0
+                    else:
+                        aplica_inflacion = 1 if bool_value(inflacion_val) else 0
+
+                    cab_id_val = first_value(r, ["id_tarifacab", "idcabotaje", "id"])
+                    id_usr = first_value(r, ["idusuario", "id_usuario"])
+                    if id_usr is None and cab_id_val in cab_user_map:
+                        id_usr = cab_user_map[cab_id_val]
+
+                    item = {
+                        "nro": first_value(r, ["nro", "item", "row_number"]),
+                        "tasa": str_or_empty(first_value(r, ["tasa", "tasa_nombre"])),
+                        "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa"])),
+                        "tarifa": str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion"])),
+                        "valor": str_or_empty(first_value(r, ["valor", "valor_anterior", "monto"]), "0.0000"),
+                        "valor_anterior": str_or_empty(first_value(r, ["valor_anterior", "valor"]), "0.0000"),
+                        "inflacion": aplica_inflacion,
+                        "aplica_inflacion": aplica_inflacion,
+                        "aplica_inflacion_txt": "Aplica inflación anual" if aplica_inflacion == 1 else "No aplica Inflación anual",
+                        "porcentaje_inflacion": float(first_value(r, ["porcentajeactual", "porcentaje_actual", "porcentajeinflacion"]) or 0),
+                        "porcentaje_actual": float(first_value(r, ["porcentajeactual", "porcentaje_actual"]) or 0),
+                        "tarifa_inflacion": str_or_empty(first_value(r, ["tarifainflacion", "tarifa_inflacion"]), "0.0000"),
+                        "valor_final": str_or_empty(first_value(r, ["valorfinaltarifa", "valor_final"]), "0.0000"),
+                        "idtarifa": first_value(r, ["idtarifa", "id_tarifa"]),
+                        "idtasa": first_value(r, ["idtasa", "id_tasa"]),
+                        "activo": bool_value(first_value(r, ["activo", "activa"], True)),
+                        "id_tarifaCab": cab_id_val,
+                        "ano": first_value(r, ["ano", "anio", "anio_actual"]),
+                        "ano_anterior": first_value(r, ["ano_anterior", "anio_anterior"]),
+                        "fecha_inflacion": str_or_empty(first_value(r, ["fechainflacion", "fecha_inflacion"])),
+                        "fecha_registro": str_or_empty(first_value(r, ["fecharegistro", "fecha_registro"])),
+                        "detalle": str_or_empty(first_value(r, ["detalle", "justificacion"])),
+                        "id_usuario": id_usr,
+                    }
+                    normalized.append(item)
+                return normalized
+    except Exception as exc:
+        if is_missing_object_error(exc):
+            return []
         raise
