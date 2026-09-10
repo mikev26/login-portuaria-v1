@@ -39,18 +39,25 @@ from .services.bitacora_service import (
     obtener_fecha_hora_servidor,
 )
 
+from .services.auth_service import cambiar_contrasena_usuario
+
 logger = logging.getLogger(__name__)
 
 
-def _iniciar_sesion(request, datos_usuario, turnos):
+def _iniciar_sesion(request, datos_usuario, turnos=None):
+    """Inicia sesión aunque el usuario no tenga turno de Bitácora."""
+    turnos = turnos or []
+
     request.session.cycle_key()
     request.session["usuario_id"] = datos_usuario["idusuario"]
     request.session["usuario_login"] = datos_usuario["usuario"]
     request.session["usuario_nombre"] = datos_usuario["nombre"]
-    request.session["usuario_cargo"] = turnos[0].get("cargo") or datos_usuario.get(
-        "cargo",
-        "Inspector",
-    )
+    request.session["usuario_cargo"] = (
+        turnos[0].get("cargo")
+        if turnos
+        else datos_usuario.get("cargo")
+    ) or "Usuario"
+    request.session["puede_registrar_bitacora"] = bool(turnos)
 
 
 @never_cache
@@ -72,17 +79,22 @@ def login_view(request):
                 if not datos_usuario:
                     messages.error(request, "Usuario o contraseña incorrectos.")
                 else:
+                    # Todos los usuarios válidos pueden iniciar sesión.
+                    # Tener un turno abierto únicamente habilita el registro
+                    # de novedades en la Bitácora.
+                    turnos = obtener_turnos_usuario(
+                        datos_usuario["idusuario"]
+                    )
+                    _iniciar_sesion(request, datos_usuario, turnos)
 
-                    turnos = obtener_turnos_usuario(datos_usuario["idusuario"])
                     if not turnos:
-                        messages.error(
+                        messages.info(
                             request,
-                            "El usuario es válido, pero no tiene un turno activo "
-                            "habilitado para la bitácora.",
+                            "Sesión iniciada. No tiene un turno abierto de "
+                            "Bitácora; puede utilizar las demás interfaces.",
                         )
-                    else:
-                        _iniciar_sesion(request, datos_usuario, turnos)
-                        return redirect("bitacora_home")
+
+                    return redirect("bitacora_home")
 
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Configuración o contrato de base de datos inválido")
@@ -355,13 +367,18 @@ def bitacora_home(request):
         # ======================================================
         turnos = obtener_turnos_usuario(idusuario)
 
-        if not turnos:
-            request.session.flush()
+        puede_registrar_bitacora = bool(turnos)
+        request.session["puede_registrar_bitacora"] = puede_registrar_bitacora
+
+        # Un usuario sin turno sigue autenticado y puede navegar hacia las
+        # demás interfaces. Únicamente se bloquea la escritura en Bitácora.
+        if request.method == "POST" and not puede_registrar_bitacora:
             messages.error(
                 request,
-                "Su turno ya no está activo o perdió el permiso de bitácora.",
+                "No puede registrar novedades porque no tiene un turno "
+                "iniciado y abierto en la Bitácora.",
             )
-            return redirect("login")
+            return redirect("bitacora_home")
 
         # ======================================================
         # ASIGNAR HORARIO OPERATIVO A LOS TURNOS ACTIVOS
@@ -407,7 +424,14 @@ def bitacora_home(request):
         # ======================================================
         # OBTENER HISTORIAL GENERAL DE LA BITÁCORA
         # ======================================================
-        bitacora_completa = obtener_bitacora_completa()
+        # Solo los usuarios con turno abierto trabajan con la Bitácora.
+        # Quienes no tienen turno permanecen autenticados para utilizar
+        # INEC, Tarifa, Combustible y las demás interfaces.
+        bitacora_completa = (
+            obtener_bitacora_completa()
+            if puede_registrar_bitacora
+            else []
+        )
 
         # Los años se obtienen ANTES de filtrar para que el selector
         # siempre muestre todos los años que tienen registros.
@@ -426,6 +450,34 @@ def bitacora_home(request):
         # Un mismo idturno puede contener registros de distintos días.
         bitacora_completa = _agrupar_bitacora_por_fecha(
             bitacora_completa
+        )
+
+        # ======================================================
+        # ORDEN DEL HISTORIAL EN LA WEB
+        # ======================================================
+        # En la página se muestra primero la fecha más reciente.
+        # Dentro de cada fecha, también se muestran primero las
+        # novedades más recientes. Este orden NO afecta el Excel,
+        # que conserva su orden cronológico ascendente propio.
+        def _fecha_novedad_web(novedad):
+            fecha = _convertir_fecha_bitacora(
+                novedad.get("fecha_hora")
+            )
+            return fecha or datetime.min
+
+        for bloque_web in bitacora_completa:
+            bloque_web["novedades"] = sorted(
+                bloque_web.get("novedades", []),
+                key=_fecha_novedad_web,
+                reverse=True,
+            )
+
+        bitacora_completa = sorted(
+            bitacora_completa,
+            key=lambda bloque: str(
+                bloque.get("fecha_dia_iso") or ""
+            ),
+            reverse=True,
         )
 
         # ======================================================
@@ -483,8 +535,12 @@ def bitacora_home(request):
         # ======================================================
         # OBTENER BUQUES DISPONIBLES
         # ======================================================
-        industriales = obtener_buques_industriales()
-        artesanales = obtener_buques_artesanales()
+        if puede_registrar_bitacora:
+            industriales = obtener_buques_industriales()
+            artesanales = obtener_buques_artesanales()
+        else:
+            industriales = []
+            artesanales = []
 
         # ======================================================
         # GUARDAR NUEVA NOVEDAD
@@ -686,6 +742,7 @@ def bitacora_home(request):
             "usuario_login": request.session.get("usuario_login"),
             "usuario_cargo": request.session.get("usuario_cargo"),
             "turnos": turnos,
+            "puede_registrar_bitacora": bool(turnos),
             "buques_industriales": industriales,
             "buques_artesanales": artesanales,
             "bitacora_completa": bitacora_completa,
@@ -2952,6 +3009,141 @@ def exportar_bitacora_excel(request):
 
         return redirect("bitacora_home")
     
+
+@never_cache
+@require_http_methods(["POST"])
+def cambiar_contrasena_view(request):
+    """
+    Cambia la contraseña del usuario que YA inició sesión.
+
+    El usuario se toma desde request.session["usuario_login"].
+    El navegador solo envía nueva_password y confirmar_password.
+    """
+    if not request.session.get("usuario_id"):
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "La sesión ha expirado. Inicie sesión nuevamente.",
+            },
+            status=401,
+        )
+
+    usuario = (
+        request.session.get("usuario_login")
+        or ""
+    ).strip()
+
+    nueva_password = request.POST.get(
+        "nueva_password",
+        "",
+    )
+    confirmar_password = request.POST.get(
+        "confirmar_password",
+        "",
+    )
+
+    if not usuario:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": (
+                    "No fue posible identificar al usuario "
+                    "de la sesión."
+                ),
+            },
+            status=400,
+        )
+
+    if not nueva_password or not confirmar_password:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Debe completar ambas contraseñas.",
+            },
+            status=400,
+        )
+
+    if nueva_password != confirmar_password:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Las contraseñas no coinciden.",
+            },
+            status=400,
+        )
+
+    # El procedimiento recibe NVARCHAR(100).
+    if len(nueva_password) > 100:
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": (
+                    "La contraseña no puede superar "
+                    "los 100 caracteres."
+                ),
+            },
+            status=400,
+        )
+
+    try:
+        cambio_correcto = cambiar_contrasena_usuario(
+            usuario,
+            nueva_password,
+        )
+
+        if not cambio_correcto:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": (
+                        "SQL Server no confirmó el cambio "
+                        "de contraseña."
+                    ),
+                },
+                status=400,
+            )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "message": "Contraseña actualizada correctamente.",
+            }
+        )
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error de configuración al cambiar contraseña"
+        )
+
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": str(exc),
+            },
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error al cambiar contraseña del usuario %s",
+            usuario,
+        )
+
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": (
+                    "No fue posible cambiar la contraseña. "
+                    "Intente nuevamente."
+                ),
+            },
+            status=500,
+        )
+
+
 @require_http_methods(["POST"])
 def logout_view(request):
     request.session.flush()

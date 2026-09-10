@@ -30,4 +30,10 @@ urlpatterns = [
     path("api/buscar-tasa/", views.api_buscar_tasa, name="api_buscar_tasa"),
     path("api/siguiente-codigo-tarifa/", views.api_siguiente_codigo, name="api_siguiente_codigo"),
     path("salir/", views.logout_view, name="logout"),
+    path(
+    "cambiar-contrasena/",
+    views.cambiar_contrasena_view,
+    name="cambiar_contrasena",
+    ),
+
 ]

@@ -5,6 +5,216 @@
 {% block header_title %}BITÁCORA ELECTRÓNICA{% endblock %}
 
 
+
+{% block extra_css %}
+.message {
+    margin-bottom: 18px;
+    padding: 11px 13px;
+    border: 1px solid #efbaba;
+    border-radius: 7px;
+    background: #fce8e8;
+    color: var(--danger);
+    font-size: 13px;
+}
+
+.demo {
+    margin-bottom: 18px;
+    padding: 10px 13px;
+    border-radius: 7px;
+    background: #fff7db;
+    border: 1px solid #efd78a;
+    color: #654d00;
+    font-size: 12.5px;
+}
+
+.section {
+    margin-bottom: 27px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 13px;
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+}
+
+.section-title::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+}
+
+.row {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 155px;
+}
+
+.field.grow {
+    flex: 1;
+    min-width: 260px;
+}
+
+label {
+    font-size: 12px;
+    font-weight: 650;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--text);
+    font: 13px "Segoe UI", Arial, sans-serif;
+}
+
+input[readonly],
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background: #f3f6f8;
+    color: var(--muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid rgba(29,111,159,.12);
+    border-color: var(--blue);
+}
+
+.turn-select {
+    min-width: 330px;
+    background: var(--amber);
+    border-color: var(--amber-border);
+    font-weight: 700;
+}
+
+textarea {
+    min-height: 82px;
+    resize: vertical;
+}
+
+.ship-help {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.primary {
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--navy);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.primary:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.pending {
+    margin-top: 9px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th {
+    padding: 10px 13px;
+    text-align: left;
+    background: var(--navy-deep);
+    color: white;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+td {
+    padding: 10px 13px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+tbody tr:nth-child(even) {
+    background: #f8fafb;
+}
+
+.empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 22px;
+}
+
+.panel-turno {
+    display: none;
+}
+
+.panel-turno.visible {
+    display: block;
+}
+
+.no-turns {
+    padding: 25px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+    .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .field,
+    .field.grow,
+    .turn-select {
+        min-width: 0;
+        width: 100%;
+    }
+}
+{% endblock %}
+
+
 {% block content %}
 
 {% if demo_mode %}
@@ -333,8 +543,98 @@
 
 <section class="section">
 
-    <div class="section-title">
-        Historial de bitácora
+    <!-- ====================================================== -->
+    <!-- ENCABEZADO DEL HISTORIAL + EXPORTACIÓN EXCEL           -->
+    <!-- ====================================================== -->
+
+    <div
+        style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        "
+    >
+
+        <div
+            class="section-title"
+            style="margin-bottom: 0;"
+        >
+            Historial de bitácora
+        </div>
+
+
+        {% if bitacora_completa %}
+
+        <a
+            href="{% url 'bitacora_exportar_excel' %}{% if filtro_activo %}?{% if anio_seleccionado %}anio={{ anio_seleccionado }}{% endif %}{% if anio_seleccionado and mes_seleccionado %}&amp;{% endif %}{% if mes_seleccionado %}mes={{ mes_seleccionado }}{% endif %}{% endif %}"
+            title="Exportar el historial filtrado a Excel"
+            style="
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 9px 14px;
+                background: #217346;
+                color: #ffffff;
+                text-decoration: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1;
+                cursor: pointer;
+            "
+        >
+
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+            >
+                <rect
+                    x="3"
+                    y="3"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    fill="white"
+                    fill-opacity="0.15"
+                />
+
+                <path
+                    d="
+                        M7 7
+                        L11 12
+                        L7 17
+                        H10
+                        L12.5 13.5
+                        L15 17
+                        H18
+                        L14 12
+                        L18 7
+                        H15
+                        L12.5 10.5
+                        L10 7
+                        H7
+                        Z
+                    "
+                    fill="white"
+                />
+            </svg>
+
+            <span>
+                Exportar Excel
+            </span>
+
+        </a>
+
+        {% endif %}
+
     </div>
 
 
@@ -360,17 +660,13 @@
     >
 
         <div class="field">
-            <label for="filtroAnio">
-                Año
-            </label>
+            <label for="filtroAnio">Año</label>
 
             <select
                 id="filtroAnio"
                 name="anio"
             >
-                <option value="">
-                    Todos los años
-                </option>
+                <option value="">Todos los años</option>
 
                 {% for anio in anios_disponibles %}
                     <option
@@ -385,17 +681,13 @@
 
 
         <div class="field">
-            <label for="filtroMes">
-                Mes
-            </label>
+            <label for="filtroMes">Mes</label>
 
             <select
                 id="filtroMes"
                 name="mes"
             >
-                <option value="">
-                    Todos los meses
-                </option>
+                <option value="">Todos los meses</option>
 
                 {% for numero_mes, nombre_mes in meses_bitacora %}
                     <option
@@ -417,7 +709,6 @@
                 flex-wrap: wrap;
             "
         >
-
             <button
                 type="submit"
                 class="primary"
@@ -428,7 +719,6 @@
             >
                 Filtrar
             </button>
-
 
             <a
                 href="{% url 'bitacora_home' %}"
@@ -450,88 +740,6 @@
             >
                 Limpiar
             </a>
-
-        </div>
-
-
-        <div
-            style="
-                margin-left: auto;
-                display: flex;
-                align-items: center;
-            "
-        >
-
-            {% if bitacora_completa %}
-
-            <a
-                href="{% url 'bitacora_exportar_excel' %}{% if filtro_activo %}?{% if anio_seleccionado %}anio={{ anio_seleccionado }}{% endif %}{% if anio_seleccionado and mes_seleccionado %}&amp;{% endif %}{% if mes_seleccionado %}mes={{ mes_seleccionado }}{% endif %}{% endif %}"
-                title="Exportar el historial filtrado a Excel"
-                style="
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    min-height: 38px;
-                    padding: 9px 14px;
-                    background: #217346;
-                    color: #ffffff;
-                    text-decoration: none;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    line-height: 1;
-                    box-sizing: border-box;
-                "
-            >
-
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                >
-                    <rect
-                        x="3"
-                        y="3"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        fill="white"
-                        fill-opacity="0.15"
-                    />
-
-                    <path
-                        d="
-                            M7 7
-                            L11 12
-                            L7 17
-                            H10
-                            L12.5 13.5
-                            L15 17
-                            H18
-                            L14 12
-                            L18 7
-                            H15
-                            L12.5 10.5
-                            L10 7
-                            H7
-                            Z
-                        "
-                        fill="white"
-                    />
-                </svg>
-
-                <span>
-                    Exportar Excel
-                </span>
-
-            </a>
-
-            {% endif %}
-
         </div>
 
     </form>
@@ -595,7 +803,7 @@
 
             <!-- ============================================== -->
             <!-- NOVEDADES DEL TURNO                           -->
-            <!-- SPJ_ReporteBitacoraTurno                      -->
+            <!-- SP_VistaBitacoraTurno                         -->
             <!-- ============================================== -->
 
             <div class="table-wrap">
@@ -643,23 +851,21 @@
     {% else %}
 
         <div class="no-turns">
-
-            {% if filtro_activo %}
-                No existen novedades registradas para el período seleccionado.
-            {% else %}
-                Todavía no existen novedades registradas en la bitácora.
-            {% endif %}
-
+            Todavía no existen novedades registradas
+            en la bitácora.
         </div>
 
     {% endif %}
 
 </section>
 
+
 {% else %}
 
 <div class="no-turns">
-    No se pudieron cargar turnos activos.
+    <strong>Bitácora no habilitada para registro.</strong><br>
+    Su usuario inició sesión correctamente, pero no tiene un turno iniciado
+    y abierto. Puede utilizar las demás interfaces desde el menú del sistema.
 </div>
 
 {% endif %}
@@ -675,6 +881,6 @@
 {{ buques_industriales|json_script:"industrialShips" }}
 {{ buques_artesanales|json_script:"artisanalShips" }}
 
-<script src="{% static 'bitacora/js/home.js' %}?v=20260826-3"></script>
+<script src="{% static 'bitacora/js/home.js' %}?v=20260824-2"></script>
 
 {% endblock %}
