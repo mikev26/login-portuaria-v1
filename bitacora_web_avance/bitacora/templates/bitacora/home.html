@@ -5,106 +5,882 @@
 {% block header_title %}BITÁCORA ELECTRÓNICA{% endblock %}
 
 
-{% block content %}
-{% if demo_mode %}<div class="demo"><strong>Modo demostración:</strong> los datos no provienen todavía de SQL Server.</div>{% endif %}
-        {% if messages %}
-            {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
-        {% endif %}
 
-        {% if turnos %}
-        <section class="section">
-            <div class="section-title">Turno habilitado</div>
-            <div class="row">
-                <div class="field grow">
-                    <label for="turnoSelect">Turnos activos de la bitácora</label>
-                    <select id="turnoSelect" class="turn-select">
-                        {% for turno in turnos %}
-                        <option value="{{ forloop.counter }}" data-inicio="{{ turno.fecha_inicio }}" data-fin="{{ turno.fecha_fin|default:'.NULL.' }}">
-                            #{{ turno.idturno }} — {{ turno.nombre }} — {{ turno.fecha_inicio }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Inicia turno</label>
-                    <input id="turnoInicio" type="text" readonly>
-                </div>
-                <div class="field">
-                    <label>Finaliza turno</label>
-                    <input id="turnoFin" type="text" readonly>
-                </div>
-            </div>
-        </section>
+{% block extra_css %}
+.message {
+    margin-bottom: 18px;
+    padding: 11px 13px;
+    border: 1px solid #efbaba;
+    border-radius: 7px;
+    background: #fce8e8;
+    color: var(--danger);
+    font-size: 13px;
+}
 
-        {% for turno in turnos %}
-        <div id="turnoPanel{{ forloop.counter }}" class="panel-turno{% if forloop.first %} visible{% endif %}">
-            <section class="section">
-                <div class="section-title">Registrar novedad</div>
-                <div class="row">
-                    <div class="field">
-                        <label for="fecha{{ forloop.counter }}">Fecha</label>
-                        <input id="fecha{{ forloop.counter }}" class="current-date" type="date" readonly>
-                    </div>
-                    <div class="field">
-                        <label for="hora{{ forloop.counter }}">Hora</label>
-                        <input id="hora{{ forloop.counter }}" class="current-time" type="time" readonly>
-                    </div>
-                    <div class="field grow">
-                        <label for="tipo{{ forloop.counter }}">Tipo de novedad</label>
-                        <select id="tipo{{ forloop.counter }}" class="novelty-type" data-ship-select="buque{{ forloop.counter }}">
-                            <option value="inicio">Inicia turno</option>
-                            <option value="industrial">Buque industrial</option>
-                            <option value="artesanal">Buque artesanal</option>
-                        </select>
-                    </div>
-                </div>
+.demo {
+    margin-bottom: 18px;
+    padding: 10px 13px;
+    border-radius: 7px;
+    background: #fff7db;
+    border: 1px solid #efd78a;
+    color: #654d00;
+    font-size: 12.5px;
+}
 
-                <div class="row" style="margin-top:16px;">
-                    <div class="field grow">
-                        <label for="buque{{ forloop.counter }}">Registro de buque</label>
-                        <select id="buque{{ forloop.counter }}" class="ship-select" disabled>
-                            <option value="">No aplica para este tipo de novedad</option>
-                        </select>
-                        <div class="ship-help" id="buque{{ forloop.counter }}Help"></div>
-                    </div>
-                </div>
+.section {
+    margin-bottom: 27px;
+}
 
-                <div class="field" style="margin-top:16px;">
-                    <label for="detalle{{ forloop.counter }}">Detalle de novedades</label>
-                    <textarea id="detalle{{ forloop.counter }}" placeholder="Describa la novedad observada..."></textarea>
-                </div>
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 13px;
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+}
 
-                <div class="actions">
-                    <button type="button" class="primary" disabled>Guardar novedad</button>
-                </div>
-                <div class="pending">El guardado se habilitará cuando se confirme el procedimiento almacenado que registra las novedades.</div>
-            </section>
+.section-title::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+}
 
-            <section class="section">
-                <div class="section-title">Historial del turno</div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Hora</th><th>Buque / Novedad</th><th>Detalle</th></tr></thead>
-                        <tbody>
-                        {% for novedad in turno.novedades %}
-                            <tr><td>{{ novedad.hora }}</td><td>{{ novedad.buque_novedad }}</td><td>{{ novedad.detalle }}</td></tr>
-                        {% empty %}
-                            <tr><td colspan="3" class="empty">Todavía no se ha conectado el procedimiento del historial de novedades.</td></tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        {% endfor %}
-        {% else %}
-            <div class="no-turns">No se pudieron cargar turnos activos.</div>
-        {% endif %}
+.row {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 155px;
+}
+
+.field.grow {
+    flex: 1;
+    min-width: 260px;
+}
+
+label {
+    font-size: 12px;
+    font-weight: 650;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--text);
+    font: 13px "Segoe UI", Arial, sans-serif;
+}
+
+input[readonly],
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background: #f3f6f8;
+    color: var(--muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid rgba(29,111,159,.12);
+    border-color: var(--blue);
+}
+
+.turn-select {
+    min-width: 330px;
+    background: var(--amber);
+    border-color: var(--amber-border);
+    font-weight: 700;
+}
+
+textarea {
+    min-height: 82px;
+    resize: vertical;
+}
+
+.ship-help {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.primary {
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--navy);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.primary:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.pending {
+    margin-top: 9px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th {
+    padding: 10px 13px;
+    text-align: left;
+    background: var(--navy-deep);
+    color: white;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+td {
+    padding: 10px 13px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+tbody tr:nth-child(even) {
+    background: #f8fafb;
+}
+
+.empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 22px;
+}
+
+.panel-turno {
+    display: none;
+}
+
+.panel-turno.visible {
+    display: block;
+}
+
+.no-turns {
+    padding: 25px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+    .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .field,
+    .field.grow,
+    .turn-select {
+        min-width: 0;
+        width: 100%;
+    }
+}
 {% endblock %}
 
+
+{% block content %}
+
+{% if demo_mode %}
+<div class="demo">
+    <strong>Modo demostración:</strong>
+    los datos no provienen todavía de SQL Server.
+</div>
+{% endif %}
+
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="message">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+
+<div
+    id="serverClock"
+    data-server-now="{{ fecha_hora_servidor_iso }}"
+    hidden
+></div>
+
+
+{% if turnos %}
+
+<!-- ====================================================== -->
+<!-- TURNO ACTIVO DEL INSPECTOR QUE INICIÓ SESIÓN           -->
+<!-- ====================================================== -->
+
+<section class="section">
+    <div class="section-title">Turno habilitado</div>
+
+    <div class="row">
+
+        <div class="field grow">
+            <label for="turnoSelect">
+                Turnos activos de la bitácora
+            </label>
+
+            <select id="turnoSelect" class="turn-select">
+
+                {% for turno in turnos %}
+
+                <option
+                    value="{{ forloop.counter }}"
+                    data-inicio="{{ turno.hora_turno_inicio }}"
+                    data-fin="{{ turno.hora_turno_fin }}"
+                >
+                    {{ turno.nombre }}
+                    —
+                    {{ turno.hora_turno_inicio }} a {{ turno.hora_turno_fin }}
+                </option>
+
+                {% endfor %}
+
+            </select>
+        </div>
+
+
+        <div class="field">
+            <label>Inicia turno</label>
+
+            <input
+                id="turnoInicio"
+                type="text"
+                readonly
+            >
+        </div>
+
+
+        <div class="field">
+            <label>Finaliza turno</label>
+
+            <input
+                id="turnoFin"
+                type="text"
+                readonly
+            >
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ====================================================== -->
+<!-- FORMULARIO DE REGISTRO POR CADA TURNO ACTIVO           -->
+<!-- ====================================================== -->
+
+{% for turno in turnos %}
+
+<div
+    id="turnoPanel{{ forloop.counter }}"
+    class="panel-turno{% if forloop.first %} visible{% endif %}"
+>
+
+    <!-- ====================================================== -->
+    <!-- ===== INICIO: FORMULARIO SPJ_INSERT_BITACORA ========= -->
+    <!-- ====================================================== -->
+
+    <section class="section">
+
+        <form method="post" class="novedad-form">
+
+            {% csrf_token %}
+
+
+            <!-- Turno al que pertenece la novedad -->
+            <input
+                type="hidden"
+                name="idturno"
+                value="{{ turno.idturno }}"
+            >
+
+
+            <!--
+                Estos valores se completan automáticamente
+                desde home.js cuando se selecciona un buque.
+            -->
+
+            <input
+                type="hidden"
+                name="idbuque"
+                class="selected-idbuque"
+            >
+
+            <input
+                type="hidden"
+                name="idregistro"
+                class="selected-idregistro"
+            >
+
+            <input
+                type="hidden"
+                name="scregistro"
+                class="selected-scregistro"
+            >
+
+
+            <div class="section-title">
+                Registrar novedad
+            </div>
+
+
+            <div class="row">
+
+                <div class="field">
+
+                    <label for="fecha{{ forloop.counter }}">
+                        Fecha
+                    </label>
+
+                    <input
+                        id="fecha{{ forloop.counter }}"
+                        class="current-date"
+                        type="date"
+                        value="{{ fecha_servidor }}"
+                        readonly
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="hora{{ forloop.counter }}">
+                        Hora
+                    </label>
+
+                    <input
+                        id="hora{{ forloop.counter }}"
+                        class="current-time"
+                        type="time"
+                        value="{{ hora_servidor }}"
+                        readonly
+                    >
+
+                </div>
+
+
+                <div class="field grow">
+
+                    <label for="tipo{{ forloop.counter }}">
+                        Tipo de novedad
+                    </label>
+
+                    <select
+                        id="tipo{{ forloop.counter }}"
+                        name="tipo_novedad"
+                        class="novelty-type"
+                        data-ship-select="buque{{ forloop.counter }}"
+                        required
+                    >
+
+                        <option value="">
+                            -- Seleccione tipo de novedad --
+                        </option>
+
+                        <option value="inicio_turno">
+                            Inicia turno
+                        </option>
+
+                        <option value="industrial">
+                            Buque industrial
+                        </option>
+
+                        <option value="artesanal">
+                            Buque artesanal
+                        </option>
+
+                        <option value="reportes">
+                            Reportes
+                        </option>
+
+                        <option value="consignas">
+                            Consignas
+                        </option>
+
+                        <option value="novedad">
+                            Novedad
+                        </option>
+
+                        <option value="finaliza_turno">
+                            Finaliza turno
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="row"
+                style="margin-top:16px;"
+            >
+
+                <div class="field grow">
+
+                    <label for="buque{{ forloop.counter }}">
+                        Registro de buque
+                    </label>
+
+                    <select
+                        id="buque{{ forloop.counter }}"
+                        class="ship-select"
+                        disabled
+                    >
+
+                        <option value="">
+                            Seleccione primero un tipo de novedad
+                        </option>
+
+                    </select>
+
+
+                    <div
+                        class="ship-help"
+                        id="buque{{ forloop.counter }}Help"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="field"
+                style="margin-top:16px;"
+            >
+
+                <label for="detalle{{ forloop.counter }}">
+                    Detalle de novedades
+                </label>
+
+                <textarea
+                    id="detalle{{ forloop.counter }}"
+                    name="detalle"
+                    class="novelty-detail"
+                    placeholder="Describa la novedad observada..."
+                    required
+                ></textarea>
+
+            </div>
+
+
+            <div class="actions">
+
+                <button
+                    type="submit"
+                    class="primary save-novelty-button"
+                    disabled
+                >
+                    Guardar novedad
+                </button>
+
+            </div>
+
+
+            <div class="pending">
+                Seleccione el tipo de novedad y escriba el detalle.
+                Para Buque industrial o Buque artesanal, seleccione también el buque.
+            </div>
+
+        </form>
+
+    </section>
+
+    <!-- ====================================================== -->
+    <!-- ===== FIN: FORMULARIO SPJ_INSERT_BITACORA ============ -->
+    <!-- ====================================================== -->
+
+</div>
+
+{% endfor %}
+
+
+<!-- ====================================================== -->
+<!-- HISTORIAL GENERAL DE LA BITÁCORA                       -->
+<!--                                                        -->
+<!-- Este historial NO depende del inspector conectado.     -->
+<!-- Se muestran automáticamente todos los turnos que       -->
+<!-- tengan novedades registradas.                          -->
+<!-- ====================================================== -->
+
+<section class="section">
+
+    <!-- ====================================================== -->
+    <!-- ENCABEZADO DEL HISTORIAL + EXPORTACIÓN EXCEL           -->
+    <!-- ====================================================== -->
+
+    <div
+        style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        "
+    >
+
+        <div
+            class="section-title"
+            style="margin-bottom: 0;"
+        >
+            Historial de bitácora
+        </div>
+
+
+        {% if bitacora_completa %}
+
+        <a
+            href="{% url 'bitacora_exportar_excel' %}{% if filtro_activo %}?{% if anio_seleccionado %}anio={{ anio_seleccionado }}{% endif %}{% if anio_seleccionado and mes_seleccionado %}&amp;{% endif %}{% if mes_seleccionado %}mes={{ mes_seleccionado }}{% endif %}{% endif %}"
+            title="Exportar el historial filtrado a Excel"
+            style="
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 9px 14px;
+                background: #217346;
+                color: #ffffff;
+                text-decoration: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1;
+                cursor: pointer;
+            "
+        >
+
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+            >
+                <rect
+                    x="3"
+                    y="3"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    fill="white"
+                    fill-opacity="0.15"
+                />
+
+                <path
+                    d="
+                        M7 7
+                        L11 12
+                        L7 17
+                        H10
+                        L12.5 13.5
+                        L15 17
+                        H18
+                        L14 12
+                        L18 7
+                        H15
+                        L12.5 10.5
+                        L10 7
+                        H7
+                        Z
+                    "
+                    fill="white"
+                />
+            </svg>
+
+            <span>
+                Exportar Excel
+            </span>
+
+        </a>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ====================================================== -->
+    <!-- FILTROS DEL HISTORIAL                                  -->
+    <!-- ====================================================== -->
+
+    <form
+        method="get"
+        action="{% url 'bitacora_home' %}"
+        style="
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            margin-bottom: 18px;
+            padding: 14px;
+            border: 1px solid #d5dee8;
+            border-radius: 6px;
+            background: #f7f9fb;
+        "
+    >
+
+        <div class="field">
+            <label for="filtroAnio">Año</label>
+
+            <select
+                id="filtroAnio"
+                name="anio"
+            >
+                <option value="">Todos los años</option>
+
+                {% for anio in anios_disponibles %}
+                    <option
+                        value="{{ anio }}"
+                        {% if anio_seleccionado == anio %}selected{% endif %}
+                    >
+                        {{ anio }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+
+        <div class="field">
+            <label for="filtroMes">Mes</label>
+
+            <select
+                id="filtroMes"
+                name="mes"
+            >
+                <option value="">Todos los meses</option>
+
+                {% for numero_mes, nombre_mes in meses_bitacora %}
+                    <option
+                        value="{{ numero_mes }}"
+                        {% if mes_seleccionado == numero_mes %}selected{% endif %}
+                    >
+                        {{ nombre_mes }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+
+        <div
+            style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            "
+        >
+            <button
+                type="submit"
+                class="primary"
+                style="
+                    min-height: 38px;
+                    padding: 9px 16px;
+                "
+            >
+                Filtrar
+            </button>
+
+            <a
+                href="{% url 'bitacora_home' %}"
+                style="
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 38px;
+                    padding: 9px 16px;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 6px;
+                    background: #ffffff;
+                    color: #334155;
+                    text-decoration: none;
+                    font-size: 14px;
+                    font-weight: 600;
+                    box-sizing: border-box;
+                "
+            >
+                Limpiar
+            </a>
+        </div>
+
+    </form>
+
+
+    {% if bitacora_completa %}
+
+        {% for bloque in bitacora_completa %}
+
+            <!-- ============================================== -->
+            <!-- ENCABEZADO DEL TURNO / INSPECTOR              -->
+            <!-- ============================================== -->
+
+            <div
+                style="
+                    margin-top: 18px;
+                    margin-bottom: 8px;
+                    padding: 10px 12px;
+                    border: 1px solid #d5dee8;
+                    border-radius: 6px;
+                    background: #f7f9fb;
+                "
+            >
+
+                <strong>
+                    {{ bloque.nombre }}
+                </strong>
+
+                {% if bloque.fecha_dia %}
+                    <span
+                        style="
+                            margin-left: 8px;
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: #475569;
+                        "
+                    >
+                        — {{ bloque.fecha_dia }}
+                    </span>
+                {% endif %}
+
+                <div
+                    style="
+                        margin-top: 4px;
+                        font-size: 12px;
+                    "
+                >
+
+                    <strong>Inicio:</strong>
+                    {{ bloque.hora_turno_inicio }}
+
+                    &nbsp;&nbsp;&nbsp;
+
+                    <strong>Fin:</strong>
+                    {{ bloque.hora_turno_fin }}
+
+                </div>
+
+            </div>
+
+
+            <!-- ============================================== -->
+            <!-- NOVEDADES DEL TURNO                           -->
+            <!-- SP_VistaBitacoraTurno                         -->
+            <!-- ============================================== -->
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Buque / Novedad</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for novedad in bloque.novedades %}
+
+                            <tr>
+                                <td>
+                                    {{ novedad.hora }}
+                                </td>
+
+                                <td>
+                                    {{ novedad.buque_novedad }}
+                                </td>
+
+                                <td>
+                                    {{ novedad.detalle }}
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% endfor %}
+
+
+    {% else %}
+
+        <div class="no-turns">
+            Todavía no existen novedades registradas
+            en la bitácora.
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+{% else %}
+
+<div class="no-turns">
+    <strong>Bitácora no habilitada para registro.</strong><br>
+    Su usuario inició sesión correctamente, pero no tiene un turno iniciado
+    y abierto. Puede utilizar las demás interfaces desde el menú del sistema.
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+
+
 {% block extra_js %}
+
 {{ block.super }}
+
 {{ buques_industriales|json_script:"industrialShips" }}
 {{ buques_artesanales|json_script:"artisanalShips" }}
-<script src="{% static 'bitacora/js/home.js' %}"></script>
+
+<script src="{% static 'bitacora/js/home.js' %}?v=20260824-2"></script>
+
 {% endblock %}

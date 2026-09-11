@@ -7,37 +7,67 @@ from typing import Any
 from django.conf import settings
 
 from .db_connection import (
-    execute_procedure,
-    validated_procedure,
+    execute_query,
     format_datetime,
     first_value,
-    is_missing_object_error,
 )
 
 
-def _normalize_ship_rows(rows: list[dict[str, Any]], tipo: str) -> list[dict[str, Any]]:
-    """Normaliza filas de procedimiento de buques al contrato esperado."""
+def _normalize_ship_rows(
+    rows: list[dict[str, Any]],
+    tipo: str,
+) -> list[dict[str, Any]]:
+    """Normaliza filas de buques al contrato esperado por la interfaz."""
+
     ships = []
+
     for row in rows:
         ships.append(
             {
                 "tipo": tipo,
-                "scbuque": first_value(row, ("scbuque", "sgregistro", "codigo"), ""),
-                "nombre": first_value(row, ("nombre", "buque"), "Sin nombre"),
-                "matricula": first_value(row, ("n_matricula", "matricula"), ""),
-                "fecha_arribo": format_datetime(
-                    first_value(row, ("fecha_arrivo", "fecha_arribo", "fecha_ing"))
+                "scbuque": first_value(
+                    row,
+                    ("scbuque", "sgregistro", "scregistro", "codigo"),
+                    "",
                 ),
-                "cabo": first_value(row, ("cabo",), 0),
-                "idbuque": first_value(row, ("idbuque", "buque_id")),
-                "idregistro": first_value(row, ("idregistro", "registro_id", "sgregistro")),
+                "nombre": first_value(
+                    row,
+                    ("nombre", "buque"),
+                    "Sin nombre",
+                ),
+                "matricula": first_value(
+                    row,
+                    ("n_matricula", "matricula"),
+                    "",
+                ),
+                "fecha_arribo": format_datetime(
+                    first_value(
+                        row,
+                        ("fecha_arrivo", "fecha_arribo", "fecha_ing"),
+                    )
+                ),
+                "cabo": first_value(
+                    row,
+                    ("cabo",),
+                    0,
+                ),
+                "idbuque": first_value(
+                    row,
+                    ("idbuque", "buque_id"),
+                ),
+                "idregistro": first_value(
+                    row,
+                    ("idregistro", "registro_id", "sgregistro", "scregistro"),
+                ),
             }
         )
+
     return ships
 
 
 def obtener_buques_industriales() -> list[dict[str, Any]]:
-    """Obtiene lista de buques industriales activos."""
+    """Obtiene los buques industriales que permanecen activos."""
+
     if settings.DEMO_MODE:
         return _normalize_ship_rows(
             [
@@ -63,24 +93,53 @@ def obtener_buques_industriales() -> list[dict[str, Any]]:
             "industrial",
         )
 
-    try:
-        procedure = validated_procedure("SP_BUQUES_INDUSTRIALES")
-        return _normalize_ship_rows(execute_procedure(procedure), "industrial")
-    except Exception as exc:
-        if is_missing_object_error(exc):
-            return []
-        raise
+    rows = execute_query(
+        """
+        SELECT
+            scregistro AS scbuque,
+            buque AS nombre,
+            n_matricula,
+            fecha_arrivo,
+            0 AS cabo,
+            idbuque,
+            idregistro
+        FROM dbo.dim_con_maestro_registro_lista
+        WHERE fecha_zarpe IS NULL
+          AND idestado <> 7
+        ORDER BY buque
+        """
+    )
+
+    return _normalize_ship_rows(
+        rows,
+        "industrial",
+    )
 
 
 def obtener_buques_artesanales() -> list[dict[str, Any]]:
-    """Obtiene lista de buques artesanales activos."""
+    """Obtiene los buques artesanales que permanecen activos."""
+
     if settings.DEMO_MODE:
         return []
 
-    try:
-        procedure = validated_procedure("SP_BUQUES_ARTESANALES")
-        return _normalize_ship_rows(execute_procedure(procedure), "artesanal")
-    except Exception as exc:
-        if is_missing_object_error(exc):
-            return []
-        raise
+    rows = execute_query(
+        """
+        SELECT
+            scregistro AS scbuque,
+            buque AS nombre,
+            n_matricula,
+            fecha_ing AS fecha_arrivo,
+            0 AS cabo,
+            idbuque,
+            scregistro AS idregistro
+        FROM dbo.dim_con_maestro_registro_cabotaje
+        WHERE fecha_salida IS NULL
+          AND idestado <> 7
+        ORDER BY buque
+        """
+    )
+
+    return _normalize_ship_rows(
+        rows,
+        "artesanal",
+    )
