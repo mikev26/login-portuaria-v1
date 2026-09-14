@@ -1438,7 +1438,7 @@ def reporte_inec_view(request):
             request,
             (
                 "No fue posible obtener "
-                "el reporte INEC desde SQL Server."
+                "el reporte INEC."
             ),
         )
 
