@@ -2,9 +2,8 @@
 
 {% load static %}
 
-{% block title %}
-    Registros de Buques - Autoridad Portuaria de Manta
-{% endblock %}
+{% block title %} Registros de Buques {% endblock %}
+{% block header_title %}REGISTRO DE BUQUES{% endblock %}
 
 {% block content %}
 
@@ -102,7 +101,7 @@
                         <select
                             id="sel_buque"
                             name="sel_buque"
-                            multiple
+                            
                             {% if not chk_buque %}disabled{% endif %}
                         >
 
@@ -151,7 +150,7 @@
                         <select
                             id="sel_tiponave"
                             name="sel_tiponave"
-                            multiple
+                       
                             {% if not chk_tiponave %}disabled{% endif %}
                         >
 
@@ -200,7 +199,7 @@
                         <select
                             id="sel_armador"
                             name="sel_armador"
-                            multiple
+                       
                             {% if not chk_armador %}disabled{% endif %}
                         >
 
@@ -249,7 +248,7 @@
                         <select
                             id="sel_procedencia"
                             name="sel_procedencia"
-                            multiple
+                
                             {% if not chk_procedencia %}disabled{% endif %}
                         >
 
@@ -298,7 +297,7 @@
                         <select
                             id="sel_destino"
                             name="sel_destino"
-                            multiple
+                
                             {% if not chk_destino %}disabled{% endif %}
                         >
 
@@ -347,7 +346,7 @@
                         <select
                             id="sel_estado"
                             name="sel_estado"
-                            multiple
+                    
                             {% if not chk_estado %}disabled{% endif %}
                         >
 
