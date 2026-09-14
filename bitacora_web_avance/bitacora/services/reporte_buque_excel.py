@@ -242,6 +242,7 @@ def exportar_reporte_buques_excel(
     # ------------------------------------------
     # ESCRIBIR REGISTROS
     # ------------------------------------------
+    estilo_negro = Font(name="Calibri", size=11, color="000000", bold=False)
 
     for numero_fila, registro_original in enumerate(
         rows,
@@ -262,11 +263,12 @@ def exportar_reporte_buques_excel(
                 campo,
             )
 
-            worksheet.cell(
+            cell = worksheet.cell(
                 row=numero_fila,
                 column=numero_columna,
                 value=valor,
             )
+            cell.font = estilo_negro
 
     # ------------------------------------------
     # FIRMA

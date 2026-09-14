@@ -1,4 +1,3 @@
-/* Estilos globales */
 :root {
             --navy-deep: #062d52;
             --navy: #0d4777;
@@ -278,304 +277,198 @@
             main { padding: 20px 17px 30px; }
         }
 
-/* =========================================================
-   COMPONENTES GLOBALES DE LAS VISTAS
-   ========================================================= */
-
-.message {
-    margin-bottom: 18px;
-    padding: 11px 13px;
-    border: 1px solid #efbaba;
-    border-radius: 7px;
-    background: #fce8e8;
-    color: var(--danger);
-    font-size: 13px;
-}
-
-.demo {
-    margin-bottom: 18px;
-    padding: 10px 13px;
-    border-radius: 7px;
-    background: #fff7db;
-    border: 1px solid #efd78a;
-    color: #654d00;
-    font-size: 12.5px;
-}
-
-.section {
-    margin-bottom: 27px;
-}
-
-.section-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 13px;
-    color: var(--blue);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.15px;
-    text-transform: uppercase;
-}
-
-.section-title::after {
-    content: "";
-    height: 1px;
-    flex: 1;
-    background: var(--border);
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-label {
-    font-size: 12px;
-    font-weight: 650;
-}
-
-input,
-select,
-textarea {
-    width: 100%;
-    padding: 9px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: white;
-    color: var(--text);
-    font: 13px "Segoe UI", Arial, sans-serif;
-}
-
-input[readonly],
-input:disabled,
-select:disabled,
-textarea:disabled {
-    background: #f3f6f8;
-    color: var(--muted);
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-    outline: 3px solid rgba(29, 111, 159, .12);
-    border-color: var(--blue);
-}
-
-.actions {
-    display: flex;
-    gap: 10px;
-}
-
-.table-wrap {
-    overflow-x: auto;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-}
-
-table {
-    width: 100%;
-    min-width: 600px;
-    border-collapse: collapse;
-}
-
-th {
-    padding: 10px 13px;
-    text-align: left;
-    background: var(--navy-deep);
-    color: white;
-    font-size: 11px;
-    text-transform: uppercase;
-}
-
-td {
-    padding: 10px 13px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-}
-
-tbody tr:nth-child(even) {
-    background: #f8fafb;
-}
-
-.empty {
-    padding: 22px;
-    text-align: center;
-    color: var(--muted);
-}
-
-/* =========================================================
-   HISTORIAL GENERAL DE BITÁCORA
-
-   Estos estilos afectan únicamente a los bloques del
-   historial general de la Bitácora Electrónica.
-   ========================================================= */
-
-.bitacora-historial {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    margin-top: 14px;
-}
-
-
-/* Contenedor de cada turno */
-.bitacora-turno {
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-
-/* =========================================================
-   ENCABEZADO DEL TURNO
-   Inspector + número de turno + inicio + fin
-   ========================================================= */
-
-.bitacora-turno-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-
-    padding: 13px 15px;
-
-    background: #f7f9fb;
-    border-bottom: 1px solid var(--border);
-}
-
-
-/* Datos principales del inspector */
-.bitacora-inspector {
-    min-width: 0;
-    flex: 1;
-}
-
-
-.bitacora-etiqueta {
-    display: block;
-
-    margin-bottom: 3px;
-
-    font-size: 10px;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-
-    color: var(--muted);
-}
-
-
-.bitacora-inspector-nombre {
-    font-size: 14px;
-    font-weight: 700;
-
-    color: var(--navy-deep);
-}
-
-
-.bitacora-inspector-cargo {
-    margin-top: 3px;
-
-    font-size: 11px;
-
-    color: var(--muted);
-}
-
-
-/* =========================================================
-   INFORMACIÓN DEL TURNO
-   ========================================================= */
-
-.bitacora-turno-info {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-
-    gap: 28px;
-}
-
-
-.bitacora-dato {
-    min-width: 110px;
-
-    font-size: 11px;
-
-    color: var(--text);
-}
-
-
-.bitacora-dato strong {
-    display: block;
-
-    font-size: 11px;
-    font-weight: 600;
-
-    white-space: nowrap;
-}
-
-
-/* =========================================================
-   TABLA DE NOVEDADES
-   ========================================================= */
-
-.bitacora-table-wrap {
-    border: 0;
-    border-radius: 0;
-}
-
-
-.bitacora-table {
-    width: 100%;
-    margin: 0;
-}
-
-
-.bitacora-hora {
-    width: 120px;
-
-    white-space: nowrap;
-}
-
-
-.bitacora-novedad {
-    width: 31%;
-
-    font-weight: 600;
-}
-
-
-.bitacora-detalle {
-    width: auto;
-}
-
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 800px) {
-
-    .bitacora-turno-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-
-    .bitacora-turno-info {
-        width: 100%;
-
-        justify-content: flex-start;
-        flex-wrap: wrap;
-
-        gap: 12px 24px;
-    }
-
-
-    .bitacora-dato {
-        min-width: 130px;
-    }
-}
+        /* =====================================================
+           CAMBIO DE CONTRASEÑA
+           ===================================================== */
+
+        .menu-link-button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .password-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(6, 28, 49, .58);
+        }
+
+        .password-modal-overlay.visible {
+            display: flex;
+        }
+
+        .password-modal {
+            width: min(430px, 100%);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 24px 70px rgba(6,45,82,.30);
+        }
+
+        .password-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 18px 20px;
+            color: white;
+            background: linear-gradient(
+                135deg,
+                var(--navy-deep),
+                var(--navy)
+            );
+        }
+
+        .password-modal-header h2 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .password-modal-close {
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 7px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .password-modal-body {
+            padding: 22px;
+        }
+
+        .password-user {
+            margin: 0 0 18px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: #f7f9fb;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .password-user strong {
+            color: var(--text);
+        }
+
+        .password-field {
+            margin-bottom: 17px;
+        }
+
+        .password-field label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .password-input-wrap {
+            position: relative;
+        }
+
+        .password-input-wrap input {
+            width: 100%;
+            height: 42px;
+            padding: 0 48px 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            outline: none;
+            background: white;
+            color: var(--text);
+            font: inherit;
+        }
+
+        .password-input-wrap input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(29,111,159,.10);
+        }
+
+        .password-eye {
+            position: absolute;
+            top: 50%;
+            right: 7px;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--navy);
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .password-eye:hover {
+            background: #edf5fa;
+        }
+
+        .password-message {
+            display: none;
+            margin: 0 0 15px;
+            padding: 10px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .password-message.error {
+            display: block;
+            border: 1px solid #efc1c1;
+            background: #fdecec;
+            color: #8f1d1d;
+        }
+
+        .password-message.success {
+            display: block;
+            border: 1px solid var(--success-border);
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .password-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 9px;
+            margin-top: 4px;
+        }
+
+        .password-btn {
+            min-height: 39px;
+            padding: 8px 15px;
+            border-radius: 7px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .password-btn-cancel {
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+        }
+
+        .password-btn-save {
+            border: 1px solid var(--navy);
+            background: var(--navy);
+            color: white;
+        }
+
+        .password-btn-save:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        

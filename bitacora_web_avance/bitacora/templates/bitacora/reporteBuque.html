@@ -2,9 +2,8 @@
 
 {% load static %}
 
-{% block title %}
-    Registros de Buques - Autoridad Portuaria de Manta
-{% endblock %}
+{% block title %} Registros de Buques {% endblock %}
+{% block header_title %}REGISTRO DE BUQUES{% endblock %}
 
 {% block content %}
 
@@ -102,6 +101,7 @@
                         <select
                             id="sel_buque"
                             name="sel_buque"
+                            
                             {% if not chk_buque %}disabled{% endif %}
                         >
 
@@ -150,6 +150,7 @@
                         <select
                             id="sel_tiponave"
                             name="sel_tiponave"
+                       
                             {% if not chk_tiponave %}disabled{% endif %}
                         >
 
@@ -198,6 +199,7 @@
                         <select
                             id="sel_armador"
                             name="sel_armador"
+                       
                             {% if not chk_armador %}disabled{% endif %}
                         >
 
@@ -246,6 +248,7 @@
                         <select
                             id="sel_procedencia"
                             name="sel_procedencia"
+                
                             {% if not chk_procedencia %}disabled{% endif %}
                         >
 
@@ -294,6 +297,7 @@
                         <select
                             id="sel_destino"
                             name="sel_destino"
+                
                             {% if not chk_destino %}disabled{% endif %}
                         >
 
@@ -305,7 +309,7 @@
 
                                 <option
                                     value="{{ d }}"
-                                    {% if d in sel_detino %}selected{% endif %}
+                                    {% if d in sel_destino %}selected{% endif %}
                                 >
                                     {{ d }}
                                 </option>
@@ -342,6 +346,7 @@
                         <select
                             id="sel_estado"
                             name="sel_estado"
+                    
                             {% if not chk_estado %}disabled{% endif %}
                         >
 

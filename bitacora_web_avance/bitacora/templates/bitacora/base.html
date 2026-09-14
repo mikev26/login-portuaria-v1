@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="{% static 'bitacora/css/styles.css' %}">
     <link rel="stylesheet" href="{% static 'bitacora/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'bitacora/css/base.css' %}">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -91,7 +92,10 @@
 
     {% block body_after %}{% endblock %}
 
-    {% block extra_js %}  <script src="{% static 'bitacora/js/menu.js' %}"></script> {% endblock %}
+    {% block extra_js %}  
+    <script src="{% static 'bitacora/js/menu.js' %}"></script> 
+    <script src="{% static 'bitacora/js/password.js' %}"></script>
+    {% endblock %}
 
 </body>
 </html>
