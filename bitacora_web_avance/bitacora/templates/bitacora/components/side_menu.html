@@ -41,6 +41,11 @@
             <span>Reporte Combustible</span>
         </a>
 
+        <a class="menu-link" href="{% url 'datos_practicaje' %}">
+            <span class="menu-icon" aria-hidden="true">⚓</span>
+            <span>Datos Practicaje</span>
+        </a>
+
         <a class="menu-link {% if request.resolver_match.url_name == 'datos_abiertos' %}active{% endif %}" 
         href="{% url 'datos_abiertos' %}">
             <span class="menu-icon" aria-hidden="true">🗂</span>
