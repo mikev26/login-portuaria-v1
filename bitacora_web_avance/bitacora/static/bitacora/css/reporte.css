@@ -1,4 +1,6 @@
-/* Estilos exclusivos de Reportes INEC */
+/* =========================================================
+   ESTILOS EXCLUSIVOS DE REPORTES INEC
+   ========================================================= */
 
 .report-card {
     padding: 20px;
@@ -24,6 +26,8 @@
 }
 
 .report-form .actions {
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -66,23 +70,122 @@
     margin-top: 0;
 }
 
+/* =========================================================
+   TABLA DE RESULTADOS
+   ========================================================= */
+
 .table-wrap {
-    background: white;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-table {
-    min-width: 720px;
+/* Barra de desplazamiento */
+.table-wrap::-webkit-scrollbar {
+    height: 8px;
 }
+
+.table-wrap::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+    background: #b8c2cc;
+    border-radius: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover {
+    background: #929da8;
+}
+
+/* Tabla */
+.table-wrap table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+/* Encabezado */
+.table-wrap thead {
+    background: var(--navy);
+}
+
+.table-wrap th {
+    padding: 13px 14px;
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 2px solid var(--navy-deep);
+}
+
+/* Primera y última celda del encabezado */
+.table-wrap th:first-child {
+    border-top-left-radius: 9px;
+}
+
+.table-wrap th:last-child {
+    border-top-right-radius: 9px;
+}
+
+/* Celdas */
+.table-wrap td {
+    padding: 11px 14px;
+    color: #374151;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Filas alternadas */
+.table-wrap tbody tr:nth-child(even) td {
+    background: #f8fafc;
+}
+
+/* Efecto al pasar el mouse */
+.table-wrap tbody tr:hover td {
+    background: #eef4f8;
+}
+
+/* Última fila */
+.table-wrap tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Texto largo */
+.table-wrap td {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =========================================================
+   ESTADO SIN RESULTADOS
+   ========================================================= */
 
 .empty-state {
     padding: 28px 20px;
     border: 1px dashed var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
     color: var(--muted);
     background: #fbfcfd;
     font-size: 13px;
 }
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
 
 @media (max-width: 700px) {
     .report-form {

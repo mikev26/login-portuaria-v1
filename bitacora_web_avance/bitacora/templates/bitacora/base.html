@@ -1,939 +1,101 @@
-{% load static %}
+¿/{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{% block title %}Bitácora Electrónica{% endblock %}</title>
-    <style>
-        :root {
-            --navy-deep: #062d52;
-            --navy: #0d4777;
-            --blue: #1d6f9f;
-            --amber: #f4b63f;
-            --amber-border: #d69212;
-            --surface: #edf2f6;
-            --card: #ffffff;
-            --border: #d7e0e8;
-            --text: #1d2d3d;
-            --muted: #66788a;
-            --danger: #a11c1c;
-            --success: #176b3a;
-            --success-light: #e8f6ed;
-            --success-border: #b9dfc7;
-            --warning: #8a6d1c;
-            --warning-light: #fff9e6;
-            --warning-border: #f5e0a3;
-        }
 
-        * { box-sizing: border-box; }
+    <link rel="stylesheet" href="{% static 'bitacora/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'bitacora/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'bitacora/css/base-*.css' %}">
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--surface);
-            font-family: "Segoe UI", Arial, sans-serif;
-            color: var(--text);
-        }
-
-        body.menu-open { overflow: hidden; }
-
-        .shell {
-            max-width: 1160px;
-            min-height: 100vh;
-            margin: 0 auto;
-            background: var(--card);
-            box-shadow: 0 0 35px rgba(6,45,82,.09);
-        }
-
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 18px 26px;
-            color: white;
-            background: linear-gradient(120deg, var(--navy-deep), var(--navy));
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            min-width: 0;
-        }
-
-        .menu-button {
-            width: 42px;
-            height: 42px;
-            flex: 0 0 42px;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            border: 1px solid rgba(255,255,255,.38);
-            border-radius: 8px;
-            background: rgba(255,255,255,.08);
-            color: white;
-            cursor: pointer;
-            transition: background .2s ease, transform .2s ease;
-        }
-
-        .menu-button:hover { background: rgba(255,255,255,.16); }
-        .menu-button:active { transform: scale(.96); }
-
-        .menu-button span {
-            width: 20px;
-            height: 2px;
-            border-radius: 4px;
-            background: currentColor;
-        }
-
-        .menu-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: rgba(6, 28, 49, .50);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity .22s ease, visibility .22s ease;
-        }
-
-        .menu-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .side-menu {
-            position: fixed;
-            inset: 0 auto 0 0;
-            z-index: 1001;
-            width: min(330px, 88vw);
-            display: flex;
-            flex-direction: column;
-            background: #ffffff;
-            box-shadow: 12px 0 35px rgba(6,45,82,.22);
-            transform: translateX(-105%);
-            transition: transform .25s ease;
-        }
-
-        .side-menu.open { transform: translateX(0); }
-
-        .side-menu-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 20px;
-            color: white;
-            background: linear-gradient(135deg, var(--navy-deep), var(--navy));
-        }
-
-        .side-menu-title {
-            margin: 0;
-            font-size: 16px;
-            letter-spacing: .4px;
-        }
-
-        .side-menu-subtitle {
-            margin: 4px 0 0;
-            font-size: 11.5px;
-            opacity: .78;
-        }
-
-        .menu-close {
-            width: 36px;
-            height: 36px;
-            border: 1px solid rgba(255,255,255,.35);
-            border-radius: 7px;
-            background: rgba(255,255,255,.08);
-            color: white;
-            font-size: 23px;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .menu-navigation {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            padding: 16px 12px;
-            overflow-y: auto;
-        }
-
-        .menu-label {
-            padding: 4px 12px 8px;
-            color: var(--muted);
-            font-size: 10.5px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .menu-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-height: 46px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            transition: background .18s ease, color .18s ease, transform .18s ease;
-        }
-
-        .menu-link:hover {
-            background: #edf5fa;
-            color: var(--navy);
-            transform: translateX(2px);
-        }
-
-        .menu-link.active {
-            background: #e3f0f8;
-            color: var(--navy-deep);
-            box-shadow: inset 4px 0 0 var(--blue);
-        }
-
-        .menu-link.disabled {
-            opacity: .55;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .menu-icon {
-            width: 30px;
-            height: 30px;
-            flex: 0 0 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 7px;
-            background: #edf4f8;
-            color: var(--navy);
-            font-size: 15px;
-        }
-
-        .menu-footer {
-            margin-top: auto;
-            padding: 14px 20px 18px;
-            border-top: 1px solid var(--border);
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 0;
-        }
-
-        .brand img {
-            width: 58px;
-            background: white;
-            border-radius: 7px;
-            padding: 4px;
-        }
-
-        .brand h1 {
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: .4px;
-        }
-
-        .brand p {
-            margin: 4px 0 0;
-            font-size: 12.5px;
-            opacity: .82;
-        }
-
-        .session {
-            text-align: right;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .logout-form { margin-top: 7px; }
-
-        .logout-form button {
-            border: 1px solid rgba(255,255,255,.45);
-            border-radius: 6px;
-            padding: 7px 12px;
-            color: white;
-            background: rgba(255,255,255,.08);
-            cursor: pointer;
-        }
-
-        main { padding: 26px 30px 38px; }
-
-        @media (max-width: 700px) {
-            header {
-                align-items: stretch;
-                flex-direction: column;
-            }
-
-            .header-left { width: 100%; }
-            .brand { min-width: 0; }
-            .brand h1 { font-size: 18px; }
-            .brand p { font-size: 11.5px; }
-            .brand img { width: 50px; }
-            .session { text-align: left; padding-left: 58px; }
-            main { padding: 20px 17px 30px; }
-        }
-
-        /* =====================================================
-           CAMBIO DE CONTRASEÑA
-           ===================================================== */
-
-        .menu-link-button {
-            width: 100%;
-            border: 0;
-            background: transparent;
-            font-family: inherit;
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .password-modal-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: rgba(6, 28, 49, .58);
-        }
-
-        .password-modal-overlay.visible {
-            display: flex;
-        }
-
-        .password-modal {
-            width: min(430px, 100%);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: white;
-            box-shadow: 0 24px 70px rgba(6,45,82,.30);
-        }
-
-        .password-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            padding: 18px 20px;
-            color: white;
-            background: linear-gradient(
-                135deg,
-                var(--navy-deep),
-                var(--navy)
-            );
-        }
-
-        .password-modal-header h2 {
-            margin: 0;
-            font-size: 17px;
-        }
-
-        .password-modal-close {
-            width: 34px;
-            height: 34px;
-            border: 1px solid rgba(255,255,255,.35);
-            border-radius: 7px;
-            background: rgba(255,255,255,.08);
-            color: white;
-            font-size: 22px;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .password-modal-body {
-            padding: 22px;
-        }
-
-        .password-user {
-            margin: 0 0 18px;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            background: #f7f9fb;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .password-user strong {
-            color: var(--text);
-        }
-
-        .password-field {
-            margin-bottom: 17px;
-        }
-
-        .password-field label {
-            display: block;
-            margin-bottom: 7px;
-            color: var(--text);
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .password-input-wrap {
-            position: relative;
-        }
-
-        .password-input-wrap input {
-            width: 100%;
-            height: 42px;
-            padding: 0 48px 0 12px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            outline: none;
-            background: white;
-            color: var(--text);
-            font: inherit;
-        }
-
-        .password-input-wrap input:focus {
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(29,111,159,.10);
-        }
-
-        .password-eye {
-            position: absolute;
-            top: 50%;
-            right: 7px;
-            transform: translateY(-50%);
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 6px;
-            background: transparent;
-            color: var(--navy);
-            font-size: 15px;
-            cursor: pointer;
-        }
-
-        .password-eye:hover {
-            background: #edf5fa;
-        }
-
-        .password-message {
-            display: none;
-            margin: 0 0 15px;
-            padding: 10px 12px;
-            border-radius: 7px;
-            font-size: 12px;
-            line-height: 1.45;
-        }
-
-        .password-message.error {
-            display: block;
-            border: 1px solid #efc1c1;
-            background: #fdecec;
-            color: #8f1d1d;
-        }
-
-        .password-message.success {
-            display: block;
-            border: 1px solid var(--success-border);
-            background: var(--success-light);
-            color: var(--success);
-        }
-
-        .password-modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 9px;
-            margin-top: 4px;
-        }
-
-        .password-btn {
-            min-height: 39px;
-            padding: 8px 15px;
-            border-radius: 7px;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .password-btn-cancel {
-            border: 1px solid var(--border);
-            background: white;
-            color: var(--text);
-        }
-
-        .password-btn-save {
-            border: 1px solid var(--navy);
-            background: var(--navy);
-            color: white;
-        }
-
-        .password-btn-save:disabled {
-            opacity: .6;
-            cursor: wait;
-        }
-
-        {% block extra_css %}{% endblock %}
-    </style>
+    {% block extra_css %}{% endblock %}
 </head>
-<body>
-<div id="menuOverlay" class="menu-overlay" aria-hidden="true"></div>
 
-<aside id="sideMenu" class="side-menu" aria-hidden="true" aria-label="Menú principal">
-    <div class="side-menu-header">
-        <div>
-            <h2 class="side-menu-title">Menú</h2>
-            <p class="side-menu-subtitle">Autoridad Portuaria de Manta</p>
-        </div>
-        <button id="menuClose" class="menu-close" type="button" aria-label="Cerrar menú">&times;</button>
-    </div>
+<body class="{% block body_class %}{% endblock %}">
 
-    <nav class="menu-navigation">
-        <div class="menu-label">Navegación</div>
+    {% block body_before %}{% endblock %}
 
-        {% with current=request.resolver_match.url_name %}
-        <a class="menu-link{% if current == 'bitacora_home' %} active{% endif %}"
-           href="{% url 'bitacora_home' %}"
-           {% if current == 'bitacora_home' %}aria-current="page"{% endif %}>
-            <span class="menu-icon" aria-hidden="true">▣</span>
-            <span>Bitácora electrónica</span>
-        </a>
+    <!-- Menú lateral -->
+    <div id="menuOverlay" class="menu-overlay" aria-hidden="true"></div>
 
-        <a class="menu-link{% if current == 'reporte_inec' %} active{% endif %}"
-           href="{% url 'reporte_inec' %}"
-           {% if current == 'reporte_inec' %}aria-current="page"{% endif %}>
-            <span class="menu-icon" aria-hidden="true">📊</span>
-            <span>Reportes INEC</span>
-        </a>
+    {% include "bitacora/components/side_menu.html" %}
 
-        <a class="menu-link{% if current == 'tarifa' %} active{% endif %}"
-           href="{% url 'tarifa' %}"
-           {% if current == 'tarifa' %}aria-current="page"{% endif %}>
-            <span class="menu-icon" aria-hidden="true">▤</span>
-            <span>Tarifas</span>
-        </a>
-        {% endwith %}
+    <div class="shell">
 
-        <a class="menu-link disabled" href="#" aria-disabled="true">
-            <span class="menu-icon" aria-hidden="true">⌕</span>
-            <span>Interfaz 3 — Próximamente</span>
-        </a>
+        <header>
+            <div class="header-left">
 
-        <div class="menu-label" style="margin-top: 8px;">Seguridad</div>
+                {% include "bitacora/components/hamburger_button.html" %}
 
-        <button
-            type="button"
-            class="menu-link menu-link-button"
-            id="openPasswordModal"
-        >
-            <span class="menu-icon" aria-hidden="true">🔑</span>
-            <span>Cambiar contraseña</span>
-        </button>
-    </nav>
+                <div class="brand">
+                    <img
+                        src="{% static 'bitacora/img/logo_manta.png' %}"
+                        alt="Logo institucional"
+                    >
 
-    <div class="menu-footer">
-        Sesión iniciada como:<br>
-        <strong>{{ usuario_nombre|default:"Usuario" }}</strong>
-    </div>
-</aside>
+                    <div>
+                        <h1>
+                            {% block header_title %}
+                                BITÁCORA ELECTRÓNICA
+                            {% endblock %}
+                        </h1>
 
-
-<div
-    id="passwordModalOverlay"
-    class="password-modal-overlay"
-    aria-hidden="true"
->
-    <div
-        class="password-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="passwordModalTitle"
-    >
-        <div class="password-modal-header">
-            <h2 id="passwordModalTitle">Cambiar contraseña</h2>
-
-            <button
-                type="button"
-                id="closePasswordModal"
-                class="password-modal-close"
-                aria-label="Cerrar"
-            >
-                &times;
-            </button>
-        </div>
-
-        <form
-            id="changePasswordForm"
-            method="post"
-            action="{% url 'cambiar_contrasena' %}"
-        >
-            {% csrf_token %}
-
-            <div class="password-modal-body">
-                <p class="password-user">
-                    Usuario:
-                    <strong>{{ usuario_login|default:"Usuario" }}</strong>
-                </p>
-
-                <div
-                    id="passwordMessage"
-                    class="password-message"
-                ></div>
-
-                <div class="password-field">
-                    <label for="newPassword">
-                        Nueva contraseña
-                    </label>
-
-                    <div class="password-input-wrap">
-                        <input
-                            type="password"
-                            id="newPassword"
-                            name="nueva_password"
-                            maxlength="100"
-                            autocomplete="new-password"
-                            required
-                        >
-
-                        <button
-                            type="button"
-                            class="password-eye"
-                            data-target="newPassword"
-                            aria-label="Mostrar contraseña"
-                            title="Mostrar contraseña"
-                        >
-                            👁
-                        </button>
+                        <p>Autoridad Portuaria de Manta</p>
                     </div>
                 </div>
 
-                <div class="password-field">
-                    <label for="confirmPassword">
-                        Confirmar contraseña
-                    </label>
-
-                    <div class="password-input-wrap">
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmar_password"
-                            maxlength="100"
-                            autocomplete="new-password"
-                            required
-                        >
-
-                        <button
-                            type="button"
-                            class="password-eye"
-                            data-target="confirmPassword"
-                            aria-label="Mostrar contraseña"
-                            title="Mostrar contraseña"
-                        >
-                            👁
-                        </button>
-                    </div>
-                </div>
-
-                <div class="password-modal-actions">
-                    <button
-                        type="button"
-                        id="cancelPasswordModal"
-                        class="password-btn password-btn-cancel"
-                    >
-                        Cancelar
-                    </button>
-
-                    <button
-                        type="submit"
-                        id="savePasswordButton"
-                        class="password-btn password-btn-save"
-                    >
-                        Cambiar contraseña
-                    </button>
-                </div>
             </div>
-        </form>
-    </div>
-</div>
 
-<div class="shell">
-    <header>
-        <div class="header-left">
-            <button
-                id="menuButton"
-                class="menu-button"
-                type="button"
-                aria-label="Abrir menú de interfaces"
-                aria-controls="sideMenu"
-                aria-expanded="false"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+            <div class="session">
+                {% if usuario_nombre %}
+                    <strong>{{ usuario_nombre }}</strong><br>
+                    {{ usuario_cargo|default:'' }}
+                    {% if usuario_login %}
+                        · {{ usuario_login }}
+                    {% endif %}
+                {% endif %}
 
-            <div class="brand">
-                <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
-                <div>
-                    <h1>{% block header_title %}BITÁCORA ELECTRÓNICA{% endblock %}</h1>
-                    <p>{% block header_subtitle %}Autoridad Portuaria de Manta{% endblock %}</p>
-                </div>
+                {% block header_actions %}
+                    {% if usuario_nombre %}
+                        <form
+                            class="logout-form"
+                            method="post"
+                            action="{% url 'logout' %}"
+                        >
+                            {% csrf_token %}
+                            <button type="submit">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endblock %}
             </div>
-        </div>
+        </header>
 
-        <div class="session">
-            <strong>{{ usuario_nombre|default:"Usuario" }}</strong>
-            {% if usuario_cargo or usuario_login %}
-                <br>
-                {% if usuario_cargo %}{{ usuario_cargo }}{% endif %}
-                {% if usuario_cargo and usuario_login %} · {% endif %}
-                {% if usuario_login %}{{ usuario_login }}{% endif %}
+        <main>
+
+            {% if demo_mode %}
+                <div class="demo">
+                    <strong>Modo demostración:</strong>
+                    los datos no provienen todavía de SQL Server.
+                </div>
             {% endif %}
-            <form class="logout-form" method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit">Cerrar sesión</button>
-            </form>
-        </div>
-    </header>
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-</div>
+            {% block content %}{% endblock %}
 
-<script>
-    function setMenuState(isOpen) {
-        const menu = document.getElementById('sideMenu');
-        const overlay = document.getElementById('menuOverlay');
-        const button = document.getElementById('menuButton');
+        </main>
 
-        if (!menu || !overlay || !button) return;
+    </div>
 
-        menu.classList.toggle('open', isOpen);
-        overlay.classList.toggle('visible', isOpen);
-        document.body.classList.toggle('menu-open', isOpen);
+    {% block body_after %}{% endblock %}
 
-        menu.setAttribute('aria-hidden', String(!isOpen));
-        overlay.setAttribute('aria-hidden', String(!isOpen));
-        button.setAttribute('aria-expanded', String(isOpen));
-    }
+    {% block extra_js %}  
+    <script src="{% static 'bitacora/js/menu.js' %}"></script> 
+    <script src="{% static 'bitacora/js/password.js' %}"></script>
+    {% endblock %}
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const menuButton = document.getElementById('menuButton');
-        const menuClose = document.getElementById('menuClose');
-        const menuOverlay = document.getElementById('menuOverlay');
-
-        if (menuButton) menuButton.addEventListener('click', () => setMenuState(true));
-        if (menuClose) menuClose.addEventListener('click', () => setMenuState(false));
-        if (menuOverlay) menuOverlay.addEventListener('click', () => setMenuState(false));
-
-        document.querySelectorAll('.menu-link').forEach((link) => {
-            link.addEventListener('click', () => setMenuState(false));
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') setMenuState(false);
-        });
-    });
-</script>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const openButton = document.getElementById('openPasswordModal');
-    const overlay = document.getElementById('passwordModalOverlay');
-    const closeButton = document.getElementById('closePasswordModal');
-    const cancelButton = document.getElementById('cancelPasswordModal');
-    const form = document.getElementById('changePasswordForm');
-    const newPassword = document.getElementById('newPassword');
-    const confirmPassword = document.getElementById('confirmPassword');
-    const message = document.getElementById('passwordMessage');
-    const saveButton = document.getElementById('savePasswordButton');
-
-    if (
-        !openButton ||
-        !overlay ||
-        !form ||
-        !newPassword ||
-        !confirmPassword ||
-        !message ||
-        !saveButton
-    ) {
-        return;
-    }
-
-    function showMessage(text, type) {
-        message.textContent = text;
-        message.className = 'password-message ' + type;
-    }
-
-    function clearMessage() {
-        message.textContent = '';
-        message.className = 'password-message';
-    }
-
-    function openModal() {
-        clearMessage();
-        form.reset();
-
-        overlay.classList.add('visible');
-        overlay.setAttribute('aria-hidden', 'false');
-
-        if (typeof setMenuState === 'function') {
-            setMenuState(false);
-        }
-
-        window.setTimeout(() => {
-            newPassword.focus();
-        }, 50);
-    }
-
-    function closeModal() {
-        overlay.classList.remove('visible');
-        overlay.setAttribute('aria-hidden', 'true');
-        form.reset();
-        clearMessage();
-    }
-
-    openButton.addEventListener('click', openModal);
-
-    if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-    }
-
-    if (cancelButton) {
-        cancelButton.addEventListener('click', closeModal);
-    }
-
-    overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) {
-            closeModal();
-        }
-    });
-
-    document.querySelectorAll('.password-eye').forEach((button) => {
-        button.addEventListener('click', () => {
-            const input = document.getElementById(
-                button.dataset.target
-            );
-
-            if (!input) {
-                return;
-            }
-
-            const mostrar = input.type === 'password';
-
-            input.type = mostrar ? 'text' : 'password';
-
-            button.setAttribute(
-                'aria-label',
-                mostrar
-                    ? 'Ocultar contraseña'
-                    : 'Mostrar contraseña'
-            );
-
-            button.setAttribute(
-                'title',
-                mostrar
-                    ? 'Ocultar contraseña'
-                    : 'Mostrar contraseña'
-            );
-        });
-    });
-
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        clearMessage();
-
-        if (!newPassword.value || !confirmPassword.value) {
-            showMessage(
-                'Debe completar ambas contraseñas.',
-                'error'
-            );
-            return;
-        }
-
-        if (newPassword.value !== confirmPassword.value) {
-            showMessage(
-                'Las contraseñas no coinciden.',
-                'error'
-            );
-            confirmPassword.focus();
-            return;
-        }
-
-        saveButton.disabled = true;
-        saveButton.textContent = 'Cambiando...';
-
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                credentials: 'same-origin',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            let data = {};
-
-            try {
-                data = await response.json();
-            } catch (error) {
-                data = {};
-            }
-
-            if (!response.ok || !data.ok) {
-                showMessage(
-                    data.message ||
-                    'No fue posible cambiar la contraseña.',
-                    'error'
-                );
-                return;
-            }
-
-            showMessage(
-                data.message ||
-                'Contraseña actualizada correctamente.',
-                'success'
-            );
-
-            newPassword.value = '';
-            confirmPassword.value = '';
-
-            window.setTimeout(() => {
-                closeModal();
-            }, 1600);
-
-        } catch (error) {
-            showMessage(
-                'No fue posible comunicarse con el servidor.',
-                'error'
-            );
-        } finally {
-            saveButton.disabled = false;
-            saveButton.textContent = 'Cambiar contraseña';
-        }
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (
-            event.key === 'Escape' &&
-            overlay.classList.contains('visible')
-        ) {
-            closeModal();
-        }
-    });
-});
-</script>
-
-
-{% block extra_js %}{% endblock %}
 </body>
 </html>

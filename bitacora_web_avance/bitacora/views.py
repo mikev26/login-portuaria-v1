@@ -3100,7 +3100,7 @@ def cambiar_contrasena_view(request):
                 {
                     "ok": False,
                     "message": (
-                        "SQL Server no confirmó el cambio "
+                        "No se pudo reaizar el cambio"
                         "de contraseña."
                     ),
                 },

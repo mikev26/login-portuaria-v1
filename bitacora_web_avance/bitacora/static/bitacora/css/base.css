@@ -1,0 +1,474 @@
+:root {
+            --navy-deep: #062d52;
+            --navy: #0d4777;
+            --blue: #1d6f9f;
+            --amber: #f4b63f;
+            --amber-border: #d69212;
+            --surface: #edf2f6;
+            --card: #ffffff;
+            --border: #d7e0e8;
+            --text: #1d2d3d;
+            --muted: #66788a;
+            --danger: #a11c1c;
+            --success: #176b3a;
+            --success-light: #e8f6ed;
+            --success-border: #b9dfc7;
+            --warning: #8a6d1c;
+            --warning-light: #fff9e6;
+            --warning-border: #f5e0a3;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--surface);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--text);
+        }
+
+        body.menu-open { overflow: hidden; }
+
+        .shell {
+            max-width: 1160px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: var(--card);
+            box-shadow: 0 0 35px rgba(6,45,82,.09);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 18px 26px;
+            color: white;
+            background: linear-gradient(120deg, var(--navy-deep), var(--navy));
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .menu-button {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border: 1px solid rgba(255,255,255,.38);
+            border-radius: 8px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            cursor: pointer;
+            transition: background .2s ease, transform .2s ease;
+        }
+
+        .menu-button:hover { background: rgba(255,255,255,.16); }
+        .menu-button:active { transform: scale(.96); }
+
+        .menu-button span {
+            width: 20px;
+            height: 2px;
+            border-radius: 4px;
+            background: currentColor;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(6, 28, 49, .50);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .22s ease, visibility .22s ease;
+        }
+
+        .menu-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .side-menu {
+            position: fixed;
+            inset: 0 auto 0 0;
+            z-index: 1001;
+            width: min(330px, 88vw);
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            box-shadow: 12px 0 35px rgba(6,45,82,.22);
+            transform: translateX(-105%);
+            transition: transform .25s ease;
+        }
+
+        .side-menu.open { transform: translateX(0); }
+
+        .side-menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 20px;
+            color: white;
+            background: linear-gradient(135deg, var(--navy-deep), var(--navy));
+        }
+
+        .side-menu-title {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: .4px;
+        }
+
+        .side-menu-subtitle {
+            margin: 4px 0 0;
+            font-size: 11.5px;
+            opacity: .78;
+        }
+
+        .menu-close {
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 7px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            font-size: 23px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .menu-navigation {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .menu-label {
+            padding: 4px 12px 8px;
+            color: var(--muted);
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 46px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background .18s ease, color .18s ease, transform .18s ease;
+        }
+
+        .menu-link:hover {
+            background: #edf5fa;
+            color: var(--navy);
+            transform: translateX(2px);
+        }
+
+        .menu-link.active {
+            background: #e3f0f8;
+            color: var(--navy-deep);
+            box-shadow: inset 4px 0 0 var(--blue);
+        }
+
+        .menu-link.disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .menu-icon {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            background: #edf4f8;
+            color: var(--navy);
+            font-size: 15px;
+        }
+
+        .menu-footer {
+            margin-top: auto;
+            padding: 14px 20px 18px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .brand img {
+            width: 58px;
+            background: white;
+            border-radius: 7px;
+            padding: 4px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: .4px;
+        }
+
+        .brand p {
+            margin: 4px 0 0;
+            font-size: 12.5px;
+            opacity: .82;
+        }
+
+        .session {
+            text-align: right;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .logout-form { margin-top: 7px; }
+
+        .logout-form button {
+            border: 1px solid rgba(255,255,255,.45);
+            border-radius: 6px;
+            padding: 7px 12px;
+            color: white;
+            background: rgba(255,255,255,.08);
+            cursor: pointer;
+        }
+
+        main { padding: 26px 30px 38px; }
+
+        @media (max-width: 700px) {
+            header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .header-left { width: 100%; }
+            .brand { min-width: 0; }
+            .brand h1 { font-size: 18px; }
+            .brand p { font-size: 11.5px; }
+            .brand img { width: 50px; }
+            .session { text-align: left; padding-left: 58px; }
+            main { padding: 20px 17px 30px; }
+        }
+
+        /* =====================================================
+           CAMBIO DE CONTRASEÑA
+           ===================================================== */
+
+        .menu-link-button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .password-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(6, 28, 49, .58);
+        }
+
+        .password-modal-overlay.visible {
+            display: flex;
+        }
+
+        .password-modal {
+            width: min(430px, 100%);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 24px 70px rgba(6,45,82,.30);
+        }
+
+        .password-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 18px 20px;
+            color: white;
+            background: linear-gradient(
+                135deg,
+                var(--navy-deep),
+                var(--navy)
+            );
+        }
+
+        .password-modal-header h2 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .password-modal-close {
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 7px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .password-modal-body {
+            padding: 22px;
+        }
+
+        .password-user {
+            margin: 0 0 18px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: #f7f9fb;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .password-user strong {
+            color: var(--text);
+        }
+
+        .password-field {
+            margin-bottom: 17px;
+        }
+
+        .password-field label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .password-input-wrap {
+            position: relative;
+        }
+
+        .password-input-wrap input {
+            width: 100%;
+            height: 42px;
+            padding: 0 48px 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            outline: none;
+            background: white;
+            color: var(--text);
+            font: inherit;
+        }
+
+        .password-input-wrap input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(29,111,159,.10);
+        }
+
+        .password-eye {
+            position: absolute;
+            top: 50%;
+            right: 7px;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--navy);
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .password-eye:hover {
+            background: #edf5fa;
+        }
+
+        .password-message {
+            display: none;
+            margin: 0 0 15px;
+            padding: 10px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .password-message.error {
+            display: block;
+            border: 1px solid #efc1c1;
+            background: #fdecec;
+            color: #8f1d1d;
+        }
+
+        .password-message.success {
+            display: block;
+            border: 1px solid var(--success-border);
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .password-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 9px;
+            margin-top: 4px;
+        }
+
+        .password-btn {
+            min-height: 39px;
+            padding: 8px 15px;
+            border-radius: 7px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .password-btn-cancel {
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+        }
+
+        .password-btn-save {
+            border: 1px solid var(--navy);
+            background: var(--navy);
+            color: white;
+        }
+
+        .password-btn-save:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        

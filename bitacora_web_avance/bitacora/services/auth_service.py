@@ -265,13 +265,13 @@ def cambiar_contrasena_usuario(
         return False
 
     auth_procedure = os.getenv(
-        "AUTH_LOGIN_PROCEDURE",
-        "op_claves.dbo.SPJ_ValidarUserAcceso",
+        "CHANGE_PASSWORD_PROCEDURE",
+        "op_claves.dbo.SPJ_GenerarClaveBitacora",
     ).strip()
 
     if not _IDENTIFIER_RE.fullmatch(auth_procedure):
         raise DatabaseConfigurationError(
-            "AUTH_LOGIN_PROCEDURE debe tener formato "
+            "CHANGE_PASSWORD_PROCEDURE debe tener formato "
             "esquema.procedimiento o base.esquema.procedimiento."
         )
 

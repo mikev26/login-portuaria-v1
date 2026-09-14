@@ -20,16 +20,14 @@
 
         <a
             class="menu-link {% if request.resolver_match.url_name == 'bitacora_home' %}active{% endif %}"
-            href="{% url 'bitacora_home' %}"
-        >
+            href="{% url 'bitacora_home' %}">
             <span class="menu-icon" aria-hidden="true">▣</span>
             <span>Bitácora electrónica</span>
         </a>
 
         <a
             class="menu-link {% if request.resolver_match.url_name == 'tarifa' %}active{% endif %}"
-            href="{% url 'tarifa' %}"
-        >
+            href="{% url 'tarifa' %}">
             <span class="menu-icon" aria-hidden="true">$</span>
             <span>Tarifario</span>
         </a>
@@ -58,6 +56,19 @@
             <span class="menu-icon" aria-hidden="true">⌕</span>
             <span>Interfaz 3 - Próximamente</span>
         </a>
+
+        <div class="menu-label menu-label-security">
+            Seguridad
+        </div>
+
+        <button
+            type="button"
+            class="menu-link menu-link-button"
+            id="openPasswordModal"
+        >
+            <span class="menu-icon" aria-hidden="true">🔑</span>
+            <span>Cambiar contraseña</span>
+        </button>
     </nav>
 
     <div class="menu-footer">
@@ -65,3 +76,134 @@
         <strong>{{ usuario_nombre }}</strong>
     </div>
 </aside>
+
+<!-- =========================================================
+     MODAL CAMBIO DE CONTRASEÑA
+     IMPORTANTE: está FUERA del <aside>
+     ========================================================= -->
+
+<div
+    id="passwordModalOverlay"
+    class="password-modal-overlay"
+    aria-hidden="true"
+>
+    <div
+        class="password-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="passwordModalTitle"
+    >
+        <div class="password-modal-header">
+            <h2 id="passwordModalTitle">
+                Cambiar contraseña
+            </h2>
+
+            <button
+                type="button"
+                id="closePasswordModal"
+                class="password-modal-close"
+                aria-label="Cerrar"
+            >
+                &times;
+            </button>
+        </div>
+
+        <form
+            id="changePasswordForm"
+            method="post"
+            action="{% url 'cambiar_contrasena' %}"
+        >
+            {% csrf_token %}
+
+            <div class="password-modal-body">
+
+                <p class="password-user">
+                    Usuario:
+                    <strong>
+                        {{ usuario_login|default:"Usuario" }}
+                    </strong>
+                </p>
+
+                <div
+                    id="passwordMessage"
+                    class="password-message"
+                ></div>
+
+                <div class="password-field">
+                    <label for="newPassword">
+                        Nueva contraseña
+                    </label>
+
+                    <div class="password-input-wrap">
+                        <input
+                            type="password"
+                            id="newPassword"
+                            name="nueva_password"
+                            maxlength="100"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-eye"
+                            data-target="newPassword"
+                            aria-label="Mostrar contraseña"
+                            title="Mostrar contraseña"
+                        >
+                            👁
+                        </button>
+                    </div>
+                </div>
+
+                <div class="password-field">
+                    <label for="confirmPassword">
+                        Confirmar contraseña
+                    </label>
+
+                    <div class="password-input-wrap">
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmar_password"
+                            maxlength="100"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-eye"
+                            data-target="confirmPassword"
+                            aria-label="Mostrar contraseña"
+                            title="Mostrar contraseña"
+                        >
+                            👁
+                        </button>
+                    </div>
+                </div>
+
+                <div class="password-modal-actions">
+
+                    <button
+                        type="button"
+                        id="cancelPasswordModal"
+                        class="password-btn password-btn-cancel"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        id="savePasswordButton"
+                        class="password-btn password-btn-save"
+                    >
+                        Cambiar contraseña
+                    </button>
+
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
