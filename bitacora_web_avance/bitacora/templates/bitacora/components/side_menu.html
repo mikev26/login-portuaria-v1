@@ -5,12 +5,7 @@
             <p class="side-menu-subtitle">Autoridad Portuaria de Manta</p>
         </div>
 
-        <button
-            id="menuClose"
-            class="menu-close"
-            type="button"
-            aria-label="Cerrar menú"
-        >
+        <button id="menuClose" class="menu-close" type="button" aria-label="Cerrar menú">
             &times;
         </button>
     </div>
@@ -46,7 +41,13 @@
             <span>Reporte Combustible</span>
         </a>
 
-        <a class="menu-link menu-link {% if request.resolver_match.url_name == 'reporte_buque' %}active{% endif %}" 
+        <a class="menu-link {% if request.resolver_match.url_name == 'datos_abiertos' %}active{% endif %}" 
+        href="{% url 'datos_abiertos' %}">
+            <span class="menu-icon" aria-hidden="true">🗂</span>
+            <span>Datos Abiertos</span>
+        </a>
+
+        <a class="menu-link {% if request.resolver_match.url_name == 'reporte_buque' %}active{% endif %}" 
             href="{% url 'reporte_buque' %}">
             <span class="menu-icon" aria-hidden="true">▤</span>
             <span>Reporte Buques</span>
