@@ -7,11 +7,8 @@ from .tarifario import (obtener_tarifas_existentes, obtener_partidas, obtener_ta
 from .combustible import obtener_reporte_combustible
 from .reporte_buque import ( obtener_catalogos_reporte_buques, obtener_datos_reporte_buques,)
 from .reporte_buque_excel import (exportar_reporte_buques_excel)
-from .db_connection import (
-    DatabaseConfigurationError,
-    DatabaseContractError,
-    get_connection,
-)
+from .datos_abiertos import ( generar_excel_datos_abiertos, obtener_reporte_datos_abiertos,)
+from .db_connection import ( DatabaseConfigurationError, DatabaseContractError,get_connection,)
 
 __all__ = [
     "validar_usuario",
@@ -23,6 +20,8 @@ __all__ = [
     "obtener_catalogos_reporte_buques",
     "obtener_datos_reporte_buques",
     "exportar_reporte_buques_excel",
+    "obtener_reporte_datos_abiertos",
+    "generar_excel_datos_abiertos",
     "DatabaseConfigurationError",
     "DatabaseContractError",
     "get_connection",
@@ -33,3 +32,4 @@ __all__ = [
     "guardar_tarifa",
     "anular_tarifa",
 ]
+
