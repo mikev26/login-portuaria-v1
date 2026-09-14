@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path
 
 from bitacora import views
+from bitacora import practicaje_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -11,6 +12,9 @@ urlpatterns = [
     path("tarifario/", views.tarifa_view, name="tarifa"),
     path("reporte/inec/", views.reporte_inec_view, name="reporte_inec"),
     path("registro-combustible/", views.registro_combustible_home, name="registro_combustible"),
+    path("datos-practicaje/", practicaje_views.datos_practicaje_home, name="datos_practicaje"),
+    path("datos-practicaje/exportar-excel/", practicaje_views.exportar_datos_practicaje_excel, name="datos_practicaje_exportar"),
+    path("datos-practicaje/exportar-excel/validar/", practicaje_views.validar_exportacion_practicaje, name="datos_practicaje_exportar_validar"),
     path("datos-abiertos/", views.datos_abiertos_home, name="datos_abiertos"),
     path("datos-abiertos/exportar-excel/", views.datos_abiertos_exportar_view, name="datos_abiertos_exportar",),
     path("registro-combustible/exportar-excel/", views.exportar_excel, name="registro_combustible_exportar"),

@@ -1,0 +1,175 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Datos Practicaje{% endblock %}
+
+{% block header_title %}
+    DATOS PRACTICAJE
+{% endblock %}
+
+{% block body_class %}
+    report-page practicaje-page
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'bitacora/css/practicaje.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="report-shell">
+
+    <section class="report-header">
+
+        <div class="report-header-content">
+
+            <div class="report-logo">
+                <img
+                    src="{% static 'bitacora/img/logo_manta.png' %}"
+                    alt="Logo institucional"
+                >
+            </div>
+
+            <div class="report-header-text">
+
+                <div class="report-title">
+                    AUTORIDAD PORTUARIA DE MANTA
+                </div>
+
+                <div class="report-subtitle">
+                    DPTO. DE OPERACIONES - TERMINAL PESQUERO Y CABOTAJE
+                </div>
+
+                <div class="report-small-title">
+                    DATOS PRACTICAJE
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="page-label">
+            Página<br>
+            <strong>1</strong>
+        </div>
+
+    </section>
+
+    <div class="section-line"></div>
+
+    <section class="info-block">
+
+        <div id="report-messages">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message-banner {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="field-box">
+            <div>
+                <div class="field-label">Fecha de emisión</div>
+                <div class="field-value">Manta, {% now "d/m/Y" %}</div>
+            </div>
+        </div>
+
+        <form method="get" class="date-range-form">
+            <div class="date-range">
+
+                <label>
+                    <span class="field-label">Año</span>
+                    <input type="number" name="sano" min="1900" max="9999" value="{{ sano }}" required>
+                </label>
+
+                <label>
+                    <span class="field-label">Trimestre</span>
+                    <select name="sTrimestre" required>
+                        <option value="">Seleccione</option>
+                        <option value="1"{% if sTrimestre == "1" %} selected{% endif %}>Primer trimestre</option>
+                    </select>
+                </label>
+
+                <button type="submit" class="search-button">Buscar</button>
+
+                <button
+                    id="export-button"
+                    type="button"
+                    class="search-button"
+                    data-export-url="{% url 'datos_practicaje_exportar' %}"
+                    data-validate-url="{% url 'datos_practicaje_exportar_validar' %}"
+                    data-has-rows="{{ export_enabled|yesno:'true,false' }}"
+                    disabled
+                >
+                    Exportar Excel
+                </button>
+
+            </div>
+
+            <div id="export-message" class="export-message"></div>
+        </form>
+
+    </section>
+
+    <section class="section report-results">
+
+        <div class="section-title">Datos de practicaje</div>
+
+        {% if consulta_realizada and not registros %}
+            <div class="message-banner info">
+                No se encontraron datos para el año y trimestre seleccionados.
+            </div>
+        {% endif %}
+
+        <div class="table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Nro</th>
+                        <th>Registro</th>
+                        <th>Buque</th>
+                        <th>Bandera</th>
+                        <th>IPB</th>
+                        <th>Año</th>
+                        <th>Ubicación</th>
+                        <th>Usuario</th>
+                        <th>Operadora</th>
+                        <th>TipoManiobra</th>
+                        <th>Trimestre</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+
+                <tbody id="report-table-body">
+                    {% if registros %}
+                        {% for registro in registros %}
+                            <tr>
+                                <td>{{ registro.nro }}</td>
+                                <td>{{ registro.registro }}</td>
+                                <td>{{ registro.buque }}</td>
+                                <td>{{ registro.bandera }}</td>
+                                <td>{{ registro.ipb }}</td>
+                                <td>{{ registro.ano }}</td>
+                                <td>{{ registro.ubicacion }}</td>
+                                <td>{{ registro.usuario }}</td>
+                                <td>{{ registro.operadora }}</td>
+                                <td>{{ registro.tipomaniobra }}</td>
+                                <td>{{ registro.trimestre }}</td>
+                                <td>{{ registro.fecha }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'bitacora/js/practicaje.js' %}"></script>
+{% endblock %}
