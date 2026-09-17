@@ -29,6 +29,13 @@ urlpatterns = [
     path("api/siguiente-codigo-tarifa/", views.api_siguiente_codigo, name="api_siguiente_codigo"),
     path( "reporte/buques/", views.reporte_buque_view, name="reporte_buque"),
     path( "reporte/buques/exportar/", views.exportar_reporte_buques, name="exportar_reporte_buques"),
+    # -----------------------------------------
+    path("modulo-buques/", views.index, name="modulo_buques_home"),
+    path("api/buques", views.obtener_buques, name="obtener_buques"),
+    path("api/registros", views.obtener_registros, name="obtener_registros"),
+    path("api/operadores_movimiento", views.obtener_operadores_movimiento, name="obtener_operadores_movimiento"),
+    path("api/operadores_listados", views.obtener_operadores_listados, name="obtener_operadores_listados"),
+    path("api/exportar-buques", views.exportar_buques, name="exportar_buques"),
     path("salir/", views.logout_view, name="logout"),
     path("cambiar-contrasena/", views.cambiar_contrasena_view, name="cambiar_contrasena"),
 ]
