@@ -65,8 +65,8 @@ BEGIN
         IF @porcentajeAnterior IS NULL SET @porcentajeAnterior = 0;
 
         -- 2. Insertar cabecera del ajuste por inflación
-        INSERT INTO dbo.dim_TarifaCab (ano, detalle, idUsuario, fechaInflacion, fechaRegistro, porcentajeAnterior, porcentajeActual)
-        VALUES (@pano, @pdetalle, @pidusuario, @pfechaInflacion, GETDATE(), @porcentajeAnterior, @pinflacion);
+        INSERT INTO dbo.dim_TarifaCab (detalle, idUsuario, fechaInflacion, fechaRegistro, porcentajeAnterior, porcentajeActual)
+        VALUES (@pdetalle, @pidusuario, @pfechaInflacion, GETDATE(), @porcentajeAnterior, @pinflacion);
 
         DECLARE @new_cab_id INT;
         SET @new_cab_id = SCOPE_IDENTITY();

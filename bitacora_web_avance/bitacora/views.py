@@ -1736,8 +1736,8 @@ def exportar_tarifa_inflacion_pdf_view(request):
 
     anio_raw = params.get("anio", "").strip() or params.get("ano", "").strip()
     anio_query = int(anio_raw) if anio_raw.isdigit() else None
-
     es_historico = bool(id_cabotaje or params.get("es_historico") == "1")
+    codigos_raw = params.get("codigos", "").strip() or params.get("codigo", "").strip()
 
     if es_historico:
         try:
@@ -1745,6 +1745,11 @@ def exportar_tarifa_inflacion_pdf_view(request):
         except Exception as exc:
             logger.exception("Error al obtener histórico de tarifas para PDF")
             tarifas = []
+
+        if codigos_raw and tarifas:
+            lista_codigos = [c.strip() for c in codigos_raw.split(",") if c.strip()]
+            if lista_codigos:
+                tarifas = [t for t in tarifas if str(t.get("codigo", "")).strip() in lista_codigos]
 
         if tarifas:
             first = tarifas[0]
@@ -1799,7 +1804,8 @@ def exportar_tarifa_inflacion_pdf_view(request):
             detalle=detalle,
         )
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        filename = f"Tarifario_Inflacion_Historico_{anio_query or id_cabotaje}.pdf" if es_historico else f"Tarifario_Inflacion_{anio}.pdf"
+        suffix_cod = f"_{codigos_raw.replace(',', '_')}" if (es_historico and codigos_raw) else ""
+        filename = f"Tarifario_Inflacion_Historico_{anio_query or id_cabotaje}{suffix_cod}.pdf" if es_historico else f"Tarifario_Inflacion_{anio}.pdf"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
     except Exception as exc:
@@ -1857,6 +1863,8 @@ def obtener_historico_tarifas_view(request):
             "porcentaje_inflacion": porcentaje_cabecera,
             "detalle": first.get("detalle"),
             "id_usuario": first.get("id_usuario"),
+            "nombre": first.get("nombre") or first.get("usuario_nombre") or "",
+            "usuario_nombre": first.get("usuario_nombre") or first.get("nombre") or "",
         }
 
         return JsonResponse({
@@ -1992,8 +2000,15 @@ def guardar_tarifa_view(request):
     except (ValueError, TypeError):
         idtarifa = 0
 
-    if not codigo or not tarifa or not tasa_id:
-        return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tarifa o Tasa)"})
+    if not codigo or not tarifa or not tasa_id or not partida_cod or not formula:
+        return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tasa, Tarifa, Partida o Fórmula)"})
+
+    try:
+        val_num = float(valor)
+        if val_num < 0:
+            return JsonResponse({"success": False, "error": "El valor de la tarifa no puede ser negativo."})
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "El valor de la tarifa no es válido."})
 
     if len(codigo) > 5:
         return JsonResponse({"success": False, "error": "El Código no puede superar los 5 caracteres."})
@@ -2011,8 +2026,11 @@ def guardar_tarifa_view(request):
     calc_unidad_map = {"dia": 1, "horas": 2}
     hora_dia = calc_unidad_map.get(calc_unidad, 3) # default a 3 (cantidad/otros)
 
-    calc_param_map = {"eslora": 1, "t_neto": 2}
+    calc_param_map = {"eslora": 1, "ton_bruto": 2, "t_neto": 4}
     eslora_tneto = calc_param_map.get(calc_param, 3) # default a 3 (otros)
+
+    ptipo_map = {"eslora": 1, "t_neto": 2, "otros": 0, "ton_bruto": 0}
+    ptipo = ptipo_map.get(calc_param, 0)
 
     ticket_srv_map = {"vehiculo": 1, "muelle": 2}
     ticket = ticket_srv_map.get(ticket_srv, 0) # default a 0 (ninguno)
@@ -2035,6 +2053,7 @@ def guardar_tarifa_view(request):
             activo=1 if activa in ["1", "true", "True"] else 0,
             cambio_factura=1 if permitir_cambio_valor in ["1", "true", "True"] else 0,
             aplica_inflacion=1 if aplica_inflacion in ["1", "true", "True"] else 0,
+            ptipo=ptipo,
         )
         if resul == 3:
             return JsonResponse({"success": False, "error": "El código de tarifa ya existe para esta tasa."})

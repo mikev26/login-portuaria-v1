@@ -103,7 +103,7 @@
             width: 100% !important;
             gap: 10px !important;
         }
-        .btn-historial, .btn-apply, .btn-save-top, .btn-export-excel {
+        .btn-historial, .btn-apply, .btn-save-top {
             flex: 1 !important;
             text-align: center !important;
             justify-content: center !important;
@@ -135,16 +135,16 @@
         
         <div class="field" style="width: 190px; min-width: 160px; flex-shrink: 0;">
             <label for="inputInflacion">Porcentaje Inflacion (%)</label>
-            <input type="number" id="inputInflacion" name="porcentaje" step="0.01" value="" min="0" max="100" placeholder="Ej: 2.00">
+            <input type="number" id="inputInflacion" name="porcentaje" step="0.01" value="" min="0" max="100" placeholder="Ej: 2.00" autocomplete="off">
         </div>
 
         <div class="field field-detail" style="flex: 1 1 auto; min-width: 250px;">
             <label for="inputDetalle">Detalle</label>
-            <input type="text" id="inputDetalle" name="detalle" placeholder="Justificación" maxlength="252">
+            <input type="text" id="inputDetalle" name="detalle" placeholder="Justificación" maxlength="252" autocomplete="off">
         </div>
     </div>
 
-    <!-- Fila de Botones: Historial (izquierda, debajo de Fecha Inflacion) y APLICAR, Guardar, Exportar PDF (derecha) -->
+    <!-- Fila de Botones: Historial y Volver a Registro Inflacion (izquierda) y APLICAR, Guardar (derecha) -->
     <div class="filter-actions-row">
         <div class="filter-actions-left" style="display: flex; align-items: center; gap: 12px;">
             <button type="button" id="btnHistorial" class="btn-historial" title="Ver historial de inflación">
@@ -153,20 +153,18 @@
                 </svg>
                 Historial
             </button>
-            <button type="button" id="btnRestablecerModo" class="btn-salir-historico" title="Salir de histórico y volver al formulario activo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 17.59 13.41 12z"/></svg>
-                <span>Salir de histórico <strong id="badgeIdCabotajeText">#0</strong></span>
+            <button type="button" id="btnVolverRegistro" class="btn-volver-registro" style="display: none;" title="Volver al registro y simulación de inflación">
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width: 15px; height: 15px;">
+                    <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+                Volver a Registro Inflacion
             </button>
         </div>
         <div class="filter-actions-right">
             <button type="button" id="btnAplicar" class="btn-apply">APLICAR</button>
             <button type="button" id="btnGuardar" class="btn-save-top" title="Guardar ajuste por inflación">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                 Guardar
-            </button>
-            <button type="button" id="btnExportar" class="btn-export-excel" title="Exportar reporte a PDF">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                Exportar PDF
             </button>
         </div>
     </div>
@@ -294,7 +292,7 @@
                     <label for="inputModalAno" style="display: block; font-weight: 700; font-size: 12px; color: var(--navy); margin-bottom: 6px;">
                         Año del Histórico (Año):
                     </label>
-                    <input type="number" id="inputModalAno" min="2000" max="2100" placeholder="Ej: 2026" style="width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--navy-deep); background: #ffffff;">
+                    <input type="number" id="inputModalAno" min="2000" max="2100" placeholder="Ej: 2026" autocomplete="off" style="width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--navy-deep); background: #ffffff;">
                 </div>
                 <div style="font-size: 12px; color: #475569; background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
                     <span>ℹ️ Se abrirá una nueva ventana modal con el desglose de tarifas y fecha de registro de ese año.</span>
@@ -329,13 +327,16 @@
                         <thead style="position: sticky; top: 0; background: var(--navy); color: #ffffff; font-size: 12px; font-weight: 700; z-index: 2;">
                             <tr>
                                 <th style="padding: 10px 10px; text-align: center; width: 45px;">ITEM</th>
-                                <th style="padding: 10px 10px; text-align: center; width: 85px;">IDUSUARIO</th>
+                                <th style="padding: 10px 10px; text-align: center; width: 140px;">USUARIO</th>
                                 <th style="padding: 10px 10px; text-align: center; width: 140px;">FECHA REGISTRO</th>
                                 <th style="padding: 10px 10px; text-align: center; width: 85px;">COD.TARIFA</th>
                                 <th style="padding: 10px 10px; text-align: left;">TARIFA</th>
                                 <th style="padding: 10px 10px; text-align: right; width: 110px;" id="headerModalTarifaAnioAnterior">TARIFA 2025</th>
                                 <th style="padding: 10px 10px; text-align: right; width: 105px;">INFLACIÓN</th>
                                 <th style="padding: 10px 10px; text-align: right; width: 110px;" id="headerModalTarifaAnioActual">TARIFA 2026</th>
+                                <th style="padding: 10px 10px; text-align: center; width: 60px;" title="Seleccionar">
+                                    <input type="checkbox" id="chkModalSelectAllHeader" title="Seleccionar / Deseleccionar Todo" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--navy); vertical-align: middle;">
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="tablaResultadoHistoricoBody">
@@ -344,10 +345,14 @@
                     </table>
                 </div>
             </div>
-            <div class="custom-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-                <button type="button" class="btn-export-excel" id="btnResultadoHistoricoExportarPDF" style="background: #eab308; color: #1e293b; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 15px; height: 15px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                    Exportar PDF Histórico
+            <div class="custom-modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+                <button type="button" class="btn-modal-select-all" id="btnResultadoHistoricoSelectAll" style="background: #ffffff; border: 1.5px solid #0284c7; color: #0284c7; font-size: 12.5px; font-weight: 700; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    Seleccionar Todo
+                </button>
+                <button type="button" class="btn-modal-confirm" id="btnResultadoHistoricoAceptar" style="background: var(--navy); color: #ffffff; font-size: 12.5px; font-weight: 700; padding: 8px 20px; border-radius: 6px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    Aceptar
                 </button>
                 <button type="button" class="btn-modal-cancel" id="btnResultadoHistoricoModalCerrar">Cerrar</button>
             </div>
@@ -363,7 +368,6 @@
         const selectAnio = document.getElementById('selectAnio');
         const inputInflacion = document.getElementById('inputInflacion');
         const btnAplicar = document.getElementById('btnAplicar');
-        const btnExportar = document.getElementById('btnExportar');
         const btnGuardar = document.getElementById('btnGuardar');
         const headerValorTarifa = document.getElementById('headerValorTarifa');
         const placeholderMessage = document.getElementById('placeholderMessage');
@@ -397,11 +401,23 @@
         const resultadoHistoricoModalOverlay = document.getElementById('resultadoHistoricoModalOverlay');
         const btnResultadoHistoricoModalClose = document.getElementById('btnResultadoHistoricoModalClose');
         const btnResultadoHistoricoModalCerrar = document.getElementById('btnResultadoHistoricoModalCerrar');
-        const btnResultadoHistoricoExportarPDF = document.getElementById('btnResultadoHistoricoExportarPDF');
+        const btnResultadoHistoricoSelectAll = document.getElementById('btnResultadoHistoricoSelectAll');
+        const btnResultadoHistoricoAceptar = document.getElementById('btnResultadoHistoricoAceptar');
+        const chkModalSelectAllHeader = document.getElementById('chkModalSelectAllHeader');
         const tablaResultadoHistoricoBody = document.getElementById('tablaResultadoHistoricoBody');
         const lblHistoricoModalAno = document.getElementById('lblHistoricoModalAno');
         const headerModalTarifaAnioAnterior = document.getElementById('headerModalTarifaAnioAnterior');
         const headerModalTarifaAnioActual = document.getElementById('headerModalTarifaAnioActual');
+
+        // Elementos de Modo Histórico en Pantalla Principal
+        const btnVolverRegistro = document.getElementById('btnVolverRegistro');
+        const tablaTarifasBody = document.getElementById('tablaTarifasBody');
+        const originalTablaTarifasHTML = tablaTarifasBody ? tablaTarifasBody.innerHTML : '';
+
+        let modoHistoricoActivo = false;
+        let historicoSeleccionadoData = null;
+        let historicoSeleccionadasList = [];
+        let lastDataHistoricoResponse = null;
 
         let resultadoHistoricoAnoActual = null;
         let resultadoHistoricoIdActual = null;
@@ -493,14 +509,29 @@
                 if (headerModalTarifaAnioAnterior) headerModalTarifaAnioAnterior.textContent = `TARIFA ${anioAnterior}`;
                 if (headerModalTarifaAnioActual) headerModalTarifaAnioActual.textContent = `TARIFA ${anioActual}`;
 
+                // Guardar la respuesta recibida
+                lastDataHistoricoResponse = data;
+
+                // Resetear selector y estado del encabezado
+                if (chkModalSelectAllHeader) {
+                    chkModalSelectAllHeader.checked = false;
+                    chkModalSelectAllHeader.indeterminate = false;
+                }
+                if (btnResultadoHistoricoSelectAll) {
+                    btnResultadoHistoricoSelectAll.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Seleccionar Todo`;
+                }
+
                 // Poblar la tabla de tarifas dentro del Modal 2
                 if (tablaResultadoHistoricoBody && data.tarifas) {
                     tablaResultadoHistoricoBody.innerHTML = '';
                     data.tarifas.forEach(t => {
                         const tr = document.createElement('tr');
+                        tr.className = 'fila-historico-interactiva';
                         tr.style.borderBottom = '1px solid #f1f5f9';
+                        tr.style.cursor = 'pointer';
+                        tr.title = 'Haga clic para seleccionar o deseleccionar esta tarifa';
 
-                        const idUsuarioFila = t.id_usuario !== undefined && t.id_usuario !== null && String(t.id_usuario).trim() !== '' ? t.id_usuario : (meta.id_usuario || '-');
+                        const usuarioFila = t.nombre || t.usuario_nombre || (t.id_usuario !== undefined && t.id_usuario !== null && String(t.id_usuario).trim() !== '' ? t.id_usuario : (meta.id_usuario || '-'));
                         const fechaRegFila = t.fecha_registro || meta.fecha_registro || '-';
 
                         const valAnteriorNum = parseFloat(t.valor_anterior || t.valor || 0);
@@ -513,14 +544,32 @@
 
                         tr.innerHTML = `
                             <td style="padding: 10px 10px; text-align: center; font-weight: 600; color: #475569;">${t.nro || ''}</td>
-                            <td style="padding: 10px 10px; text-align: center; font-weight: 700; color: var(--navy);">${idUsuarioFila}</td>
+                            <td style="padding: 10px 10px; text-align: center; font-weight: 700; color: var(--navy);" title="ID Usuario: ${t.id_usuario || ''}">${usuarioFila}</td>
                             <td style="padding: 10px 10px; text-align: center; color: #0284c7; font-size: 12px; font-weight: 500;">${fechaRegFila}</td>
                             <td style="padding: 10px 10px; text-align: center; font-weight: 700; color: #1e293b;">${t.codigo || ''}</td>
                             <td style="padding: 10px 10px; font-weight: 500; color: #1e293b;">${t.tarifa || ''}</td>
                             <td style="padding: 10px 10px; text-align: right; color: #475569;">$ ${valAnteriorNum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
                             <td style="padding: 10px 10px; text-align: right; color: #64748b; font-weight: 500;">${txtInflacion}</td>
                             <td style="padding: 10px 10px; text-align: right; font-weight: 700; color: var(--navy-deep);">$ ${valFinalNum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
+                            <td style="padding: 8px 10px; text-align: center;">
+                                <input type="checkbox" class="chk-tarifa-historica" style="width: 17px; height: 17px; cursor: pointer; accent-color: var(--navy); vertical-align: middle;">
+                            </td>
                         `;
+
+                        const chk = tr.querySelector('.chk-tarifa-historica');
+                        chk._tarifaData = t;
+
+                        chk.addEventListener('change', () => {
+                            actualizarEstadoBotonesSeleccion();
+                        });
+
+                        tr.addEventListener('click', (e) => {
+                            if (e.target !== chk) {
+                                chk.checked = !chk.checked;
+                                actualizarEstadoBotonesSeleccion();
+                            }
+                        });
+
                         tablaResultadoHistoricoBody.appendChild(tr);
                     });
                 }
@@ -543,6 +592,58 @@
             }
         }
 
+        function actualizarEstadoBotonesSeleccion() {
+            const allCheckboxes = tablaResultadoHistoricoBody ? tablaResultadoHistoricoBody.querySelectorAll('.chk-tarifa-historica') : [];
+            if (!allCheckboxes.length) return;
+            const total = allCheckboxes.length;
+            const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
+            if (chkModalSelectAllHeader) {
+                chkModalSelectAllHeader.checked = (checkedCount === total);
+                chkModalSelectAllHeader.indeterminate = (checkedCount > 0 && checkedCount < total);
+            }
+            if (btnResultadoHistoricoSelectAll) {
+                if (checkedCount === total) {
+                    btnResultadoHistoricoSelectAll.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg> Deseleccionar Todo`;
+                } else {
+                    btnResultadoHistoricoSelectAll.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Seleccionar Todo`;
+                }
+            }
+        }
+
+        if (btnResultadoHistoricoSelectAll) {
+            btnResultadoHistoricoSelectAll.addEventListener('click', () => {
+                const allCheckboxes = tablaResultadoHistoricoBody ? tablaResultadoHistoricoBody.querySelectorAll('.chk-tarifa-historica') : [];
+                if (!allCheckboxes.length) return;
+                const allChecked = Array.from(allCheckboxes).every(c => c.checked);
+                const nuevoEstado = !allChecked;
+                allCheckboxes.forEach(c => c.checked = nuevoEstado);
+                actualizarEstadoBotonesSeleccion();
+            });
+        }
+
+        if (chkModalSelectAllHeader) {
+            chkModalSelectAllHeader.addEventListener('change', () => {
+                const allCheckboxes = tablaResultadoHistoricoBody ? tablaResultadoHistoricoBody.querySelectorAll('.chk-tarifa-historica') : [];
+                allCheckboxes.forEach(c => c.checked = chkModalSelectAllHeader.checked);
+                actualizarEstadoBotonesSeleccion();
+            });
+        }
+
+        if (btnResultadoHistoricoAceptar) {
+            btnResultadoHistoricoAceptar.addEventListener('click', () => {
+                const checkedList = tablaResultadoHistoricoBody 
+                    ? Array.from(tablaResultadoHistoricoBody.querySelectorAll('.chk-tarifa-historica:checked')).map(c => c._tarifaData).filter(Boolean)
+                    : [];
+                
+                if (checkedList.length === 0) {
+                    showToast('Por favor seleccione al menos una tarifa con la casilla de verificación.', 'warning');
+                    return;
+                }
+
+                aplicarTarifasHistoricasSeleccionadas(checkedList, lastDataHistoricoResponse);
+            });
+        }
+
         if (btnHistoricoModalCargar) {
             btnHistoricoModalCargar.addEventListener('click', cargarHistoricoPorAno);
         }
@@ -556,21 +657,188 @@
             });
         }
 
-        if (btnResultadoHistoricoExportarPDF) {
-            btnResultadoHistoricoExportarPDF.addEventListener('click', () => {
-                if (!resultadoHistoricoAnoActual && !resultadoHistoricoIdActual) {
-                    showToast('No hay datos históricos activos para exportar.', 'warning');
-                    return;
-                }
-                showToast('Generando y descargando PDF del histórico...', 'info');
-                const params = new URLSearchParams();
-                params.append('es_historico', '1');
-                if (resultadoHistoricoAnoActual) params.append('anio', resultadoHistoricoAnoActual);
-                if (resultadoHistoricoIdActual) params.append('id_cabotaje', resultadoHistoricoIdActual);
+        // ======================================================================
+        // Lógica de Selección de Histórico hacia Pantalla Principal
+        // ======================================================================
+        function aplicarTarifasHistoricasSeleccionadas(tarifasAjuste, dataResponse) {
+            if (!tarifasAjuste || !tarifasAjuste.length) return;
+            const meta = (dataResponse && dataResponse.metadata) ? dataResponse.metadata : {};
+            const firstItem = tarifasAjuste[0];
 
-                const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
-                window.location.href = exportUrl;
-            });
+            // 1. Llenar inputs de cabecera en la pantalla principal
+            let fVal = firstItem.fecha_inflacion || firstItem.fecha_registro || meta.fecha_inflacion || meta.fecha_registro || '';
+            if (fVal.includes(' ')) {
+                fVal = fVal.split(' ')[0]; // Convertir formato fecha para input date (YYYY-MM-DD)
+            }
+            if (inputFechaInflacion) {
+                inputFechaInflacion.value = fVal;
+                inputFechaInflacion.disabled = true;
+            }
+
+            const anioVal = String(firstItem.ano || meta.ano || resultadoHistoricoAnoActual || '');
+            if (selectAnio && anioVal) {
+                let hasOption = false;
+                for (let i = 0; i < selectAnio.options.length; i++) {
+                    if (selectAnio.options[i].value === anioVal) {
+                        hasOption = true;
+                        break;
+                    }
+                }
+                if (!hasOption) {
+                    const opt = document.createElement('option');
+                    opt.value = anioVal;
+                    opt.textContent = anioVal;
+                    selectAnio.appendChild(opt);
+                }
+                selectAnio.value = anioVal;
+                selectAnio.disabled = true;
+            }
+
+            const inflacionVal = parseFloat(firstItem.porcentaje_actual !== undefined && firstItem.porcentaje_actual !== null ? firstItem.porcentaje_actual : (firstItem.porcentaje_inflacion || meta.porcentaje_inflacion || 0));
+            if (inputInflacion) {
+                inputInflacion.value = inflacionVal.toFixed(2);
+                inputInflacion.disabled = true;
+            }
+
+            if (inputDetalle) {
+                inputDetalle.value = firstItem.detalle || meta.detalle || '';
+                inputDetalle.disabled = true;
+            }
+
+            // 2. Encabezados de año de la tabla
+            const numAnio = parseInt(anioVal, 10) || currentYear;
+            const numAnioAnt = firstItem.ano_anterior || meta.ano_anterior || (numAnio - 1);
+            if (headerTarifaAnioAnterior) headerTarifaAnioAnterior.textContent = `Tarifa ${numAnioAnt}`;
+            if (headerValorTarifa) headerValorTarifa.textContent = `Tarifa ${numAnio}`;
+
+            // 3. Poblar la tabla de tarifas de la pantalla principal con los elementos seleccionados
+            if (tablaTarifasBody) {
+                tablaTarifasBody.innerHTML = '';
+                tarifasAjuste.forEach((item, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.dataset.baseVal = item.valor_anterior || item.valor || '0';
+                    tr.dataset.aplicaInflacion = item.aplica_inflacion == 1 ? '1' : '0';
+
+                    const valAnterior = parseFloat(item.valor_anterior || item.valor || 0);
+                    const valInflacion = parseFloat(item.tarifa_inflacion || 0);
+                    const valFinal = parseFloat(item.valor_final || 0);
+
+                    const txtInflacion = item.aplica_inflacion == 1
+                        ? `$ ${valInflacion.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`
+                        : '-';
+                    const txtTotal = `$ ${valFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+
+                    tr.innerHTML = `
+                        <td class="text-center">${idx + 1}</td>
+                        <td class="text-center" style="font-weight: 700;">${item.codigo || ''}</td>
+                        <td>${item.tarifa || ''}</td>
+                        <td class="text-right">$ ${valAnterior.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
+                        <td class="text-right text-calc-inflacion" style="color: var(--muted); font-weight: 500;">${txtInflacion}</td>
+                        <td class="text-right text-calc-total" style="font-weight: 600; color: var(--navy-deep);">${txtTotal}</td>
+                    `;
+                    tablaTarifasBody.appendChild(tr);
+                });
+            }
+
+            if (placeholderMessage) placeholderMessage.style.display = 'none';
+            if (tablaTarifasWrapper) tablaTarifasWrapper.style.display = 'block';
+
+            // 4. Activar Modo Histórico y Bloquear botones Guardar y Aplicar
+            activarModoHistorico(tarifasAjuste, numAnio, tarifasAjuste.length);
+
+            // 5. Cerrar modal de histórico
+            closeResultadoHistoricoModal();
+
+            showToast(`Se cargaron ${tarifasAjuste.length} tarifa(s) histórica(s) del Año ${numAnio}. Botones de edición protegidos.`, 'success');
+        }
+
+        function activarModoHistorico(tarifasSeleccionadas, anio, totalTarifas) {
+            modoHistoricoActivo = true;
+            historicoSeleccionadasList = Array.isArray(tarifasSeleccionadas) ? tarifasSeleccionadas : [tarifasSeleccionadas];
+            historicoSeleccionadoData = historicoSeleccionadasList[0] || null;
+
+            // Bloquear botón Guardar
+            if (btnGuardar) {
+                btnGuardar.disabled = true;
+                btnGuardar.style.opacity = '0.45';
+                btnGuardar.style.cursor = 'not-allowed';
+                btnGuardar.setAttribute('title', 'El botón Guardar está bloqueado: está visualizando un registro histórico.');
+            }
+
+            // Bloquear botón APLICAR
+            if (btnAplicar) {
+                btnAplicar.disabled = true;
+                btnAplicar.style.opacity = '0.45';
+                btnAplicar.style.cursor = 'not-allowed';
+                btnAplicar.setAttribute('title', 'El botón Aplicar está bloqueado en modo histórico.');
+            }
+
+            // Mostrar botón "Volver a Registro Inflacion" al lado del botón de Historial
+            if (btnVolverRegistro) {
+                btnVolverRegistro.style.display = 'inline-flex';
+            }
+        }
+
+        function restaurarModoNormal() {
+            modoHistoricoActivo = false;
+            historicoSeleccionadasList = [];
+            historicoSeleccionadoData = null;
+
+            // Reactivar inputs superiores
+            if (inputFechaInflacion) {
+                inputFechaInflacion.disabled = false;
+                inputFechaInflacion.value = '';
+            }
+            if (selectAnio) {
+                selectAnio.disabled = false;
+                selectAnio.value = currentYear;
+            }
+            if (inputInflacion) {
+                inputInflacion.disabled = false;
+                inputInflacion.value = '';
+            }
+            if (inputDetalle) {
+                inputDetalle.disabled = false;
+                inputDetalle.value = '';
+            }
+
+            // Restaurar encabezados de año
+            if (headerTarifaAnioAnterior) headerTarifaAnioAnterior.textContent = `Tarifa ${prevYear}`;
+            if (headerValorTarifa) headerValorTarifa.textContent = `Tarifa ${currentYear}`;
+
+            // Restaurar tabla original con tarifas activas
+            if (tablaTarifasBody && originalTablaTarifasHTML) {
+                tablaTarifasBody.innerHTML = originalTablaTarifasHTML;
+            }
+
+            // Limpiar columnas calculadas de la tabla
+            document.querySelectorAll('#tablaTarifasBody .text-calc-inflacion').forEach(el => el.textContent = '');
+            document.querySelectorAll('#tablaTarifasBody .text-calc-total').forEach(el => el.textContent = '');
+
+            // Reactivar botones
+            if (btnGuardar) {
+                btnGuardar.disabled = false;
+                btnGuardar.style.opacity = '1';
+                btnGuardar.style.cursor = 'pointer';
+                btnGuardar.setAttribute('title', 'Guardar ajuste por inflación');
+            }
+            if (btnAplicar) {
+                btnAplicar.disabled = false;
+                btnAplicar.style.opacity = '1';
+                btnAplicar.style.cursor = 'pointer';
+                btnAplicar.removeAttribute('title');
+            }
+
+            // Ocultar botón "Volver a Registro Inflacion"
+            if (btnVolverRegistro) {
+                btnVolverRegistro.style.display = 'none';
+            }
+
+            showToast('Vista restaurada al registro y simulación de tarifas.', 'info');
+        }
+
+        if (btnVolverRegistro) {
+            btnVolverRegistro.addEventListener('click', restaurarModoNormal);
         }
 
         function openDateAlertModal(val) {
@@ -705,53 +973,22 @@
             }
         }
 
-        // Evento del botón Historial
-        if (btnHistorial) {
-            btnHistorial.addEventListener('click', () => {
-                showToast('Consultando historial de ajustes por inflación...', 'info');
-            });
-        }
-
         // Evento del botón APLICAR
         btnAplicar.addEventListener('click', () => {
+            if (modoHistoricoActivo) {
+                showToast('No se puede aplicar simulación mientras visualiza un registro histórico.', 'warning');
+                return;
+            }
             calcularInflacion(true);
         });
 
-        // 3. Botón de Exportar a PDF
-        btnExportar.addEventListener('click', () => {
-            const inflacionVal = inputInflacion ? inputInflacion.value : '';
-            const inflacion = parseFloat(inflacionVal);
-            
-            if (!currentHistoricalId && (isNaN(inflacion) || inflacion < 0)) {
-                showToast('Por favor ingrese un porcentaje de inflación antes de exportar.', 'warning');
-                if (inputInflacion) inputInflacion.focus();
+        // 3. Botón de Guardar -> Bloqueado en modo histórico o abre modal en simulación
+        btnGuardar.addEventListener('click', () => {
+            if (modoHistoricoActivo) {
+                showToast('El botón Guardar está bloqueado: está visualizando un registro histórico ya guardado.', 'warning');
                 return;
             }
 
-            const anio = selectAnio ? selectAnio.value : currentYear;
-            const fechaInflacion = inputFechaInflacion ? inputFechaInflacion.value : '';
-            const detalle = inputDetalle ? inputDetalle.value.trim() : '';
-
-            showToast('Generando y descargando documento PDF...', 'info');
-
-            const params = new URLSearchParams();
-            if (!isNaN(inflacion)) params.append('porcentaje', inflacion);
-            if (anio) params.append('anio', anio);
-            if (fechaInflacion) params.append('fecha_inflacion', fechaInflacion);
-            if (detalle) params.append('detalle', detalle);
-
-            if (currentHistoricalAno || currentHistoricalId) {
-                params.append('es_historico', '1');
-                if (currentHistoricalAno) params.append('anio', currentHistoricalAno);
-                if (currentHistoricalId) params.append('id_cabotaje', currentHistoricalId);
-            }
-
-            const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
-            window.location.href = exportUrl;
-        });
-
-        // 4. Botón de Guardar -> Abre ventana modal personalizada
-        btnGuardar.addEventListener('click', () => {
             const inflacion = parseFloat(inputInflacion.value);
             if (isNaN(inflacion) || inflacion < 0) {
                 showToast('Por favor ingrese un porcentaje de inflación válido y presione APLICAR.', 'error');
@@ -784,7 +1021,7 @@
             openConfirmModal(inflacion, formData);
         });
 
-        // 5. Botón Aceptar del Modal -> Ejecuta guardado en servidor
+        // 4. Botón Aceptar del Modal -> Ejecuta guardado en servidor y descarga automática de PDF
         btnModalConfirm.addEventListener('click', () => {
             if (!pendingFormData) return;
 
@@ -801,10 +1038,33 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast(`Se guardó el ajuste de inflación de ${inflacionVal.toFixed(2)}% correctamente.`, 'success');
+                    showToast(`Se guardó el ajuste de inflación de ${inflacionVal.toFixed(2)}% correctamente. Descargando reporte PDF...`, 'success');
+
+                    // Descarga automática del reporte PDF generado
+                    const anio = formDataToSend.get('anio') || currentYear;
+                    const fechaInflacion = formDataToSend.get('fecha_inflacion') || '';
+                    const detalle = formDataToSend.get('detalle') || '';
+
+                    const params = new URLSearchParams();
+                    params.append('porcentaje', inflacionVal);
+                    if (anio) params.append('anio', anio);
+                    if (fechaInflacion) params.append('fecha_inflacion', fechaInflacion);
+                    if (detalle) params.append('detalle', detalle);
+
+                    const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
+
+                    const link = document.createElement('a');
+                    link.href = exportUrl;
+                    link.setAttribute('download', `Tarifario_Inflacion_${anio}.pdf`);
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        link.remove();
+                    }, 200);
+
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1500);
+                    }, 2200);
                 } else {
                     showToast(data.error || 'Ocurrió un error al guardar.', 'error');
                     btnGuardar.disabled = false;

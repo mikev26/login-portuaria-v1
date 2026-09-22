@@ -26,10 +26,10 @@
         }, 3500);
     }
 
-    // Format Valor field to 4 decimal places obligatorily
+    // Format Valor field to 4 decimal places obligatorily (no negative values)
     function formatDecimal(input) {
-        const val = parseFloat(input.value);
-        if (isNaN(val)) {
+        let val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) {
             input.value = "0.0000";
         } else {
             input.value = val.toFixed(4);
@@ -66,8 +66,7 @@
     function clearForm() {
         document.getElementById('tarifaId').value = "0";
         document.getElementById('tarifaCodigo').value = "";
-        document.getElementById('tarifaCodigo').disabled = false;
-        document.getElementById('tarifaCodigo').readOnly = false;
+        document.getElementById('tarifaCodigo').readOnly = true;
         document.getElementById('tarifaActiva').checked = true;
         document.getElementById('tarifaTasaId').value = "";
         document.getElementById('tarifaTasaDesc').value = "";
@@ -89,15 +88,18 @@
         updateCheckboxSelection(document.getElementById('tarifaInflacion'));
 
         // Reset radio choices
-        document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
-        document.querySelector('input[name="calc_unidad"][value="dia"]').checked = true;
+        document.querySelector('input[name="calc_param"][value="otros"]').checked = true;
+        document.querySelector('input[name="calc_unidad"][value="otros"]').checked = true;
         document.querySelector('input[name="ticket_srv"][value="ninguno"]').checked = true;
 
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
             updateRadioSelection(radio);
         });
 
-
+        const btnCancel = document.getElementById('btnCancel');
+        if (btnCancel) {
+            btnCancel.style.display = 'none';
+        }
     }
 
     async function fetchTasaDescription(idtasa) {
@@ -146,7 +148,6 @@
     function loadTarifaData(data) {
         document.getElementById('tarifaId').value = data.id || "0";
         document.getElementById('tarifaCodigo').value = data.codigo || "";
-        document.getElementById('tarifaCodigo').disabled = true;
         document.getElementById('tarifaCodigo').readOnly = true;
         document.getElementById('tarifaActiva').checked = !!data.activa;
         
@@ -205,6 +206,11 @@
             ticketRadio.checked = true;
             updateRadioSelection(ticketRadio);
         }
+
+        const btnCancel = document.getElementById('btnCancel');
+        if (btnCancel) {
+            btnCancel.style.display = 'flex';
+        }
     }
 
     // Trigger action bar buttons
@@ -213,17 +219,27 @@
             const codigo = document.getElementById('tarifaCodigo').value.trim();
             const tarifa = document.getElementById('tarifaName').value.trim();
             const tasa_id = document.getElementById('tarifaTasaId').value.trim();
+            const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
+            const formula = document.getElementById('tarifaFormula').value.trim();
 
-            if (!codigo || !tarifa || !tasa_id) {
-                showToast("Por favor complete los campos obligatorios (Código, Tarifa y Tasa).", "warning");
+            if (!codigo || !tasa_id || !tarifa || !partida_cod || !formula) {
+                showToast("Por favor complete los campos obligatorios (Código, Tasa, Tarifa, Partida y Fórmula).", "warning");
+                if (!tasa_id || !codigo) document.getElementById('tarifaTasaId').focus();
+                else if (!tarifa) document.getElementById('tarifaName').focus();
+                else if (!partida_cod) document.getElementById('tarifaPartidaCod').focus();
+                else if (!formula) document.getElementById('tarifaFormula').focus();
                 return;
             }
 
             const id = document.getElementById('tarifaId').value;
             const valor = document.getElementById('tarifaValor').value.trim();
-            const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
+            const valorNum = parseFloat(valor);
+            if (isNaN(valorNum) || valorNum < 0) {
+                showToast("El valor de la tarifa no puede ser negativo.", "warning");
+                document.getElementById('tarifaValor').focus();
+                return;
+            }
             const partida_id = document.getElementById('tarifaPartidaId').value.trim();
-            const formula = document.getElementById('tarifaFormula').value.trim();
             const detalle = document.getElementById('tarifaDetalle').value.trim();
             
             const calc_unidad = document.querySelector('input[name="calc_unidad"]:checked')?.value || 'cantidad';
@@ -325,6 +341,21 @@
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
             updateRadioSelection(radio);
         });
+
+        // Bloquear ingreso de signos negativos en tarifaValor
+        const valorInput = document.getElementById('tarifaValor');
+        if (valorInput) {
+            valorInput.addEventListener('keydown', (e) => {
+                if (e.key === '-' || e.key === 'Minus') {
+                    e.preventDefault();
+                }
+            });
+            valorInput.addEventListener('input', () => {
+                if (valorInput.value.includes('-')) {
+                    valorInput.value = valorInput.value.replace(/-/g, '');
+                }
+            });
+        }
 
         // Keyboard Shortcuts (F4 and F2)
         document.addEventListener('keydown', (e) => {
@@ -630,6 +661,9 @@
             inputTasaId.addEventListener('input', function() {
                 clearTimeout(debounceTasaTimer);
                 const valor = this.value.trim();
+                if (!valor && document.getElementById('tarifaId').value === "0") {
+                    document.getElementById('tarifaCodigo').value = '';
+                }
                 debounceTasaTimer = setTimeout(() => {
                     buscarTasas(valor);
                 }, 250);

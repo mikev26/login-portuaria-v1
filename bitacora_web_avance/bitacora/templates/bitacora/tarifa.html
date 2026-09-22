@@ -61,6 +61,7 @@
             <button class="btn-tool"
                     id="btnCancel"
                     type="button"
+                    style="display: none;"
                     onclick="triggerAction('cancel')">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/>
@@ -172,7 +173,7 @@
                                id="tarifaCodigo"
                                name="codigo"
                                maxlength="5"
-                               placeholder="Ingrese código">
+                               readonly>
 
                     </div>
 
@@ -260,7 +261,7 @@
             <div class="field col-8">
 
                 <label for="tarifaPartidaCod">
-                    Partida (scpartida | Descripción | Cédula Finanza)
+                    Partida
                 </label>
 
                 <div class="input-group-combo">
@@ -270,7 +271,7 @@
                         <input type="text"
                                id="tarifaPartidaCod"
                                name="partida_cod"
-                               placeholder="scpartida (Ej: 17.02.02.00.)"
+                               placeholder="Ej: 17.02.02.00."
                                autocomplete="off"
                                style="width:100%;">
 
@@ -358,6 +359,7 @@
                                id="tarifaValor"
                                name="valor"
                                value="0.0000"
+                               inputmode="decimal"
                                style="text-align:right;"
                                onfocus="if(this.value==='0.0000' || this.value==='0.00') this.value='';"
                                onblur="formatDecimal(this);">
@@ -472,12 +474,11 @@
 
                         <div class="radio-box-container">
 
-                            <label class="radio-option selected">
+                            <label class="radio-option">
 
                                 <input type="radio"
                                        name="calc_param"
                                        value="eslora"
-                                       checked
                                        onchange="updateRadioSelection(this)">
 
                                 Eslora
@@ -509,11 +510,12 @@
                             </label>
 
 
-                            <label class="radio-option">
+                            <label class="radio-option selected">
 
                                 <input type="radio"
                                        name="calc_param"
                                        value="otros"
+                                       checked
                                        onchange="updateRadioSelection(this)">
 
                                 Otros
@@ -534,12 +536,11 @@
 
                         <div class="radio-box-container">
 
-                            <label class="radio-option selected">
+                            <label class="radio-option">
 
                                 <input type="radio"
                                        name="calc_unidad"
                                        value="dia"
-                                       checked
                                        onchange="updateRadioSelection(this)">
 
                                 Dia
@@ -571,11 +572,12 @@
                             </label>
 
 
-                            <label class="radio-option">
+                            <label class="radio-option selected">
 
                                 <input type="radio"
                                        name="calc_unidad"
                                        value="otros"
+                                       checked
                                        onchange="updateRadioSelection(this)">
 
                                 Otros
@@ -668,5 +670,5 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'bitacora/js/tarifario.js' %}?v=1.4"></script>
+<script src="{% static 'bitacora/js/tarifario.js' %}?v=2.0"></script>
 {% endblock %}

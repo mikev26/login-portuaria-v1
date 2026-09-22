@@ -228,7 +228,8 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                 "calc_unidad": "dia",
                 "ticket_srv": "ninguno",
                 "permitir_cambio_valor": False,
-                "aplica_inflacion": 1
+                "aplica_inflacion": 1,
+                "ptipo": 1,
             },
             {
                 "id": "2",
@@ -251,7 +252,8 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                 "calc_unidad": "horas",
                 "ticket_srv": "muelle",
                 "permitir_cambio_valor": False,
-                "aplica_inflacion": 0
+                "aplica_inflacion": 0,
+                "ptipo": 2,
             },
             {
                 "id": "3",
@@ -274,7 +276,8 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                 "calc_unidad": "cantidad",
                 "ticket_srv": "vehiculo",
                 "permitir_cambio_valor": True,
-                "aplica_inflacion": 1
+                "aplica_inflacion": 1,
+                "ptipo": 0,
             }
         ]
         
@@ -370,7 +373,8 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                         "se_cobra_iva": bool_value(first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
                         "senae_cod": str_or_empty(first_value(r, ["senae_cod", "codigo_senae", "senae"])),
                         "senae_desc": str_or_empty(first_value(r, ["senae_desc", "detalle_senae"])),
-                        "calc_param": "eslora" if first_value(r, ["eslora_toneto"]) == 1 else ("t_neto" if first_value(r, ["eslora_toneto"]) == 2 else "otros"),
+                        "ptipo": int(first_value(r, ["ptipo"], 0) or 0),
+                        "calc_param": "eslora" if first_value(r, ["eslora_toneto"]) == 1 else ("ton_bruto" if first_value(r, ["eslora_toneto"]) == 2 else ("t_neto" if first_value(r, ["eslora_toneto"]) == 4 else "otros")),
                         "calc_unidad": "dia" if first_value(r, ["dia_hora"]) == 1 else ("horas" if first_value(r, ["dia_hora"]) == 2 else "cantidad"),
                         "ticket_srv": "vehiculo" if first_value(r, ["tikect"]) == 1 else ("muelle" if first_value(r, ["tikect"]) == 2 else "ninguno"),
                         "permitir_cambio_valor": bool_value(first_value(r, ["cambiofacturacion", "cambio_facturacion", "permitir_cambio_valor"], False)),
@@ -403,6 +407,7 @@ def guardar_tarifa(
     activo: int,
     cambio_factura: int,
     aplica_inflacion: int,
+    ptipo: int = 0,
 ) -> int:
     """
     Guarda o actualiza una tarifa en la base de datos usando el procedimiento adecuado.
@@ -441,7 +446,8 @@ def guardar_tarifa(
                             @sactivo = ?, 
                             @scambioFactura = ?, 
                             @sresul = @res OUTPUT,
-                            @sinflacion = ?;
+                            @sinflacion = ?,
+                            @sptipo = ?;
                         SELECT @res AS resul;
                         """,
                         idtarifa,
@@ -460,6 +466,7 @@ def guardar_tarifa(
                         int(activo),
                         int(cambio_factura),
                         int(aplica_inflacion),
+                        int(ptipo),
                     )
                 else:
                     cursor.execute(
@@ -482,7 +489,8 @@ def guardar_tarifa(
                             @sactivo = ?, 
                             @scambioFactura = ?, 
                             @sresul = @res OUTPUT,
-                            @sinflacion = ?;
+                            @sinflacion = ?,
+                            @sptipo = ?;
                         SELECT @res AS resul;
                         """,
                         codigo,
@@ -500,6 +508,7 @@ def guardar_tarifa(
                         int(activo),
                         int(cambio_factura),
                         int(aplica_inflacion),
+                        int(ptipo),
                     )
                 row = cursor.fetchone()
                 connection.commit()
@@ -571,32 +580,9 @@ def guardar_inflacion(porcentaje: float, anio: int, idusuario: int, detalle: str
 def obtener_cabeceras_historico_inflacion() -> list[dict[str, Any]]:
     """
     Retorna la lista de cabeceras de ajustes por inflación históricos
-    disponibles en dbo.dim_TarifaCab.
+    disponibles en dbo.dim_TarifaCab delegando en obtener_listado_cabeceras_historico.
     """
-    if settings.DEMO_MODE:
-        return [
-            {
-                "id_tarifaCab": 1,
-                "anio_actual": 2026,
-                "anio_anterior": 2025,
-                "porcentaje_inflacion": 2.5000,
-                "porcentajeAnterior": 0.0000,
-                "detalle": "Ajuste anual por índice de inflación general 2026",
-                "fechaInflacion": "2026-01-15",
-                "fechaRegistro": "2026-01-15 10:30:00",
-                "idUsuario": 1,
-            }
-        ]
-
-    try:
-        with closing(get_connection()) as connection:
-            with closing(connection.cursor()) as cursor:
-                cursor.execute("EXEC dbo.SPJ_HistoricoTarifas @listarCabeceras = 1")
-                return _rows_as_dicts(cursor)
-    except Exception as exc:
-        if is_missing_object_error(exc):
-            return []
-        raise
+    return obtener_listado_cabeceras_historico()
 
 
 def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
@@ -659,6 +645,7 @@ def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
                         "fecha_inflacion": fecha_inf_str,
                         "fecha_registro": fecha_reg_str,
                         "id_usuario": first_value(r, ["idusuario", "id_usuario"]),
+                        "nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
                     }
                     result.append(item)
                 return result
@@ -669,7 +656,7 @@ def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
 
 def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = None) -> list[dict[str, Any]]:
     """
-    Ejecuta dbo.SPJ_HistoricoTarifas pasando idCabotaje o ano
+    Ejecuta dbo.SPJ_HistoricoTarifas pasando ano
     para obtener el listado histórico de tarifas con sus valores congelados
     y los cálculos de inflación aplicados en ese evento.
     """
@@ -740,7 +727,7 @@ def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = 
                     rows = []
                     if not id_val and ano_val:
                         cursor.execute(
-                            "SELECT id FROM dbo.dim_TarifaCab WHERE ano = ? ORDER BY id DESC",
+                            "SELECT id FROM dbo.dim_TarifaCab WHERE YEAR(fechaRegistro) = ? ORDER BY id DESC",
                             ano_val,
                         )
                         cab_ids = [row[0] for row in cursor.fetchall() if row and row[0]]
@@ -799,10 +786,12 @@ def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = 
                         "fecha_registro": str_or_empty(first_value(r, ["fecharegistro", "fecha_registro"])),
                         "detalle": str_or_empty(first_value(r, ["detalle", "justificacion"])),
                         "id_usuario": id_usr,
+                        "nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
+                        "usuario_nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
                     }
                     normalized.append(item)
                 return normalized
     except Exception as exc:
         if is_missing_object_error(exc):
             return []
-        raise
+        raise
