@@ -177,6 +177,38 @@
     fill: currentColor;
 }
 
+.btn-export-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--amber);
+    border: 1px solid var(--amber-border);
+    color: var(--navy-deep);
+    padding: 9px 18px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+}
+
+.btn-export-excel:hover {
+    background: #e2a532;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-export-excel:active {
+    transform: translateY(0);
+}
+
+.btn-export-excel svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
 /* Alineación de columnas en la tabla */
 .text-right {
     text-align: right !important;
@@ -260,7 +292,7 @@
         justify-content: space-between;
     }
     
-    .btn-apply, .btn-save-top {
+    .btn-apply, .btn-save-top, .btn-export-excel {
         flex: 1;
         text-align: center;
         justify-content: center;

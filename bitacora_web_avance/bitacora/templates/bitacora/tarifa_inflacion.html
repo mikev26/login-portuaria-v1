@@ -103,7 +103,7 @@
             width: 100% !important;
             gap: 10px !important;
         }
-        .btn-historial, .btn-apply, .btn-save-top {
+        .btn-historial, .btn-apply, .btn-save-top, .btn-export-excel {
             flex: 1 !important;
             text-align: center !important;
             justify-content: center !important;
@@ -165,6 +165,10 @@
             <button type="button" id="btnGuardar" class="btn-save-top" title="Guardar ajuste por inflación">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                 Guardar
+            </button>
+            <button type="button" id="btnExportar" class="btn-export-excel" style="display: none;" title="Exportar reporte a PDF">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Exportar PDF
             </button>
         </div>
     </div>
@@ -368,6 +372,7 @@
         const selectAnio = document.getElementById('selectAnio');
         const inputInflacion = document.getElementById('inputInflacion');
         const btnAplicar = document.getElementById('btnAplicar');
+        const btnExportar = document.getElementById('btnExportar');
         const btnGuardar = document.getElementById('btnGuardar');
         const headerValorTarifa = document.getElementById('headerValorTarifa');
         const placeholderMessage = document.getElementById('placeholderMessage');
@@ -777,6 +782,11 @@
             if (btnVolverRegistro) {
                 btnVolverRegistro.style.display = 'inline-flex';
             }
+
+            // Mostrar botón "Exportar PDF" únicamente en modo histórico
+            if (btnExportar) {
+                btnExportar.style.display = 'inline-flex';
+            }
         }
 
         function restaurarModoNormal() {
@@ -832,6 +842,11 @@
             // Ocultar botón "Volver a Registro Inflacion"
             if (btnVolverRegistro) {
                 btnVolverRegistro.style.display = 'none';
+            }
+
+            // Ocultar botón "Exportar PDF"
+            if (btnExportar) {
+                btnExportar.style.display = 'none';
             }
 
             showToast('Vista restaurada al registro y simulación de tarifas.', 'info');
@@ -981,6 +996,31 @@
             }
             calcularInflacion(true);
         });
+
+        // Evento del botón Exportar PDF (Únicamente en modo histórico)
+        if (btnExportar) {
+            btnExportar.addEventListener('click', () => {
+                if (modoHistoricoActivo && historicoSeleccionadasList && historicoSeleccionadasList.length > 0) {
+                    showToast(`Generando y descargando PDF con ${historicoSeleccionadasList.length} tarifa(s) histórica(s)...`, 'info');
+                    const params = new URLSearchParams();
+                    params.append('es_historico', '1');
+                    const anio = selectAnio ? selectAnio.value : (resultadoHistoricoAnoActual || currentYear);
+                    if (anio) params.append('anio', anio);
+                    const cabId = (historicoSeleccionadoData && historicoSeleccionadoData.id_tarifaCab) || resultadoHistoricoIdActual;
+                    if (cabId) params.append('id_cabotaje', cabId);
+                    
+                    const codigos = historicoSeleccionadasList.map(t => String(t.codigo || '').trim()).filter(Boolean).join(',');
+                    if (codigos) {
+                        params.append('codigos', codigos);
+                    }
+
+                    const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
+                    window.location.href = exportUrl;
+                } else {
+                    showToast('La función de exportación directa solo está disponible al consultar un registro histórico.', 'warning');
+                }
+            });
+        }
 
         // 3. Botón de Guardar -> Bloqueado en modo histórico o abre modal en simulación
         btnGuardar.addEventListener('click', () => {
