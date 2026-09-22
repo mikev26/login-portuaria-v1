@@ -1,0 +1,358 @@
+
+/* ==========================================================
+   ROW PRINCIPAL
+   ========================================================== */
+
+.buques-page .row {
+    width: 100% !important;
+
+    max-width: none !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ==========================================================
+   COLUMNAS
+   ========================================================== */
+
+.buques-page .col-lg-6 {
+    width: 50% !important;
+    max-width: 50% !important;
+
+    flex: 0 0 50% !important;
+
+    box-sizing: border-box !important;
+}
+
+
+
+
+.buques-page .card-header-custom {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 700;
+    color: #1e293b;
+
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+/* ==========================================================
+   FORMULARIOS
+   ========================================================== */
+
+.buques-page .form-control {
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    border: 1px solid #cbd5e1;
+}
+
+
+/* ==========================================================
+   DATOS
+   ========================================================== */
+
+.buques-page .data-label {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.81rem;
+    text-transform: uppercase;
+}
+
+
+.buques-page .data-value {
+    font-weight: 500;
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+
+/* ==========================================================
+   VALORES PENDIENTES
+   ========================================================== */
+
+.buques-page .badge-debe {
+    background-color: #fee2e2;
+    color: #991b1b;
+    font-weight: 700;
+    font-size: 1.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+
+/* ==========================================================
+   TABLAS
+   ========================================================== */
+
+.buques-page .table-custom-style {
+    font-size: 0.85rem;
+}
+
+
+.buques-page .table-custom-style th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+
+.buques-page .table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+
+/* ==========================================================
+   SUGERENCIAS DEL BUSCADOR
+   ========================================================== */
+
+.buques-page #sugerenciasLista {
+    position: absolute;
+    z-index: 1000;
+    width: 92%;
+    max-height: 200px;
+    overflow-y: auto;
+
+    background: white;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 0 0 8px 8px;
+
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+
+.buques-page #sugerenciasLista .dropdown-item {
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+
+.buques-page #sugerenciasLista .dropdown-item:hover {
+    background-color: #f1f5f9;
+}
+
+/* estilos que no interfieren con base.html */
+.buques-page {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    box-sizing: border-box !important;
+
+    font-family: 'Inter', sans-serif;
+    color: #475569;
+
+    overflow-x: hidden !important;
+}
+
+
+/* ----------------------------------------------------------
+   NAVBAR
+   ---------------------------------------------------------- */
+
+.buques-page .navbar-custom {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    margin: 0 0 1.5rem 0 !important;
+    box-sizing: border-box !important;
+
+    background: linear-gradient(
+        135deg,
+        #1e293b,
+        #0f172a
+    );
+
+    color: white;
+}
+
+
+/* Contenido interno de la barra */
+
+.buques-navbar-container {
+    width: 100% !important;
+    max-width: none !important;
+
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   CONTENEDOR DEL MÓDULO
+   ---------------------------------------------------------- */
+
+.buques-container {
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   PANEL DE REPORTES
+   ---------------------------------------------------------- */
+
+.buques-page .card-custom {
+    width: 100% !important;
+    max-width: none !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   FILA PRINCIPAL
+   ---------------------------------------------------------- */
+
+.buques-main-row {
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    flex-wrap: nowrap !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    gap: 24px !important;
+
+    box-sizing: border-box !important;
+
+    align-items: flex-start !important;
+}
+
+
+/* ----------------------------------------------------------
+   LAS DOS COLUMNAS
+   ---------------------------------------------------------- */
+
+.buques-column {
+
+    display: block !important;
+
+    width: calc(50% - 12px) !important;
+
+    min-width: 0 !important;
+
+    max-width: calc(50% - 12px) !important;
+
+    flex: 0 0 calc(50% - 12px) !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   CARDS DENTRO DE LAS COLUMNAS
+   ---------------------------------------------------------- */
+
+.buques-column .card-custom {
+
+    width: 100% !important;
+
+    max-width: none !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   TABLAS
+   ---------------------------------------------------------- */
+
+.buques-column .table-container {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    box-sizing: border-box !important;
+
+    overflow-x: auto !important;
+}
+
+/* ==========================================================
+   CORRECCIÓN EXPORTACIÓN REPORTES
+   ========================================================== */
+
+.buques-page .row.align-items-center > .col-md-7 {
+    text-align: right !important;
+    margin-left: auto !important;
+}
+
+.buques-page .row.align-items-center > .col-md-7 .d-inline-flex {
+    display: inline-flex !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+}
+
+
+/* ----------------------------------------------------------
+   PANTALLAS PEQUEÑAS
+   ---------------------------------------------------------- */
+
+@media (max-width: 991.98px) {
+
+    .buques-main-row {
+
+        flex-direction: column !important;
+
+        flex-wrap: nowrap !important;
+
+        gap: 0 !important;
+
+    }
+
+
+    .buques-column {
+
+        width: 100% !important;
+
+        max-width: 100% !important;
+
+        flex: 0 0 100% !important;
+
+    }
+
+}

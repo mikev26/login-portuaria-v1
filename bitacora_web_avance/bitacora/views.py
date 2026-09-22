@@ -35,6 +35,11 @@ from .services import (
     obtener_catalogos_reporte_buques,
     obtener_datos_reporte_buques,
     exportar_reporte_buques_excel,
+    obtener_buques as obtener_buques_service,
+    obtener_registros as obtener_registros_service,
+    obtener_operadores_movimiento as obtener_operadores_movimiento_service,
+    obtener_operadores_listados as obtener_operadores_listados_service,
+    exportar_buques as exportar_buques_service,
     
 )
 from .services.bitacora_service import (
@@ -3841,194 +3846,259 @@ def exportar_reporte_buques(request):
 # MÓDULO DE BUQUES Y EXPORTACIÓN A EXCEL (Ivanna)
 # ==========================================
 def index(request):
-    return render(request, 'modulo_buques.html')
 
-def conectar_db():
-    conexion = pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};'
-        'SERVER=192.168.3.17;'
-        'DATABASE=dim_sis_puerto_v1;'
-        'UID=UserGSoep;'
-        'PWD=GSoep*2026*;'
-        'Encrypt=yes;'
-        'TrustServerCertificate=yes;'
-        'Connection Timeout=30;'
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    contexto_base = {
+        "usuario_nombre": request.session.get(
+            "usuario_nombre",
+            "",
+        ),
+        "usuario_login": request.session.get(
+            "usuario_login",
+            "",
+        ),
+        "usuario_cargo": request.session.get(
+            "usuario_cargo",
+            "",
+        ),
+        "demo_mode": settings.DEMO_MODE,
+    }
+
+    return render(
+        request,
+        "bitacora/modulo_buques.html",
+        contexto_base,
     )
-    return conexion
 
+@require_http_methods(["GET"])
 def obtener_buques(request):
-    buques_lista = []
     try:
-        conn = conectar_db()
-        cursor = conn.cursor()
-        cursor.execute("EXEC [dbo].[SPJ_InfoBuques]")
-        columns = [column[0] for column in cursor.description]
-        for row in cursor.fetchall():
-            buques_lista.append(dict(zip(columns, row)))
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error en buques: {e}")
-    return JsonResponse({"buques": buques_lista})
+        buques_lista = obtener_buques_service()
 
+        return JsonResponse({
+            "buques": buques_lista,
+        })
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error al obtener buques"
+        )
+
+        return JsonResponse(
+            {
+                "buques": [],
+                "error": str(exc),
+            },
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al obtener buques"
+        )
+
+        return JsonResponse(
+            {
+                "buques": [],
+                "error": "No fue posible obtener los buques.",
+            },
+            status=500,
+        )
+
+@require_http_methods(["GET"])
 def obtener_registros(request):
-    id_buque = request.GET.get('buque')
-    registros_lista = []
-    try:
-        conn = conectar_db()
-        cursor = conn.cursor()
-        cursor.execute("EXEC [dbo].[SPJ_consulta_registros] ?", (id_buque,))
-        columns = [column[0] for column in cursor.description]
-        for row in cursor.fetchall():
-            registros_lista.append(dict(zip(columns, row)))
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error en registros: {e}")
-    return JsonResponse({"registros": registros_lista})
+    id_buque = request.GET.get("buque")
 
+    try:
+        registros_lista = obtener_registros_service(
+            id_buque
+        )
+
+        return JsonResponse({
+            "registros": registros_lista,
+        })
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error al obtener registros"
+        )
+
+        return JsonResponse(
+            {
+                "registros": [],
+                "error": str(exc),
+            },
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al obtener registros"
+        )
+
+        return JsonResponse(
+            {
+                "registros": [],
+                "error": "No fue posible obtener los registros.",
+            },
+            status=500,
+        )
+
+@require_http_methods(["GET"])
 def obtener_operadores_movimiento(request):
-    solicitud_param = request.GET.get('idsolicitud', request.GET.get('solicitud', ''))
-    operadores_lista = []
+    solicitud_param = request.GET.get(
+        "idsolicitud",
+        request.GET.get("solicitud", ""),
+    )
+
     try:
-        conn = conectar_db()
-        cursor = conn.cursor()
-        
-        if '-' in str(solicitud_param):
-            cursor.execute("SELECT idsolicitud FROM dim_mov_solicitud WHERE scanual = ?", (solicitud_param,))
-            row = cursor.fetchone()
-            solicitud_val = row[0] if row else 0
-        else:
-            solicitud_val = int(solicitud_param) if solicitud_param else 0
+        operadores_lista = obtener_operadores_movimiento_service(
+            solicitud_param
+        )
 
-        cursor.execute("EXEC [dbo].[SPJ_consulta_mov_operadores] ?", (solicitud_val,))
-        columns = [column[0] for column in cursor.description]
-        for row in cursor.fetchall():
-            operadores_lista.append(dict(zip(columns, row)))
-            
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error en SPJ_consulta_mov_operadores: {e}")
-        
-    return JsonResponse({"operadores": operadores_lista})
+        return JsonResponse({
+            "operadores": operadores_lista,
+        })
 
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error al obtener operadores del movimiento"
+        )
+
+        return JsonResponse(
+            {
+                "operadores": [],
+                "error": str(exc),
+            },
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al obtener operadores del movimiento"
+        )
+
+        return JsonResponse(
+            {
+                "operadores": [],
+                "error": "No fue posible obtener los operadores.",
+            },
+            status=500,
+        )
+
+@require_http_methods(["GET"])
 def obtener_operadores_listados(request):
-    operadores_general = []
     try:
-        conn = conectar_db()
-        cursor = conn.cursor()
-        
-        sql_query = """
-        DECLARE @res INT;
-        EXEC [dbo].[SP_Operadores_Listados] @sresult = @res OUTPUT;
-        """
-        cursor.execute(sql_query)
-        
-        while cursor.description is None:
-            if not cursor.nextset():
-                break
-                
-        if cursor.description:
-            columns = [column[0] for column in cursor.description]
-            for row in cursor.fetchall():
-                operadores_general.append(dict(zip(columns, row)))
-                
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error en operadores_listados: {e}")
-        
-    return JsonResponse({"operadores": operadores_general})
+        operadores_general = (
+            obtener_operadores_listados_service()
+        )
 
+        return JsonResponse({
+            "operadores": operadores_general,
+        })
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error al obtener operadores listados"
+        )
+
+        return JsonResponse(
+            {
+                "operadores": [],
+                "error": str(exc),
+            },
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al obtener operadores listados"
+        )
+
+        return JsonResponse(
+            {
+                "operadores": [],
+                "error": "No fue posible obtener los operadores.",
+            },
+            status=500,
+        )
+    
+
+@require_http_methods(["GET"])
 def exportar_buques(request):
-    import traceback
-    from openpyxl.styles import Font
+    ubicacion_param = request.GET.get(
+        "ubicacion",
+        "",
+    )
+
+    tipo_info = request.GET.get(
+        "tipo",
+        "listado",
+    )
+
     try:
-        ubicacion_param = request.GET.get('ubicacion', '').strip().lower()  
-        tipo_info = request.GET.get('tipo', 'listado').strip().lower()      
-        
-        nombre_plantilla = 'plantilla_listado.xlsx' if tipo_info == 'listado' else 'plantilla_detalle.xlsx'
-        ruta_plantilla = os.path.join(settings.BASE_DIR, 'plantilla', nombre_plantilla)
-        
-        if not os.path.exists(ruta_plantilla):
-            ruta_plantilla = os.path.join(os.getcwd(), 'plantilla', nombre_plantilla)
-            
-        if not os.path.exists(ruta_plantilla):
-            return HttpResponse(f"Error: No se encontró la plantilla '{nombre_plantilla}'.", status=404)
+        contenido, nombre_archivo = exportar_buques_service(
+            ubicacion_param=ubicacion_param,
+            tipo_info=tipo_info,
+        )
 
-        wb = openpyxl.load_workbook(ruta_plantilla)
-        ws = wb.active
-        
-        fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
-        ws['B6'] = fecha_actual
-        ws['B6'].font = Font(color="000000", name="Calibri", size=11, bold=False)
-        
-        if ubicacion_param == 'muelle':
-            ubicacion_id = 0
-        elif ubicacion_param == 'fondeo':
-            ubicacion_id = 1
-        else:
-            ubicacion_id = 2
+        response = HttpResponse(
+            contenido,
+            content_type=(
+                "application/vnd.openxmlformats-"
+                "officedocument.spreadsheetml.sheet"
+            ),
+        )
 
-        conn = conectar_db()
-        cursor = conn.cursor()
-        cursor.execute("EXEC [dbo].[SPJ_BuquesPuerto] ?", (ubicacion_id,))
-        
-        columns = [column[0] for column in cursor.description]
-        resultados = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        
-        cursor.close()
-        conn.close()
+        response[
+            "Content-Disposition"
+        ] = f'attachment; filename="{nombre_archivo}"'
 
-        def get_col(row_dict, *nombres_posibles):
-            for nombre in nombres_posibles:
-                for k, v in row_dict.items():
-                    if k.lower() == nombre.lower():
-                        return v if v is not None else ''
-            return ''
-
-        fuente_negra = Font(color="000000", name="Calibri", size=11, bold=False)
-        fila_actual = 9
-        
-        for row in resultados:
-            ub_bd = str(get_col(row, 'Ubicacion', 'ubicacion')).strip().lower()
-            condicion = ('muelle' in ub_bd or 'abarloado' in ub_bd or 'marginal' in ub_bd) if ubicacion_param == 'muelle' else ('fondeo' in ub_bd or 'fondeadero' in ub_bd)
-                
-            if condicion or not ub_bd: 
-                if tipo_info == 'listado':
-                    valores = [
-                        get_col(row, 'Solicitud'), get_col(row, 'Registro'),
-                        get_col(row, 'buque', 'nombre_buque'), get_col(row, 'Matricula'),
-                        get_col(row, 'bandera'), get_col(row, 'Eslora'),
-                        get_col(row, 'TRB'), get_col(row, 'TRN'), get_col(row, 'Ubicacion')
-                    ]
-                else:
-                    valores = [
-                        get_col(row, 'Solicitud'), get_col(row, 'Registro'),
-                        get_col(row, 'buque', 'nombre_buque'), get_col(row, 'Matricula'),
-                        get_col(row, 'bandera'), get_col(row, 'agencia'),
-                        get_col(row, 'armador'), get_col(row, 'TipoNave'),
-                        get_col(row, 'Contrato'), get_col(row, 'Eslora'),
-                        get_col(row, 'TRB'), get_col(row, 'TRN'),
-                        get_col(row, 'Calado'), get_col(row, 'Manga', 'MAnga'),
-                        get_col(row, 'arribo'), get_col(row, 'Ubicacion')
-                    ]
-                
-                for col_idx, val in enumerate(valores, start=1):
-                    celda = ws.cell(row=fila_actual, column=col_idx, value=val)
-                    celda.font = fuente_negra
-                fila_actual += 1
-
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        nombre_archivo = f"Reporte_Buques_{ubicacion_param.capitalize()}_{tipo_info.capitalize()}.xlsx"
-        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
 
-    except Exception as e:
-        traceback.print_exc()
-        return HttpResponse(f"Error interno: {str(e)}", status=500)
+    except FileNotFoundError as exc:
+        logger.exception(
+            "No se encontró la plantilla de buques"
+        )
+
+        return HttpResponse(
+            str(exc),
+            status=404,
+        )
+
+    except (
+        DatabaseConfigurationError,
+        DatabaseContractError,
+    ) as exc:
+        logger.exception(
+            "Error de base de datos al exportar buques"
+        )
+
+        return HttpResponse(
+            str(exc),
+            status=500,
+        )
+
+    except Exception:
+        logger.exception(
+            "Error inesperado al exportar buques"
+        )
+
+        return HttpResponse(
+            "No fue posible generar el reporte de buques.",
+            status=500,
+        )
