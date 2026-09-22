@@ -58,9 +58,15 @@
             <span>Reporte Buques</span>
         </a>
 
+        <a class="menu-link {% if request.resolver_match.url_name == 'modulo_buques_home' %}active{% endif %}" 
+            href="{% url 'modulo_buques_home' %}">
+            <span class="menu-icon" aria-hidden="true">⚓</span>
+            <span>Información del buque</span>
+        </a>
+
         <a class="menu-link disabled" href="#" aria-disabled="true">
             <span class="menu-icon" aria-hidden="true">⌕</span>
-            <span>Interfaz 3 - Próximamente</span>
+            <span>Interfaz 9 - Próximamente</span>
         </a>
 
         <div class="menu-label menu-label-security">

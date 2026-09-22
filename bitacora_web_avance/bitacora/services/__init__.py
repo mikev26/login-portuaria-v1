@@ -9,6 +9,7 @@ from .reporte_buque import ( obtener_catalogos_reporte_buques, obtener_datos_rep
 from .reporte_buque_excel import (exportar_reporte_buques_excel)
 from .datos_abiertos import ( generar_excel_datos_abiertos, obtener_reporte_datos_abiertos,)
 from .db_connection import ( DatabaseConfigurationError, DatabaseContractError,get_connection,)
+from .modulo_buque import (obtener_buques, obtener_registros, obtener_operadores_movimiento, obtener_operadores_listados, exportar_buques,)
 
 __all__ = [
     "validar_usuario",
@@ -31,5 +32,10 @@ __all__ = [
     "obtener_siguiente_codigo_tarifa",
     "guardar_tarifa",
     "anular_tarifa",
+    "obtener_buques",
+    "obtener_registros",
+    "obtener_operadores_movimiento",
+    "obtener_operadores_listados",
+    "exportar_buques",
 ]
 
