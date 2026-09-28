@@ -64,4 +64,4 @@ class DatosAbiertosFilterForm(forms.Form):
         label="Semestre",
         choices=[("1er", "1er"), ("2do", "2do")],
         widget=forms.Select(),
-    )
+    )

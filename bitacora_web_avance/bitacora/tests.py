@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 
 from bitacora.services.datos_abiertos import obtener_reporte_datos_abiertos
 
-
+@override_settings(DEMO_MODE=True)
 class ProjectSmokeTest(TestCase):
     def test_login_page_loads(self):
         response = self.client.get("/")
@@ -224,8 +224,99 @@ class ProjectSmokeTest(TestCase):
             ticket=0,
             activo=1,
             cambio_factura=0,
+            aplica_inflacion=0,
+            ptipo=1,
         )
 
+    @patch("bitacora.views.guardar_tarifa")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_guardar_tarifa_ptipo_mapping(self, mock_validar, mock_turnos, mock_guardar):
+        mock_validar.return_value = {"idusuario": 7, "usuario": "demo", "nombre": "Demo", "cargo": "Inspector"}
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        mock_guardar.return_value = 1
+        self.client.post("/", {"usuario": "demo", "clave": "Demo1234"})
+
+        casos = [
+            ("eslora", 1, 1),
+            ("ton_bruto", 0, 2),
+            ("t_neto", 2, 4),
+            ("otros", 0, 3),
+            ("desconocido", 0, 3),
+        ]
+
+        for param_val, expected_ptipo, expected_eslora in casos:
+            mock_guardar.reset_mock()
+            res = self.client.post("/tarifa/guardar/", {
+                "codigo": "199",
+                "tarifa": f"TARIFA {param_val}",
+                "valor": "10.00",
+                "partida_cod": "17.02.02.00.",
+                "partida_id": "49",
+                "tasa_id": "5",
+                "formula": "TARIFA * 1",
+                "detalle": "Detalle",
+                "calc_unidad": "dia",
+                "calc_param": param_val,
+                "iva": "0",
+                "ticket_srv": "ninguno",
+                "activa": "1",
+            })
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(mock_guardar.call_args[1]["ptipo"], expected_ptipo, f"Fallo ptipo para param={param_val}")
+            self.assertEqual(mock_guardar.call_args[1]["eslora_tneto"], expected_eslora, f"Fallo eslora_tneto para param={param_val}")
+
+    @patch("bitacora.views.guardar_tarifa")
+    @patch("bitacora.views.obtener_turnos_usuario")
+    @patch("bitacora.views.validar_usuario")
+    def test_guardar_tarifa_view_missing_partida_or_formula(self, mock_validar, mock_turnos, mock_guardar):
+        mock_validar.return_value = {
+            "idusuario": 7,
+            "usuario": "inspector.demo",
+            "nombre": "Inspector Demo",
+            "cargo": "Inspector",
+        }
+        mock_turnos.return_value = [{"cargo": "Jefe de turno"}]
+        self.client.post("/", {"usuario": "inspector.demo", "clave": "Demo1234"})
+
+        # Sin partida_cod
+        res1 = self.client.post("/tarifa/guardar/", {
+            "codigo": "118",
+            "tarifa": "TARIFA PRUEBA",
+            "tasa_id": "5",
+            "partida_cod": "",
+            "formula": "TARIFA * 1.5",
+        })
+        self.assertEqual(res1.status_code, 200)
+        self.assertFalse(res1.json()["success"])
+        self.assertIn("Faltan campos obligatorios", res1.json()["error"])
+
+        # Sin formula
+        res2 = self.client.post("/tarifa/guardar/", {
+            "codigo": "118",
+            "tarifa": "TARIFA PRUEBA",
+            "tasa_id": "5",
+            "partida_cod": "17.02.02.00.",
+            "formula": "",
+        })
+        self.assertEqual(res2.status_code, 200)
+        self.assertFalse(res2.json()["success"])
+        self.assertIn("Faltan campos obligatorios", res2.json()["error"])
+        mock_guardar.assert_not_called()
+
+        # Con valor negativo
+        res3 = self.client.post("/tarifa/guardar/", {
+            "codigo": "118",
+            "tarifa": "TARIFA PRUEBA",
+            "tasa_id": "5",
+            "partida_cod": "17.02.02.00.",
+            "formula": "TARIFA * 1.5",
+            "valor": "-10.50",
+        })
+        self.assertEqual(res3.status_code, 200)
+        self.assertFalse(res3.json()["success"])
+        self.assertIn("no puede ser negativo", res3.json()["error"])
+        mock_guardar.assert_not_called()
 
     @patch("bitacora.views.anular_tarifa")
     @patch("bitacora.views.obtener_turnos_usuario")
@@ -320,10 +411,10 @@ class ProjectSmokeTest(TestCase):
             (("@sPeriodo", 2026), ("@sSemestre", 1)),
         )
 
-    @patch("bitacora.views.obtener_reporte_datos_abiertos")
+    @patch("bitacora.views.guardar_inflacion")
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")
-    def test_datos_abiertos_loads_and_filters(self, mock_validar, mock_turnos, mock_reporte):
+    def test_guardar_tarifa_inflacion_view_success(self, mock_validar, mock_turnos, mock_guardar):
         mock_validar.return_value = {
             "idusuario": 7,
             "usuario": "inspector.demo",
