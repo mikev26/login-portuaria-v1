@@ -5,7 +5,6 @@ from contextlib import closing
 
 from django.conf import settings
 
-
 from .db_connection import (
     DatabaseConfigurationError,
     DatabaseContractError,

@@ -26,10 +26,10 @@
         }, 3500);
     }
 
-    // Format Valor field to 4 decimal places obligatorily
+    // Format Valor field to 4 decimal places obligatorily (no negative values)
     function formatDecimal(input) {
-        const val = parseFloat(input.value);
-        if (isNaN(val)) {
+        let val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) {
             input.value = "0.0000";
         } else {
             input.value = val.toFixed(4);
@@ -49,10 +49,24 @@
         }
     }
 
+    // Update styling when a checkbox is toggled
+    function updateCheckboxSelection(checkboxEl) {
+        if (!checkboxEl) return;
+        const parent = checkboxEl.closest('.checkbox-option');
+        if (parent) {
+            if (checkboxEl.checked) {
+                parent.classList.add('selected');
+            } else {
+                parent.classList.remove('selected');
+            }
+        }
+    }
+
     // Clear form to initial empty state
     function clearForm() {
         document.getElementById('tarifaId').value = "0";
         document.getElementById('tarifaCodigo').value = "";
+        document.getElementById('tarifaCodigo').readOnly = true;
         document.getElementById('tarifaActiva').checked = true;
         document.getElementById('tarifaTasaId').value = "";
         document.getElementById('tarifaTasaDesc').value = "";
@@ -64,19 +78,28 @@
         document.getElementById('tarifaFormula').value = "";
         document.getElementById('tarifaDetalle').value = "";
         document.getElementById('tarifaValor').value = "0.0000";
+        
         document.getElementById('tarifaIva').checked = false;
         document.getElementById('tarifaPermitirCambio').checked = false;
+        document.getElementById('tarifaInflacion').checked = false;
+
+        updateCheckboxSelection(document.getElementById('tarifaIva'));
+        updateCheckboxSelection(document.getElementById('tarifaPermitirCambio'));
+        updateCheckboxSelection(document.getElementById('tarifaInflacion'));
 
         // Reset radio choices
-        document.querySelector('input[name="calc_param"][value="eslora"]').checked = true;
-        document.querySelector('input[name="calc_unidad"][value="dia"]').checked = true;
+        document.querySelector('input[name="calc_param"][value="otros"]').checked = true;
+        document.querySelector('input[name="calc_unidad"][value="otros"]').checked = true;
         document.querySelector('input[name="ticket_srv"][value="ninguno"]').checked = true;
 
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
             updateRadioSelection(radio);
         });
 
-
+        const btnCancel = document.getElementById('btnCancel');
+        if (btnCancel) {
+            btnCancel.style.display = 'none';
+        }
     }
 
     async function fetchTasaDescription(idtasa) {
@@ -125,6 +148,7 @@
     function loadTarifaData(data) {
         document.getElementById('tarifaId').value = data.id || "0";
         document.getElementById('tarifaCodigo').value = data.codigo || "";
+        document.getElementById('tarifaCodigo').readOnly = true;
         document.getElementById('tarifaActiva').checked = !!data.activa;
         
         document.getElementById('tarifaTasaId').value = data.tasa_id || "";
@@ -158,6 +182,11 @@
         document.getElementById('tarifaValor').value = isNaN(valNum) ? "0.0000" : valNum.toFixed(4);
         document.getElementById('tarifaIva').checked = !!data.se_cobra_iva;
         document.getElementById('tarifaPermitirCambio').checked = !!data.permitir_cambio_valor;
+        document.getElementById('tarifaInflacion').checked = !!data.aplica_inflacion;
+
+        updateCheckboxSelection(document.getElementById('tarifaIva'));
+        updateCheckboxSelection(document.getElementById('tarifaPermitirCambio'));
+        updateCheckboxSelection(document.getElementById('tarifaInflacion'));
 
         // Check correct radio buttons
         const paramRadio = document.querySelector(`input[name="calc_param"][value="${data.calc_param}"]`);
@@ -177,6 +206,11 @@
             ticketRadio.checked = true;
             updateRadioSelection(ticketRadio);
         }
+
+        const btnCancel = document.getElementById('btnCancel');
+        if (btnCancel) {
+            btnCancel.style.display = 'flex';
+        }
     }
 
     // Trigger action bar buttons
@@ -185,17 +219,27 @@
             const codigo = document.getElementById('tarifaCodigo').value.trim();
             const tarifa = document.getElementById('tarifaName').value.trim();
             const tasa_id = document.getElementById('tarifaTasaId').value.trim();
+            const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
+            const formula = document.getElementById('tarifaFormula').value.trim();
 
-            if (!codigo || !tarifa || !tasa_id) {
-                showToast("Por favor complete los campos obligatorios (Código, Tarifa y Tasa).", "warning");
+            if (!codigo || !tasa_id || !tarifa || !partida_cod || !formula) {
+                showToast("Por favor complete los campos obligatorios (Código, Tasa, Tarifa, Partida y Fórmula).", "warning");
+                if (!tasa_id || !codigo) document.getElementById('tarifaTasaId').focus();
+                else if (!tarifa) document.getElementById('tarifaName').focus();
+                else if (!partida_cod) document.getElementById('tarifaPartidaCod').focus();
+                else if (!formula) document.getElementById('tarifaFormula').focus();
                 return;
             }
 
             const id = document.getElementById('tarifaId').value;
             const valor = document.getElementById('tarifaValor').value.trim();
-            const partida_cod = document.getElementById('tarifaPartidaCod').value.trim();
+            const valorNum = parseFloat(valor);
+            if (isNaN(valorNum) || valorNum < 0) {
+                showToast("El valor de la tarifa no puede ser negativo.", "warning");
+                document.getElementById('tarifaValor').focus();
+                return;
+            }
             const partida_id = document.getElementById('tarifaPartidaId').value.trim();
-            const formula = document.getElementById('tarifaFormula').value.trim();
             const detalle = document.getElementById('tarifaDetalle').value.trim();
             
             const calc_unidad = document.querySelector('input[name="calc_unidad"]:checked')?.value || 'cantidad';
@@ -205,6 +249,7 @@
             const iva = document.getElementById('tarifaIva').checked ? '1' : '0';
             const activa = document.getElementById('tarifaActiva').checked ? '1' : '0';
             const permitir_cambio_valor = document.getElementById('tarifaPermitirCambio').checked ? '1' : '0';
+            const aplica_inflacion = document.getElementById('tarifaInflacion').checked ? '1' : '0';
 
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -225,6 +270,7 @@
             formData.append('ticket_srv', ticket_srv);
             formData.append('activa', activa);
             formData.append('permitir_cambio_valor', permitir_cambio_valor);
+            formData.append('aplica_inflacion', aplica_inflacion);
 
             fetch('/tarifa/guardar/', {
                 method: 'POST',
@@ -295,6 +341,21 @@
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
             updateRadioSelection(radio);
         });
+
+        // Bloquear ingreso de signos negativos en tarifaValor
+        const valorInput = document.getElementById('tarifaValor');
+        if (valorInput) {
+            valorInput.addEventListener('keydown', (e) => {
+                if (e.key === '-' || e.key === 'Minus') {
+                    e.preventDefault();
+                }
+            });
+            valorInput.addEventListener('input', () => {
+                if (valorInput.value.includes('-')) {
+                    valorInput.value = valorInput.value.replace(/-/g, '');
+                }
+            });
+        }
 
         // Keyboard Shortcuts (F4 and F2)
         document.addEventListener('keydown', (e) => {
@@ -600,6 +661,9 @@
             inputTasaId.addEventListener('input', function() {
                 clearTimeout(debounceTasaTimer);
                 const valor = this.value.trim();
+                if (!valor && document.getElementById('tarifaId').value === "0") {
+                    document.getElementById('tarifaCodigo').value = '';
+                }
                 debounceTasaTimer = setTimeout(() => {
                     buscarTasas(valor);
                 }, 250);

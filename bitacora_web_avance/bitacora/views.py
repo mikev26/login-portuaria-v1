@@ -4,6 +4,7 @@ import io
 import os
 import pyodbc   
 import openpyxl   
+import threading
 
 from django.conf import settings
 from django.contrib import messages
@@ -41,6 +42,11 @@ from .services import (
     obtener_operadores_listados as obtener_operadores_listados_service,
     exportar_buques as exportar_buques_service,
     
+    guardar_inflacion,
+    obtener_historico_tarifas,
+    obtener_listado_cabeceras_historico,
+    generar_pdf_tarifario_inflacion,
+    enviar_correo_ajuste_inflacion,
 )
 from .services.bitacora_service import (
     guardar_novedad_bitacora,
@@ -811,7 +817,6 @@ def tarifa_view(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
-
 
 def exportar_reporte_inec_excel(
     rows,
@@ -3395,13 +3400,271 @@ def tarifa_view(request):
 
 @never_cache
 @require_http_methods(["GET"])
-def tarifa_listado_view(request):
+def tarifa_inflacion_view(request):
     idusuario = request.session.get("usuario_id")
     if not idusuario:
         return redirect("login")
 
     try:
-        tarifas = obtener_tarifas_existentes()
+        tarifas = obtener_tarifas_existentes(estado=1)
+    except Exception as exc:
+        logger.exception("Error al obtener tarifas para inflación")
+        tarifas = []
+
+    current_year = date.today().year
+    return render(
+        request,
+        "bitacora/tarifa_inflacion.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre"),
+            "usuario_login": request.session.get("usuario_login"),
+            "usuario_cargo": request.session.get("usuario_cargo"),
+            "demo_mode": settings.DEMO_MODE,
+            "tarifas": tarifas,
+            "anio_actual": current_year,
+            "anio_anterior": current_year - 1,
+        },
+    )
+
+
+@never_cache
+@require_http_methods(["POST"])
+def guardar_tarifa_inflacion_view(request):
+    """API Endpoint para actualizar el valor de las tarifas por inflación."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    porcentaje_raw = request.POST.get("porcentaje", "").strip()
+    try:
+        porcentaje = float(porcentaje_raw)
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "El porcentaje de inflación debe ser un número válido."})
+
+    if porcentaje < 0 or porcentaje > 100:
+        return JsonResponse({"success": False, "error": "El porcentaje debe estar entre 0.00 y 100.00."})
+
+    # Para evitar fraudes por manipulación del cliente, el año se obtiene del servidor
+    anio = date.today().year
+
+    detalle = request.POST.get("detalle", "").strip()
+    fecha_inflacion_raw = request.POST.get("fecha_inflacion", "").strip()
+
+    # La fecha de inflación es siempre obligatoria
+    if not fecha_inflacion_raw:
+        return JsonResponse({"success": False, "error": "Debe especificar la fecha de inflación."})
+    try:
+        datetime.strptime(fecha_inflacion_raw, "%Y-%m-%d")
+        fecha_inflacion = fecha_inflacion_raw
+    except ValueError:
+        return JsonResponse({"success": False, "error": "La fecha de inflación debe tener un formato válido (AAAA-MM-DD)."})
+
+    # El detalle es obligatorio únicamente cuando el porcentaje es 0%
+    if porcentaje == 0.0 and not detalle:
+        return JsonResponse({"success": False, "error": "Debe especificar el detalle o justificación cuando el porcentaje de inflación es 0%."})
+
+    if len(detalle) > 252:
+        return JsonResponse({"success": False, "error": "El detalle no puede superar los 252 caracteres."})
+
+    try:
+        # Obtenemos las tarifas base (previas al incremento) para el cálculo exacto del PDF
+        try:
+            tarifas_base = obtener_tarifas_existentes(estado=1)
+        except Exception as exc_tar:
+            logger.warning("No se pudieron precargar las tarifas antes de guardar inflación: %s", exc_tar)
+            tarifas_base = []
+
+        resul = guardar_inflacion(porcentaje, anio, idusuario, detalle=detalle, fecha_inflacion=fecha_inflacion)
+        if resul == -1:
+            return JsonResponse({"success": False, "error": "Error interno en la base de datos al aplicar inflación."})
+
+        # Envío de notificación por correo electrónico con PDF en segundo plano
+        try:
+            usuario_nombre = request.session.get("usuario_nombre", "Usuario")
+            threading.Thread(
+                target=enviar_correo_ajuste_inflacion,
+                args=(porcentaje, anio, fecha_inflacion, detalle, usuario_nombre, tarifas_base),
+                daemon=True,
+            ).start()
+        except Exception as mail_err:
+            logger.warning("No se pudo iniciar el hilo de envío de correo de inflación: %s", mail_err)
+
+        return JsonResponse({"success": True, "resul": resul})
+    except Exception as exc:
+        logger.exception("Error al aplicar inflación a las tarifas")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def exportar_tarifa_inflacion_pdf_view(request):
+    """Genera y descarga el reporte PDF de tarifas con ajuste de inflación basado en Plantilla_Inflacion.xlsx."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    # Obtener parámetros desde GET o POST
+    params = request.POST if request.method == "POST" else request.GET
+
+    id_cabotaje_raw = params.get("id_cabotaje", "").strip() or params.get("id_tarifaCab", "").strip()
+    id_cabotaje = int(id_cabotaje_raw) if id_cabotaje_raw.isdigit() else None
+
+    anio_raw = params.get("anio", "").strip() or params.get("ano", "").strip()
+    anio_query = int(anio_raw) if anio_raw.isdigit() else None
+    es_historico = bool(id_cabotaje or params.get("es_historico") == "1")
+    codigos_raw = params.get("codigos", "").strip() or params.get("codigo", "").strip()
+
+    if es_historico:
+        try:
+            tarifas = obtener_historico_tarifas(id_cabotaje=id_cabotaje, ano=anio_query)
+        except Exception as exc:
+            logger.exception("Error al obtener histórico de tarifas para PDF")
+            tarifas = []
+
+        if codigos_raw and tarifas:
+            lista_codigos = [c.strip() for c in codigos_raw.split(",") if c.strip()]
+            if lista_codigos:
+                tarifas = [t for t in tarifas if str(t.get("codigo", "")).strip() in lista_codigos]
+
+        if tarifas:
+            first = tarifas[0]
+            porcentaje_cabecera = None
+            for t in tarifas:
+                p = t.get("porcentaje_actual") if t.get("porcentaje_actual") is not None else t.get("porcentaje_inflacion")
+                if p is not None and float(p) > 0:
+                    porcentaje_cabecera = p
+                    break
+            if porcentaje_cabecera is None:
+                porcentaje_cabecera = first.get("porcentaje_actual") or first.get("porcentaje_inflacion") or 0
+
+            porcentaje_raw = params.get("porcentaje", "").strip()
+            porcentaje = float(porcentaje_raw) if porcentaje_raw else float(porcentaje_cabecera or 0)
+
+            anio = anio_query if anio_query else int(first.get("ano") or date.today().year)
+
+            fecha_inflacion = params.get("fecha_inflacion", "").strip() or first.get("fecha_inflacion") or None
+            detalle = params.get("detalle", "").strip() or first.get("detalle") or ""
+        else:
+            porcentaje = 0.0
+            anio = anio_query or date.today().year
+            fecha_inflacion = None
+            detalle = ""
+    else:
+        porcentaje_raw = params.get("porcentaje", "0").strip()
+        try:
+            porcentaje = float(porcentaje_raw)
+        except (ValueError, TypeError):
+            porcentaje = 0.0
+
+        try:
+            anio = int(anio_raw) if anio_raw else date.today().year
+        except (ValueError, TypeError):
+            anio = date.today().year
+
+        fecha_inflacion = params.get("fecha_inflacion", "").strip() or None
+        detalle = params.get("detalle", "").strip()
+
+        try:
+            tarifas = obtener_tarifas_existentes(estado=1)
+        except Exception as exc:
+            logger.exception("Error al obtener tarifas para PDF de inflación")
+            tarifas = []
+
+    try:
+        pdf_bytes = generar_pdf_tarifario_inflacion(
+            tarifas=tarifas,
+            anio=anio,
+            porcentaje=porcentaje,
+            fecha_inflacion=fecha_inflacion,
+            detalle=detalle,
+        )
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        suffix_cod = f"_{codigos_raw.replace(',', '_')}" if (es_historico and codigos_raw) else ""
+        filename = f"Tarifario_Inflacion_Historico_{anio_query or id_cabotaje}{suffix_cod}.pdf" if es_historico else f"Tarifario_Inflacion_{anio}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as exc:
+        logger.exception("Error al generar PDF de tarifas por inflación")
+        return HttpResponse(f"Error al generar el documento PDF: {str(exc)}", status=500)
+
+
+@never_cache
+@require_http_methods(["GET"])
+def obtener_historico_tarifas_view(request):
+    """API Endpoint para consultar el histórico de tarifas por id_cabotaje o anio, o listar cabeceras."""
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return JsonResponse({"success": False, "error": "No autorizado"}, status=401)
+
+    if request.GET.get("listar_cabeceras") == "1":
+        try:
+            cabeceras = obtener_listado_cabeceras_historico()
+            return JsonResponse({"success": True, "cabeceras": cabeceras})
+        except Exception as exc:
+            logger.exception("Error al listar cabeceras históricas")
+            return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+    id_cabotaje_raw = request.GET.get("id_cabotaje", "").strip() or request.GET.get("id_tarifaCab", "").strip()
+    id_cabotaje = int(id_cabotaje_raw) if id_cabotaje_raw.isdigit() else None
+
+    anio_raw = request.GET.get("anio", "").strip() or request.GET.get("ano", "").strip()
+    anio_query = int(anio_raw) if anio_raw.isdigit() else None
+
+    try:
+        tarifas_historicas = obtener_historico_tarifas(id_cabotaje=id_cabotaje, ano=anio_query)
+        if not tarifas_historicas:
+            msg_target = f"el año {anio_query}" if anio_query else f"el ID de cabotaje {id_cabotaje or ''}"
+            return JsonResponse({
+                "success": False,
+                "error": f"No se encontraron registros históricos para {msg_target}."
+            })
+
+        first = tarifas_historicas[0]
+        porcentaje_cabecera = None
+        for t in tarifas_historicas:
+            p = t.get("porcentaje_actual") if t.get("porcentaje_actual") is not None else t.get("porcentaje_inflacion")
+            if p is not None and float(p) > 0:
+                porcentaje_cabecera = p
+                break
+        if porcentaje_cabecera is None:
+            porcentaje_cabecera = first.get("porcentaje_actual") or first.get("porcentaje_inflacion") or 0
+
+        metadata = {
+            "id_tarifaCab": first.get("id_tarifaCab"),
+            "ano": first.get("ano"),
+            "ano_anterior": first.get("ano_anterior"),
+            "fecha_inflacion": first.get("fecha_inflacion"),
+            "fecha_registro": first.get("fecha_registro"),
+            "porcentaje_inflacion": porcentaje_cabecera,
+            "detalle": first.get("detalle"),
+            "id_usuario": first.get("id_usuario"),
+            "nombre": first.get("nombre") or first.get("usuario_nombre") or "",
+            "usuario_nombre": first.get("usuario_nombre") or first.get("nombre") or "",
+        }
+
+        return JsonResponse({
+            "success": True,
+            "id_cabotaje": metadata["id_tarifaCab"],
+            "metadata": metadata,
+            "tarifas": tarifas_historicas,
+        })
+    except Exception as exc:
+        logger.exception("Error al consultar histórico de tarifas")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@never_cache
+@require_http_methods(["GET"])
+def tarifa_listado_view(request):
+    idusuario = request.session.get("usuario_id")
+    if not idusuario:
+        return redirect("login")
+
+    filtro = request.GET.get("filtro", "activas").strip().lower()
+    estado = 100 if filtro == "todas" else 1
+
+    try:
+        tarifas = obtener_tarifas_existentes(estado=estado)
     except Exception as exc:
         logger.exception("Error al obtener tarifas existentes")
         tarifas = []
@@ -3411,6 +3674,7 @@ def tarifa_listado_view(request):
         "bitacora/tarifa_listado.html",
         {
             "tarifas": tarifas,
+            "filtro": filtro,
         },
     )
 
@@ -3504,27 +3768,44 @@ def guardar_tarifa_view(request):
     ticket_srv = request.POST.get("ticket_srv", "").strip()
     activa = request.POST.get("activa", "1").strip()
     permitir_cambio_valor = request.POST.get("permitir_cambio_valor", "0").strip()
+    aplica_inflacion = request.POST.get("aplica_inflacion", "0").strip()
     idtarifa_raw = request.POST.get("id", "0").strip()
     try:
         idtarifa = int(idtarifa_raw)
     except (ValueError, TypeError):
         idtarifa = 0
 
-    if not codigo or not tarifa or not tasa_id:
-        return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tarifa o Tasa)"})
+    if not codigo or not tarifa or not tasa_id or not partida_cod or not formula:
+        return JsonResponse({"success": False, "error": "Faltan campos obligatorios (Código, Tasa, Tarifa, Partida o Fórmula)"})
+
+    try:
+        val_num = float(valor)
+        if val_num < 0:
+            return JsonResponse({"success": False, "error": "El valor de la tarifa no puede ser negativo."})
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "El valor de la tarifa no es válido."})
+
+    if len(codigo) > 5:
+        return JsonResponse({"success": False, "error": "El Código no puede superar los 5 caracteres."})
+
+    if len(tarifa) > 80:
+        return JsonResponse({"success": False, "error": "La Tarifa no puede superar los 80 caracteres."})
 
     if len(formula) > 50:
         return JsonResponse({"success": False, "error": "La Fórmula no puede superar los 50 caracteres."})
 
-    if len(detalle) > 252:
-        return JsonResponse({"success": False, "error": "El Detalle no puede superar los 252 caracteres."})
+    if len(detalle) > 50:
+        return JsonResponse({"success": False, "error": "El Detalle no puede superar los 50 caracteres."})
 
     # Mapeo de parámetros del frontend a enteros esperados por el SP
     calc_unidad_map = {"dia": 1, "horas": 2}
     hora_dia = calc_unidad_map.get(calc_unidad, 3) # default a 3 (cantidad/otros)
 
-    calc_param_map = {"eslora": 1, "t_neto": 2}
+    calc_param_map = {"eslora": 1, "ton_bruto": 2, "t_neto": 4}
     eslora_tneto = calc_param_map.get(calc_param, 3) # default a 3 (otros)
+
+    ptipo_map = {"eslora": 1, "t_neto": 2, "otros": 0, "ton_bruto": 0}
+    ptipo = ptipo_map.get(calc_param, 0)
 
     ticket_srv_map = {"vehiculo": 1, "muelle": 2}
     ticket = ticket_srv_map.get(ticket_srv, 0) # default a 0 (ninguno)
@@ -3546,6 +3827,8 @@ def guardar_tarifa_view(request):
             ticket=ticket,
             activo=1 if activa in ["1", "true", "True"] else 0,
             cambio_factura=1 if permitir_cambio_valor in ["1", "true", "True"] else 0,
+            aplica_inflacion=1 if aplica_inflacion in ["1", "true", "True"] else 0,
+            ptipo=ptipo,
         )
         if resul == 3:
             return JsonResponse({"success": False, "error": "El código de tarifa ya existe para esta tasa."})
@@ -3586,14 +3869,43 @@ def exportar_tarifas_view(request):
     """Genera un archivo Excel con el listado de tarifas cargando la plantilla excel/Tarifas_J.xlsx."""
     import os
     import openpyxl
+    from openpyxl.styles import Font, Alignment
+    from copy import copy
     
     idusuario = request.session.get("usuario_id")
     if not idusuario:
         return HttpResponse("No autorizado", status=401)
 
+    filtro = request.GET.get("filtro", "activas").strip().lower()
+    estado = 100 if filtro == "todas" else 1
+    q = request.GET.get("q", "").strip().lower()
+
     try:
-        # 1. Obtener todas las tarifas existentes
-        tarifas = obtener_tarifas_existentes()
+        # 1. Obtener tarifas según filtro
+        tarifas = obtener_tarifas_existentes(estado=estado)
+
+        # 1.5. Filtrar por término de búsqueda (búsqueda en vivo de la tabla)
+        if q:
+            tarifas = [
+                t for t in tarifas
+                if q in (t.get("tasa") or "").lower()
+                or q in (t.get("codigo") or "").lower()
+                or q in (t.get("tarifa") or "").lower()
+            ]
+
+        # Ordenar por el nombre de la tasa (tasa) y luego por codigo (COD.TARIFA) en orden ascendente
+        def sort_key(t):
+            tasa_nombre = (t.get("tasa") or "").strip().upper()
+            codigo = t.get("codigo") or "0"
+            try:
+                cod_val = int(codigo)
+            except ValueError:
+                cod_val = codigo
+
+            cod_key = (0, cod_val) if isinstance(cod_val, int) else (1, str(cod_val))
+            return (tasa_nombre, cod_key)
+
+        tarifas = sorted(tarifas, key=sort_key)
 
         # 2. Ruta a la plantilla
         template_path = getattr(
@@ -3618,16 +3930,28 @@ def exportar_tarifas_view(request):
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # Descombinar celdas combinadas de la fila 8 en adelante para evitar errores de escritura
+        # Descombinar celdas combinadas de la fila 6 en adelante para evitar errores de escritura
         for r in list(ws.merged_cells.ranges):
-            if r.min_row >= 8:
+            if r.min_row >= 6:
                 ws.unmerge_cells(str(r))
 
-        # Escribir la fecha de emisión en la celda A4
+        # Escribir la fecha de emisión en la celda A3
         from datetime import datetime
         current_date_str = datetime.now().strftime("%d/%m/%Y")
-        ws.cell(row=4, column=1, value=f"Fecha de Emisión : {current_date_str}")
+        ws.cell(row=5, column=1, value=f"Fecha de Emisión : {current_date_str}")
+        ws.cell(row=6, column=1, value=None)  # Limpiar A4 por si acaso
 
+        # 4. Escribir los datos en el excel a partir de la fila 8
+        # Las columnas correspondientes son:
+        # Col 1: Tasa (tasa)
+        # Col 2: Cod.tarifa (codigo / sctarifa)
+        # Col 3: Tarifa (tarifa)
+        # Col 4: Valor (valor)
+        # Col 5: Formula (formula)
+        # Col 6: Inflacion (aplica_inflacion_txt)
+        # Col 7: Detalle (detalle)
+        # Col 8: Cod.partida (partida_cod / scpartida)
+        # Col 9: Partida (partida_desc)
         start_row = 8
         for idx, t in enumerate(tarifas):
             row_num = start_row + idx
@@ -3637,13 +3961,122 @@ def exportar_tarifas_view(request):
             except (ValueError, TypeError):
                 val_num = 0.00
 
-            ws.cell(row=row_num, column=1, value=t.get("codigo", ""))
-            ws.cell(row=row_num, column=2, value=t.get("tarifa", ""))
-            ws.cell(row=row_num, column=3, value=val_num)
-            ws.cell(row=row_num, column=4, value=t.get("formula", ""))
-            ws.cell(row=row_num, column=5, value=t.get("detalle", ""))
-            ws.cell(row=row_num, column=6, value=t.get("partida_cod", ""))
-            ws.cell(row=row_num, column=7, value=t.get("partida_desc", ""))
+            try:
+                cod_num = int(t.get("codigo", ""))
+            except (ValueError, TypeError):
+                cod_num = t.get("codigo", "")
+
+            ws.cell(row=row_num, column=1, value=t.get("tasa", ""))
+            ws.cell(row=row_num, column=2, value=cod_num)
+            ws.cell(row=row_num, column=3, value=t.get("tarifa", ""))
+            ws.cell(row=row_num, column=4, value=val_num)
+            ws.cell(row=row_num, column=5, value=t.get("formula", ""))
+            ws.cell(row=row_num, column=6, value=t.get("aplica_inflacion_txt", "No aplica Inflación anual"))
+            ws.cell(row=row_num, column=7, value=t.get("detalle", ""))
+            ws.cell(row=row_num, column=8, value=t.get("partida_cod", ""))
+            ws.cell(row=row_num, column=9, value=t.get("partida_desc", ""))
+            ws.cell(row=row_num, column=10, value="ACTIVA" if t.get("activa") else "ANULADA")
+
+            # Formatear celdas de la fila y forzar color de texto negro
+            for col_idx in range(1, 11):
+                cell = ws.cell(row=row_num, column=col_idx)
+                
+                # Alternar colores copiando el formato de la fila 8 (azul oscuro) o fila 9 (azul claro) de la plantilla
+                src_row = 8 if row_num % 2 == 0 else 9
+                src_cell = ws.cell(row=src_row, column=col_idx)
+                
+                if src_cell.has_style:
+                    cell.font = copy(src_cell.font)
+                    cell.border = copy(src_cell.border)
+                    cell.fill = copy(src_cell.fill)
+                    cell.number_format = copy(src_cell.number_format)
+                    cell.alignment = copy(src_cell.alignment)
+
+                # Forzar color de texto negro y desactivar negritas para legibilidad
+                if cell.font:
+                    cell.font = Font(
+                        name=cell.font.name or "Calibri",
+                        size=cell.font.size or 11,
+                        bold=False,  # Desactivar negrita heredada de la plantilla
+                        italic=cell.font.italic or False,
+                        color="000000",  # Negro
+                        underline=cell.font.underline,
+                        strike=cell.font.strike,
+                        vertAlign=cell.font.vertAlign,
+                        scheme=cell.font.scheme
+                    )
+                else:
+                    cell.font = Font(name="Calibri", size=11, color="000000")
+
+        # 4.5. Agregar bloque de firmas al final de todas las tarifas
+        last_data_row = start_row + len(tarifas) - 1 if len(tarifas) > 0 else 7
+        sig_start = last_data_row + 3
+
+        # Escribir "PREPARADO POR:" en la columna 1 (A)
+        cell_prep = ws.cell(row=sig_start, column=1)
+        cell_prep.value = "PREPARADO POR:"
+        cell_prep.font = Font(name="Calibri", size=11, bold=True)
+        cell_prep.alignment = Alignment(horizontal="left", vertical="center")
+
+        # Línea de firma izquierda (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=2,
+            end_row=sig_start + 2,
+            end_column=4,
+        )
+        cell_line_left = ws.cell(row=sig_start + 2, column=2)
+        cell_line_left.value = "________________________________________"
+        cell_line_left.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Nombre del usuario que inicia sesión (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=2,
+            end_row=sig_start + 3,
+            end_column=4,
+        )
+        cell_name_left = ws.cell(row=sig_start + 3, column=2)
+        cell_name_left.value = request.session.get("usuario_nombre", "")
+        cell_name_left.font = Font(name="Calibri", size=11, bold=True)
+        cell_name_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Cargo del usuario que inicia sesión (Columnas 2 a 4)
+        ws.merge_cells(
+            start_row=sig_start + 4,
+            start_column=2,
+            end_row=sig_start + 4,
+            end_column=4,
+        )
+        cell_cargo_left = ws.cell(row=sig_start + 4, column=2)
+        cell_cargo_left.value = request.session.get("usuario_cargo", "")
+        cell_cargo_left.font = Font(name="Calibri", size=10, bold=False)
+        cell_cargo_left.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Línea de firma derecha "REVISADO" (Columnas 7 a 9)
+        ws.merge_cells(
+            start_row=sig_start + 2,
+            start_column=7,
+            end_row=sig_start + 2,
+            end_column=9,
+        )
+        cell_line_right = ws.cell(row=sig_start + 2, column=7)
+        cell_line_right.value = "________________________________________"
+        cell_line_right.font = Font(name="Calibri", size=11, bold=False)
+        cell_line_right.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Texto "REVISADO" (Columnas 7 a 9)
+        ws.merge_cells(
+            start_row=sig_start + 3,
+            start_column=7,
+            end_row=sig_start + 3,
+            end_column=9,
+        )
+        cell_title_right = ws.cell(row=sig_start + 3, column=7)
+        cell_title_right.value = "REVISADO"
+        cell_title_right.font = Font(name="Calibri", size=11, bold=True)
+        cell_title_right.alignment = Alignment(horizontal="center", vertical="center")
 
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
