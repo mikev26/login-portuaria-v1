@@ -135,7 +135,7 @@
         
         <div class="field" style="width: 190px; min-width: 160px; flex-shrink: 0;">
             <label for="inputInflacion">Porcentaje Inflacion (%)</label>
-            <input type="number" id="inputInflacion" name="porcentaje" step="0.01" value="" min="0" max="100" placeholder="Ej: 2.00" autocomplete="off">
+            <input type="number" id="inputInflacion" name="porcentaje" step="0.01" value="" min="-100" max="100" placeholder="Ej: 2.00" autocomplete="off">
         </div>
 
         <div class="field field-detail" style="flex: 1 1 auto; min-width: 250px;">
@@ -915,7 +915,11 @@
                 }
             }
 
-            modalMessageText.innerHTML = `¿Está seguro de que desea guardar el ajuste? Esta acción incrementará en un <strong>${porcentaje.toFixed(2)}%</strong> el valor de las tarifas activas con inflación habilitada.${avisoFecha}`;
+            if (porcentaje > 0) {
+                modalMessageText.innerHTML = `¿Está seguro de que desea guardar el ajuste? Esta acción incrementará en un <strong>${porcentaje.toFixed(2)}%</strong> el valor de las tarifas activas con inflación habilitada.${avisoFecha}`;
+            } else {
+                modalMessageText.innerHTML = `¿Está seguro de que desea guardar el ajuste? Se registrará una inflación del <strong>${porcentaje.toFixed(2)}%</strong> en la cabecera auditora. Al ser un valor menor o igual a 0%, <strong>el valor de las tarifas se mantendrá sin cambios</strong>.${avisoFecha}`;
+            }
             confirmModalOverlay.classList.add('active');
         }
 
@@ -956,8 +960,8 @@
         // 2. Función para aplicar el cálculo de inflación en el frontend
         function calcularInflacion(showToastAlert = false) {
             const inflacion = parseFloat(inputInflacion.value);
-            if (isNaN(inflacion) || inflacion < 0) {
-                if (showToastAlert) showToast('Por favor ingrese un porcentaje de inflación válido.', 'error');
+            if (isNaN(inflacion) || inflacion < -100 || inflacion > 100) {
+                if (showToastAlert) showToast('Por favor ingrese un porcentaje de inflación válido (entre -100.00% y 100.00%).', 'error');
                 return;
             }
 
@@ -968,7 +972,7 @@
                 if (!isNaN(baseVal)) {
                     let inflacionVal = 0.0;
                     let totalVal = baseVal;
-                    if (aplicaInflacion) {
+                    if (aplicaInflacion && inflacion > 0) {
                         inflacionVal = baseVal * (inflacion / 100);
                         totalVal = baseVal + inflacionVal;
                     }
@@ -1030,8 +1034,8 @@
             }
 
             const inflacion = parseFloat(inputInflacion.value);
-            if (isNaN(inflacion) || inflacion < 0) {
-                showToast('Por favor ingrese un porcentaje de inflación válido y presione APLICAR.', 'error');
+            if (isNaN(inflacion) || inflacion < -100 || inflacion > 100) {
+                showToast('Por favor ingrese un porcentaje de inflación válido (entre -100.00% y 100.00%) y presione APLICAR.', 'error');
                 return;
             }
 
