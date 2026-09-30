@@ -23,11 +23,36 @@ function setMenuState(isOpen) {
         if (menuClose) menuClose.addEventListener('click', () => setMenuState(false));
         if (menuOverlay) menuOverlay.addEventListener('click', () => setMenuState(false));
 
-        document.querySelectorAll('.menu-link').forEach((link) => {
+        document.querySelectorAll('.menu-link:not(.menu-dropdown-toggle)').forEach((link) => {
             link.addEventListener('click', () => setMenuState(false));
         });
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') setMenuState(false);
+        });
+
+        // Manejo del menú desplegable (Tarifario)
+        document.querySelectorAll('.menu-dropdown-toggle').forEach((toggle) => {
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const dropdown = toggle.closest('.menu-dropdown');
+                const content = dropdown.querySelector('.menu-dropdown-content');
+                const arrow = toggle.querySelector('.dropdown-arrow');
+                const isExpanded = dropdown.classList.contains('expanded');
+
+                if (isExpanded) {
+                    dropdown.classList.remove('expanded');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    content.style.maxHeight = '0px';
+                    if (arrow) arrow.style.transform = 'rotate(0deg)';
+                } else {
+                    dropdown.classList.add('expanded');
+                    toggle.setAttribute('aria-expanded', 'true');
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    if (arrow) arrow.style.transform = 'rotate(180deg)';
+                }
+            });
         });
     });

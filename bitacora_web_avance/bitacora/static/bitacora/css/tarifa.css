@@ -5,7 +5,7 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 100000 !important;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -327,4 +327,104 @@ tbody tr:hover {
         flex-wrap: wrap;
         justify-content: center;
     }
+}
+
+/* Estilos para el autocompletado */
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(6, 45, 82, 0.15);
+    max-height: 220px;
+    overflow-y: auto;
+    width: 320px;
+    margin-top: 4px;
+}
+
+.autocomplete-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--surface);
+    font-size: 13px;
+    transition: background 0.15s;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background-color: var(--surface);
+    color: var(--navy);
+}
+
+.autocomplete-item .item-code {
+    font-weight: 750;
+    color: var(--blue);
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+.autocomplete-item .item-desc {
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+}
+
+.autocomplete-no-results {
+    padding: 12px 14px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Checkbox options matching radio buttons styling */
+.checkbox-option {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    background: #f8fafc !important;
+    border: 1px solid var(--border) !important;
+    padding: 10px 14px !important;
+    border-radius: 6px !important;
+    transition: all .2s !important;
+    box-sizing: border-box !important;
+}
+
+.checkbox-option input[type="checkbox"] {
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+}
+
+.checkbox-option:hover {
+    border-color: var(--blue) !important;
+    background: rgba(29,111,159,.05) !important;
+}
+
+.checkbox-option.selected {
+    border-color: var(--blue) !important;
+    background: rgba(29,111,159,.1) !important;
+    font-weight: 600 !important;
+    color: var(--navy) !important;
 }

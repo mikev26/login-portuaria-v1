@@ -1,0 +1,527 @@
+/* Estilos exclusivos del Registro de Inflación */
+
+.toast-container {
+    z-index: 100000 !important;
+}
+
+/* Contenedor de filtros superior (Recuadro gris exclusivo de inputs) */
+.filter-bar {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 16px;
+    width: 100%;
+}
+
+.filter-bar .field {
+    flex-shrink: 0;
+}
+
+.filter-bar .field-detail {
+    flex: 1;
+    min-width: 250px;
+}
+
+.filter-bar .field label {
+    margin-bottom: 6px;
+    color: var(--navy);
+    font-weight: 700;
+}
+
+/* Fila de acciones fuera del recuadro (Historial a la izquierda, acciones a la derecha) */
+.filter-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 22px;
+}
+
+.filter-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.filter-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-historial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--navy);
+    border: 1.5px solid var(--navy);
+    padding: 8px 18px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 38px;
+    letter-spacing: 0.3px;
+}
+
+.btn-historial:hover {
+    background: rgba(15, 45, 89, 0.08);
+    border-color: var(--navy-deep);
+    color: var(--navy-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15, 45, 89, 0.12);
+}
+
+.btn-historial:active {
+    transform: translateY(0);
+}
+
+.btn-historial svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+
+
+
+
+.btn-apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.btn-apply:hover {
+    background: var(--navy-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-apply:active {
+    transform: translateY(0);
+}
+
+.btn-save-top {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: #15803d;
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 5px rgba(21, 128, 61, 0.2);
+}
+
+.btn-save-top:hover {
+    background: #166534;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(21, 128, 61, 0.3);
+}
+
+.btn-save-top:active {
+    transform: translateY(0);
+}
+
+.btn-save-top:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Estado sombreado / deshabilitado cuando se consulta un registro historico */
+.btn-apply.disabled-historico,
+.btn-save-top.disabled-historico,
+.btn-apply:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    background-color: #94a3b8 !important;
+    border-color: #94a3b8 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.btn-save-top svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+.btn-export-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--amber);
+    border: 1px solid var(--amber-border);
+    color: var(--navy-deep);
+    padding: 9px 18px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+}
+
+.btn-export-excel:hover {
+    background: #e2a532;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-export-excel:active {
+    transform: translateY(0);
+}
+
+.btn-export-excel svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* Alineación de columnas en la tabla */
+.text-right {
+    text-align: right !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+/* Espaciado del muelle de la tabla */
+.table-wrap {
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.table-wrap table th {
+    padding: 12px 14px;
+    letter-spacing: 0.3px;
+}
+
+.table-wrap table td {
+    padding: 12px 14px;
+}
+
+/* Fila de totales o pie de tabla */
+.table-summary-row {
+    background: #edf2f6 !important;
+    font-weight: 700;
+}
+
+/* Sección de guardado inferior */
+.bottom-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--border);
+}
+
+.btn-save-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 11px 26px;
+    font-size: 13.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(13, 71, 119, 0.15);
+}
+
+.btn-save-primary:hover {
+    background: var(--navy-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(13, 71, 119, 0.25);
+}
+
+.btn-save-primary:active {
+    transform: translateY(0);
+}
+
+/* Responsividad para la barra de filtros */
+@media (max-width: 768px) {
+    .filter-inputs-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+    
+    .filter-inputs-row .field,
+    .filter-inputs-row .field-detail {
+        width: 100% !important;
+    }
+    
+    .filter-actions-row {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .btn-apply, .btn-save-top, .btn-export-excel {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* ==========================================================================
+   VENTANA MODAL PERSONALIZADA DE CONFIRMACIÓN
+   ========================================================================== */
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(6, 45, 82, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.22s ease-in-out;
+}
+
+.custom-modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.custom-modal-box {
+    background: #ffffff;
+    width: 92%;
+    max-width: 490px;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(6, 45, 82, 0.28), 0 0 1px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transform: scale(0.92) translateY(-10px);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-modal-overlay.active .custom-modal-box {
+    transform: scale(1) translateY(0);
+}
+
+.custom-modal-header {
+    background: linear-gradient(120deg, var(--navy-deep), var(--navy));
+    color: #ffffff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.custom-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.custom-modal-title svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--amber);
+    flex-shrink: 0;
+}
+
+.custom-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+
+.custom-modal-close-btn:hover {
+    color: #ffffff;
+}
+
+.custom-modal-body {
+    padding: 22px 24px 18px;
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+
+.custom-modal-message {
+    margin-bottom: 14px;
+    color: var(--navy-deep);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.custom-modal-alert {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: #fff9e6;
+    border: 1px solid #f5e0a3;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #8a6d1c;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.custom-modal-alert svg {
+    width: 18px;
+    height: 18px;
+    fill: #d69212;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.custom-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px 18px;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+}
+
+.btn-modal-cancel {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    color: #495057;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+
+.btn-modal-cancel:hover {
+    background: #f1f3f5;
+    color: #212529;
+    border-color: #ced4da;
+}
+
+.btn-modal-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--navy);
+    border: none;
+    color: #ffffff;
+    padding: 9px 24px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+    box-shadow: 0 2px 6px rgba(13, 71, 119, 0.2);
+}
+
+.btn-modal-confirm:hover {
+    background: var(--navy-deep);
+    box-shadow: 0 4px 10px rgba(6, 45, 82, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-modal-confirm:active {
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   Estilos de Selección de Histórico y Modo Solo Lectura
+   ========================================================================== */
+.fila-historico-interactiva {
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.fila-historico-interactiva:hover {
+    background-color: #f0f9ff !important;
+}
+
+.fila-historico-interactiva:hover td {
+    color: #0369a1;
+}
+
+.btn-seleccionar-tarifa-hist {
+    transition: all 0.15s ease;
+}
+
+.btn-seleccionar-tarifa-hist:hover {
+    background-color: #0369a1 !important;
+    transform: scale(1.05);
+}
+
+.btn-volver-registro {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #ffffff;
+    color: #1d4ed8;
+    border: 1.5px solid #3b82f6;
+    padding: 8px 18px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 38px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-volver-registro:hover {
+    background: #eff6ff;
+    border-color: #1d4ed8;
+    color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(29, 78, 216, 0.15);
+}
+
+.btn-volver-registro:active {
+    transform: translateY(0);
+}
+
