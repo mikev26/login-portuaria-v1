@@ -328,14 +328,14 @@ def generar_pdf_tarifario_inflacion(
                 inflacion_monto = float(str(t.get("tarifa_inflacion", "0")).replace(",", "."))
                 tarifa_total = float(str(t.get("valor_final", "0")).replace(",", "."))
             except (ValueError, TypeError):
-                if aplica:
+                if aplica and porcentaje > 0:
                     inflacion_monto = val_base * (porcentaje / 100.0)
                     tarifa_total = val_base + inflacion_monto
                 else:
                     inflacion_monto = 0.0
                     tarifa_total = val_base
         else:
-            if aplica:
+            if aplica and porcentaje > 0:
                 inflacion_monto = val_base * (porcentaje / 100.0)
                 tarifa_total = val_base + inflacion_monto
             else:

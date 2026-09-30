@@ -66,7 +66,7 @@ class ProjectSmokeTest(TestCase):
     def test_tarifa_page_loads(self):
         self._authenticate()
 
-        response = self.client.get("/tarifario/")
+        response = self.client.get("/tarifa/")
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Tarifario")
@@ -411,10 +411,11 @@ class ProjectSmokeTest(TestCase):
             (("@sPeriodo", 2026), ("@sSemestre", 1)),
         )
 
+    @patch("bitacora.views.enviar_correo_ajuste_inflacion")
     @patch("bitacora.views.guardar_inflacion")
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")
-    def test_guardar_tarifa_inflacion_view_success(self, mock_validar, mock_turnos, mock_guardar):
+    def test_guardar_tarifa_inflacion_view_success(self, mock_validar, mock_turnos, mock_guardar, mock_email):
         mock_validar.return_value = {
             "idusuario": 7,
             "usuario": "inspector.demo",
@@ -422,44 +423,27 @@ class ProjectSmokeTest(TestCase):
             "cargo": "Inspector",
         }
         mock_turnos.return_value = [{"cargo": "Inspector"}]
-        mock_reporte.return_value = [
-            {
-                "REGISTRO": 101,
-                "CODBUQUE": "B-99",
-                "MATRÍCULA": "M-345",
-                "BUQUE": "Estrella del Mar",
-                "TipoNave": "Pesquero",
-                "Arribo": "2026-05-08 07:15:00",
-                "Zarpe": "2026-05-09 18:40:00",
-                "Bandera": "ECU",
-                "TRB": "10.50",
-                "TRN": "8.10",
-                "Agencia": "APM",
-                "TotalDescarga": "2450",
-            }
-        ]
+        mock_guardar.return_value = 1
 
-        self.client.post(
-            "/",
-            {"usuario": "inspector.demo", "clave": "Demo1234"},
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        # Test positive inflation
+        response_pos = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "2.5", "fecha_inflacion": "2026-01-15", "detalle": "Ajuste positivo"}
         )
+        self.assertEqual(response_pos.status_code, 200)
+        self.assertTrue(response_pos.json()["success"])
 
-        response = self.client.get("/datos-abiertos/")
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Datos Abiertos")
-
-        response_ajax = self.client.get(
-            "/datos-abiertos/?anio=2026&semestre=1er&buscar=1",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        # Test negative inflation
+        response_neg = self.client.post(
+            "/tarifa/inflacion/guardar/",
+            {"porcentaje": "-2.5", "fecha_inflacion": "2026-01-15", "detalle": "Ajuste negativo"}
         )
-        self.assertEqual(response_ajax.status_code, 200)
-        json_data = response_ajax.json()
-        self.assertEqual(json_data["anio"], "2026")
-        self.assertEqual(json_data["semestre"], "1er")
-        self.assertEqual(len(json_data["rows"]), 1)
-        self.assertEqual(json_data["rows"][0]["Registro"], 101)
-        self.assertEqual(json_data["rows"][0]["CodBuque"], "B-99")
-        self.assertEqual(json_data["rows"][0]["Total Descarga"], "2450")
+        self.assertEqual(response_neg.status_code, 200)
+        self.assertTrue(response_neg.json()["success"])
 
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")

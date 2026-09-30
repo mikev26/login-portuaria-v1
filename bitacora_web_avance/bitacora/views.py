@@ -3441,8 +3441,8 @@ def guardar_tarifa_inflacion_view(request):
     except (ValueError, TypeError):
         return JsonResponse({"success": False, "error": "El porcentaje de inflación debe ser un número válido."})
 
-    if porcentaje < 0 or porcentaje > 100:
-        return JsonResponse({"success": False, "error": "El porcentaje debe estar entre 0.00 y 100.00."})
+    if porcentaje < -100 or porcentaje > 100:
+        return JsonResponse({"success": False, "error": "El porcentaje debe estar entre -100.00 y 100.00."})
 
     # Para evitar fraudes por manipulación del cliente, el año se obtiene del servidor
     anio = date.today().year
