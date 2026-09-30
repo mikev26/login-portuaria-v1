@@ -1,4 +1,105 @@
-/* Estilos exclusivos del Registro de Inflación */
+
+.filter-bar {
+    background: #f8fafc !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    padding: 18px 20px !important;
+    margin-bottom: 14px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    gap: 16px !important;
+    width: 100% !important;
+}
+.filter-bar .field {
+    flex-shrink: 0 !important;
+}
+.filter-bar .field-detail {
+    flex: 1 1 auto !important;
+    min-width: 250px !important;
+}
+.filter-bar .field label {
+    margin-bottom: 6px !important;
+    color: var(--navy) !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+.filter-actions-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 22px !important;
+}
+.filter-actions-left {
+    display: flex !important;
+    align-items: center !important;
+}
+.filter-actions-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+.btn-historial {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: transparent !important;
+    color: var(--navy) !important;
+    border: 1.5px solid var(--navy) !important;
+    padding: 8px 18px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    height: 38px !important;
+    letter-spacing: 0.3px !important;
+}
+.btn-historial:hover {
+    background: rgba(15, 45, 89, 0.08) !important;
+    border-color: var(--navy-deep) !important;
+    color: var(--navy-deep) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(15, 45, 89, 0.12) !important;
+}
+.btn-historial:active {
+    transform: translateY(0) !important;
+}
+.btn-historial svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: currentColor !important;
+}
+@media (max-width: 768px) {
+    .filter-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+    }
+    .filter-bar .field,
+    .filter-bar .field-detail {
+        width: 100% !important;
+    }
+    .filter-actions-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    .filter-actions-left,
+    .filter-actions-right {
+        display: flex !important;
+        width: 100% !important;
+        gap: 10px !important;
+    }
+    .btn-historial, .btn-apply, .btn-save-top, .btn-export-excel {
+        flex: 1 !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}
+
 
 .toast-container {
     z-index: 100000 !important;

@@ -1,0 +1,188 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Servicios TPyC | Autoridad Portuaria{% endblock %}
+{% block header_title %}SERVICIOS TPyC{% endblock %}
+{% block body_class %}tarifa-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'bitacora/css/tarifa.css' %}?v={% now 'U' %}">
+<link rel="stylesheet" href="{% static 'bitacora/css/servicios_tpyc.css' %}?v={% now 'U' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Toast Notifications -->
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="tpyc-container">
+
+    <!-- Formulario Principal -->
+    <div class="tpyc-card">
+        <form id="formServiciosTPyC" class="tpyc-main-form" onsubmit="event.preventDefault();">
+            
+            <!-- Datos Generales del Servicio -->
+            <div class="tpyc-fields-grid">
+                <div class="tpyc-field-group">
+                    <label for="inputId">Id</label>
+                    <input type="text" id="inputId" name="id" class="tpyc-input" placeholder="Ingrese ID">
+                </div>
+                <div class="tpyc-field-group">
+                    <label for="inputServicio">Servicio</label>
+                    <input type="text" id="inputServicio" name="servicio" class="tpyc-input"  placeholder="Nombre del servicio">
+                </div>
+                <div class="tpyc-field-group">
+                    <label for="inputGrupo">Grupo</label>
+                    <input type="text" id="inputGrupo" name="grupo" class="tpyc-input" placeholder="Grupo de servicio">
+                </div>
+                <div class="tpyc-field-group">
+                    <label for="inputMedida">Medida</label>
+                    <input type="text" id="inputMedida" name="medida" class="tpyc-input"  placeholder="Unidad de medida">
+                </div>
+            </div>
+
+            <!-- Checkboxes de Selección de Tarifas -->
+            <div class="tpyc-checkboxes-bar">
+                <label class="tpyc-checkbox-item">
+                    <input type="checkbox" id="chkCabotaje">
+                    <span>T.Cabotaje</span>
+                </label>
+                <label class="tpyc-checkbox-item">
+                    <input type="checkbox" id="chkEspecificas">
+                    <span>T.Especificas</span>
+                </label>
+                <label class="tpyc-checkbox-item">
+                    <input type="checkbox" id="chkNaves">
+                    <span>T.Naves</span>
+                </label>
+            </div>
+
+            <!-- Contenedor de Secciones de Tarifas -->
+            <div class="tpyc-sections-container">
+
+                <!-- Sección T.Cabotaje -->
+                <div class="tpyc-subpanel hidden" id="panelCabotaje">
+                    <div class="tpyc-subpanel-header">
+                        <span class="tpyc-subpanel-title">
+                            <span>🚢</span> T.Cabotaje
+                            <span class="tpyc-badge">Tarifas de Cabotaje</span>
+                        </span>
+                    </div>
+                    <div class="tpyc-table-wrap">
+                        <table class="tpyc-table" id="tablaCabotaje">
+                            <thead>
+                                <tr>
+                                    <th class="col-tarifa">Tarifa</th>
+                                    <th>Descripción</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
+                                    <td><input type="text" class="tpyc-input" value="OCUPACION DE AREAS PORT. (GRUAS M.M)"></td>
+                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
+                                    <td><input type="text" class="tpyc-input" value="OCUPACION DE AREAS PORT. (GRUAS A.P.)"></td>
+                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="tpyc-btn-add-row" data-target="tablaCabotaje">
+                        <span>➕</span> Agregar Tarifa Cabotaje
+                    </button>
+                </div>
+
+                <!-- Sección T.Especificas -->
+                <div class="tpyc-subpanel hidden" id="panelEspecificas">
+                    <div class="tpyc-subpanel-header">
+                        <span class="tpyc-subpanel-title">
+                            <span>⚙️</span> T.Especificas
+                            <span class="tpyc-badge">Tarifas Específicas</span>
+                        </span>
+                    </div>
+                    <div class="tpyc-table-wrap">
+                        <table class="tpyc-table" id="tablaEspecificas">
+                            <thead>
+                                <tr>
+                                    <th class="col-tarifa">Tarifa</th>
+                                    <th>Descripción</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
+                                    <td><input type="text" class="tpyc-input" value="GRUA DESCARGUE(ALQ. AREAS)"></td>
+                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
+                                    <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción"></td>
+                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="tpyc-btn-add-row" data-target="tablaEspecificas">
+                        <span>➕</span> Agregar Tarifa Específica
+                    </button>
+                </div>
+
+                <!-- Sección T.Naves -->
+                <div class="tpyc-subpanel hidden" id="panelNaves">
+                    <div class="tpyc-subpanel-header">
+                        <span class="tpyc-subpanel-title">
+                            <span>⚓</span> T.Naves
+                            <span class="tpyc-badge">Tarifas de Naves</span>
+                        </span>
+                    </div>
+                    <div class="tpyc-table-wrap">
+                        <table class="tpyc-table" id="tablaNaves">
+                            <thead>
+                                <tr>
+                                    <th class="col-tarifa">Tarifa</th>
+                                    <th>Descripción</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
+                                    <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción para naves"></td>
+                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="tpyc-btn-add-row" data-target="tablaNaves">
+                        <span>➕</span> Agregar Tarifa Nave
+                    </button>
+                </div>
+
+            </div>
+        </form>
+            <!-- Toolbar de Acciones -->
+    <div class="tpyc-toolbar">
+        <div class="tpyc-toolbar-title">
+        </div>
+        <div class="tpyc-toolbar-actions">
+            <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnLimpiar">
+                Limpiar
+            </button>
+            <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnGuardar">
+                Guardar
+            </button>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'bitacora/js/menu.js' %}"></script>
+<script src="{% static 'bitacora/js/password.js' %}"></script>
+<script src="{% static 'bitacora/js/servicios_tpyc.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

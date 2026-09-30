@@ -97,10 +97,27 @@ def _iniciar_sesion(request, datos_usuario, turnos=None):
 
 
 @never_cache
+@require_http_methods(["GET"])
+def main_index(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    return render(
+        request,
+        "bitacora/index.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_login": request.session.get("usuario_login", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
+            "demo_mode": settings.DEMO_MODE,
+        },
+    )
+
+
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.session.get("usuario_id"):
-        return redirect("datos_practicaje")
+        return redirect("main_index")
 
     form = LoginForm(request.POST or None)
 
@@ -130,7 +147,7 @@ def login_view(request):
                             "Bitácora; puede utilizar las demás interfaces.",
                         )
 
-                    return redirect("bitacora_home")
+                    return redirect("main_index")
 
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Configuración o contrato de base de datos inválido")
