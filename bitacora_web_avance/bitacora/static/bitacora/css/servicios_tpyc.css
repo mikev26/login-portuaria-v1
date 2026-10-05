@@ -1,0 +1,277 @@
+/* =========================================================
+   ESTILOS SERVICIOS TPyC
+   ========================================================= */
+
+.tpyc-container {
+    padding: 10px 0 30px 0;
+}
+
+/* Toolbar de Acciones */
+.tpyc-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid var(--border, #d7e0e8);
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+}
+
+.tpyc-toolbar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy-deep, #062d52);
+}
+
+.tpyc-toolbar-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-tpyc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-tpyc-primary {
+    background: var(--navy, #0d4777);
+    color: white;
+    border-color: var(--navy-deep, #062d52);
+}
+
+.btn-tpyc-primary:hover {
+    background: var(--blue, #1d6f9f);
+}
+
+.btn-tpyc-secondary {
+    background: white;
+    color: var(--navy, #0d4777);
+    border-color: var(--border, #d7e0e8);
+}
+
+.btn-tpyc-secondary:hover {
+    background: #f1f5f9;
+    border-color: var(--blue, #1d6f9f);
+}
+
+/* Tarjeta Principal */
+.tpyc-card {
+    background: white;
+    border: 1px solid var(--border, #d7e0e8);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(6, 45, 82, 0.05);
+}
+
+/* Formulario Principal */
+.tpyc-main-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.tpyc-fields-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
+@media (max-width: 768px) {
+    .tpyc-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tpyc-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tpyc-field-group label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--navy, #0d4777);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.tpyc-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--text, #1d2d3d);
+    background: white;
+    border: 1px solid var(--border, #d7e0e8);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tpyc-input:focus {
+    border-color: var(--blue, #1d6f9f);
+    box-shadow: 0 0 0 3px rgba(29, 111, 159, 0.15);
+}
+
+.tpyc-input[readonly] {
+    background: #f1f5f9;
+    color: var(--muted, #66788a);
+    cursor: not-allowed;
+}
+
+/* Sección de Checkboxes / Selectores */
+.tpyc-checkboxes-bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid var(--border, #d7e0e8);
+    border-radius: 8px;
+}
+
+.tpyc-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--navy-deep, #062d52);
+    user-select: none;
+}
+
+.tpyc-checkbox-item input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--blue, #1d6f9f);
+    cursor: pointer;
+}
+
+/* Sub-Paneles (Secciones T.Cabotaje, T.Especificas, T.Naves) */
+.tpyc-sections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.tpyc-subpanel {
+    border: 1px solid var(--border, #d7e0e8);
+    border-radius: 8px;
+    padding: 16px 20px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.tpyc-subpanel.hidden {
+    display: none;
+}
+
+.tpyc-subpanel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tpyc-subpanel-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--navy, #0d4777);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tpyc-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+/* Tabla de Tarifas dentro de Subpaneles */
+.tpyc-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tpyc-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.tpyc-table th {
+    background: #f1f5f9;
+    color: var(--navy-deep, #062d52);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border, #d7e0e8);
+}
+
+.tpyc-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.tpyc-table th.col-tarifa,
+.tpyc-table td.col-tarifa {
+    width: 140px;
+}
+
+.tpyc-btn-add-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--blue, #1d6f9f);
+    border: 1px dashed var(--blue, #1d6f9f);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s ease;
+}
+
+.tpyc-btn-add-row:hover {
+    background: #f0f9ff;
+}
+
+.tpyc-btn-remove-row {
+    background: transparent;
+    color: var(--danger, #a11c1c);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.tpyc-btn-remove-row:hover {
+    background: #fef2f2;
+}

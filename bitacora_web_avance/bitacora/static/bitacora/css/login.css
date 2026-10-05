@@ -58,7 +58,7 @@
             outline: 3px solid rgba(23,104,157,.14);
             border-color: var(--blue);
         }
-        button {
+        button[type="submit"] {
             width: 100%;
             padding: 12px;
             border: 0;
@@ -69,7 +69,42 @@
             font-weight: 700;
             cursor: pointer;
         }
-        button:hover { background: var(--navy-dark); }
+        button[type="submit"]:hover { background: var(--navy-dark); }
+
+        .password-input-wrap {
+            position: relative;
+        }
+        .password-input-wrap input {
+            width: 100%;
+            padding-right: 40px;
+        }
+        .password-eye {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            border: none;
+            background: none;
+            outline: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+            cursor: pointer;
+            line-height: 1;
+            color: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .password-eye:hover,
+        .password-eye:focus,
+        .password-eye:active {
+            background: none;
+            outline: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
         .message {
             padding: 10px 12px;
             border-radius: 7px;

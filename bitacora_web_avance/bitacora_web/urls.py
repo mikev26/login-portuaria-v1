@@ -3,10 +3,12 @@ from django.urls import path
 
 from bitacora import views
 from bitacora import practicaje_views
+from bitacora import servicios_tpyc_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.login_view, name="login"),
+    path("index/", views.main_index, name="main_index"),
     path("bitacora/", views.bitacora_home, name="bitacora_home"),
     path("bitacora/exportar-excel/",views.exportar_bitacora_excel,name="bitacora_exportar_excel"),
     #path("tarifario/", views.tarifa_view, name="tarifa"),
@@ -21,6 +23,7 @@ urlpatterns = [
     path("registro-combustible/exportar-excel/validar/", views.exportar_excel_validar, name="registro_combustible_exportar_validar"),
     path("tarifa/", views.tarifa_view, name="tarifa"),
     path("tarifa/inflacion/", views.tarifa_inflacion_view, name="tarifa_inflacion"),
+    path("tarifa/servicios-tpyc/", servicios_tpyc_views.servicios_tpyc_view, name="servicios_tpyc"),
     path("tarifa/inflacion/guardar/", views.guardar_tarifa_inflacion_view, name="tarifa_inflacion_guardar"),
     path("tarifa/inflacion/exportar-pdf/", views.exportar_tarifa_inflacion_pdf_view, name="tarifa_inflacion_exportar_pdf"),
     path("tarifa/inflacion/historico/", views.obtener_historico_tarifas_view, name="tarifa_inflacion_historico"),

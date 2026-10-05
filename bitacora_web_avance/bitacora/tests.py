@@ -9,7 +9,7 @@ class ProjectSmokeTest(TestCase):
     def test_login_page_loads(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Bitácora Electrónica")
+        self.assertContains(response, "Sistema de Reportes")
 
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")
@@ -27,7 +27,7 @@ class ProjectSmokeTest(TestCase):
             {"usuario": "inspector.demo", "clave": "Demo1234"},
         )
 
-        self.assertRedirects(response, "/bitacora/")
+        self.assertRedirects(response, "/index/")
         session = self.client.session
         self.assertEqual(session["usuario_id"], 7)
         self.assertEqual(session["usuario_login"], "inspector.demo")
@@ -61,7 +61,15 @@ class ProjectSmokeTest(TestCase):
             "/",
             {"usuario": "inspector.demo", "clave": "Demo1234"},
         )
-        self.assertRedirects(response, "/bitacora/")
+        self.assertRedirects(response, "/index/")
+
+    def test_index_page_loads(self):
+        self._authenticate()
+
+        response = self.client.get("/index/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "SISTEMA DE REPORTES Y MÓDULOS")
 
     def test_tarifa_page_loads(self):
         self._authenticate()
