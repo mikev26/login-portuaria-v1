@@ -65,6 +65,17 @@ def _normalize_ship_rows(
     return ships
 
 
+def obtener_buques_info() -> list[dict[str, str]]:
+    """Obtiene únicamente el nombre Buque desde dbo.SPJ_InfoBuques."""
+    procedure = validated_procedure("SP_INFO_BUQUES")
+    rows = execute_procedure(procedure)
+    return [
+        {"nombre": str(row["buque"]).strip()}
+        for row in rows
+        if row.get("buque") is not None and str(row["buque"]).strip()
+    ]
+
+
 def obtener_buques_industriales() -> list[dict[str, Any]]:
     """Obtiene los buques industriales que permanecen activos."""
 

@@ -1,0 +1,175 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Ocupación de Espacios | Autoridad Portuaria{% endblock %}
+{% block header_title %}OCUPACIÓN DE ESPACIOS{% endblock %}
+{% block body_class %}ocupacion-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'bitacora/css/ocupacion_espacios.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="ocupacion-shell" aria-labelledby="ocupacion-title">
+    <div class="ocupacion-heading">
+        <div>
+            <p class="ocupacion-kicker">Reportes operativos</p>
+            <h2 id="ocupacion-title">Ocupación de Espacios</h2>
+        </div>
+        <span class="ocupacion-status">Diseño de interfaz</span>
+    </div>
+
+    <form id="ocupacionForm" class="ocupacion-form" method="get" action="" data-module="ocupacion-espacios">
+        {% csrf_token %}
+
+        <div class="ocupacion-layout">
+            <section class="ocupacion-panel ocupacion-filters" aria-labelledby="filtros-title">
+                <div class="ocupacion-panel-heading">
+                    <div>
+                        <p class="ocupacion-panel-eyebrow">Parámetros de consulta</p>
+                        <h3 id="filtros-title">Filtros y parámetros</h3>
+                    </div>
+                </div>
+
+                <div class="ocupacion-date-grid">
+                    <div class="ocupacion-field">
+                        <label for="ocupacionDesde">F. desde</label>
+                        <input id="ocupacionDesde" name="fecha_desde" type="date">
+                    </div>
+                    <div class="ocupacion-field">
+                        <label for="ocupacionHasta">Hasta</label>
+                        <input id="ocupacionHasta" name="fecha_hasta" type="date">
+                    </div>
+                </div>
+
+                <div class="ocupacion-search-list" aria-label="Filtros de búsqueda">
+                    <div class="ocupacion-search-row">
+                        <label class="ocupacion-check-label" for="filtroRegistroActivo">
+                            <input id="filtroRegistroActivo" name="filtro_registro_activo" type="checkbox">
+                            <span>Registro</span>
+                        </label>
+                        <input id="filtroRegistro" name="registro" type="text" placeholder="Buscar registro" disabled>
+                        <button class="ocupacion-lookup" type="button" aria-label="Seleccionar registro">...</button>
+                    </div>
+
+                    <div class="ocupacion-search-row">
+                        <label class="ocupacion-check-label" for="filtroBuqueActivo">
+                            <input id="filtroBuqueActivo" name="filtro_buque_activo" type="checkbox">
+                            <span>Buque</span>
+                        </label>
+                        <input id="filtroBuque" name="buque" type="text" placeholder="Buscar buque" readonly disabled>
+                        <input id="filtroBuqueCodigos" name="buque_codigos" type="hidden">
+                        <button id="abrirBuques" class="ocupacion-lookup" type="button" aria-label="Seleccionar buque" disabled>...</button>
+                    </div>
+
+                    <div class="ocupacion-search-row">
+                        <label class="ocupacion-check-label" for="filtroServiciosActivo">
+                            <input id="filtroServiciosActivo" name="filtro_servicios_activo" type="checkbox">
+                            <span>Servicios</span>
+                        </label>
+                        <input id="filtroServicios" name="servicios" type="text" placeholder="Buscar servicios" disabled>
+                        <button class="ocupacion-lookup" type="button" aria-label="Seleccionar servicios">...</button>
+                    </div>
+
+                    <div class="ocupacion-search-row">
+                        <label class="ocupacion-check-label" for="filtroUsuarioActivo">
+                            <input id="filtroUsuarioActivo" name="filtro_usuario_activo" type="checkbox">
+                            <span>Usuario</span>
+                        </label>
+                        <input id="filtroUsuario" name="usuario" type="text" placeholder="Buscar usuario" disabled>
+                        <button class="ocupacion-lookup" type="button" aria-label="Seleccionar usuario">...</button>
+                    </div>
+                </div>
+
+                <fieldset class="ocupacion-option-group">
+                    <legend>Estado</legend>
+                    <label><input type="radio" name="estado" value="informados"> Informados</label>
+                    <label><input type="radio" name="estado" value="por_informar"> Por Informar</label>
+                    <label><input type="radio" name="estado" value="todos" checked> Todos</label>
+                </fieldset>
+
+                <fieldset class="ocupacion-option-group ocupacion-inclusions">
+                    <legend>Inclusiones</legend>
+                    <label><input type="checkbox" name="incluir_usuario" checked> Incluir O.Espacio por Usuario</label>
+                    <label><input type="checkbox" name="incluir_registro" checked> Incluir O.Espacio por Registro</label>
+                    <label><input type="checkbox" name="incluir_buque" checked> Incluir O.Espacio por Buque</label>
+                    <label><input type="checkbox" name="ocupacion_activas"> Ocupación de Espacio Activas</label>
+                </fieldset>
+            </section>
+
+            <section class="ocupacion-panel ocupacion-formats" aria-labelledby="formatos-title">
+                <div class="ocupacion-panel-heading">
+                    <div>
+                        <p class="ocupacion-panel-eyebrow">Salida del reporte</p>
+                        <h3 id="formatos-title">Lista de Formatos</h3>
+                    </div>
+                </div>
+
+                <label class="ocupacion-select-label" for="formatoReporte">Formato</label>
+                <select id="formatoReporte" name="formato" size="2">
+                    <option value="motivo" selected>Reporte O.Espacio X Motivo</option>
+                    <option value="espacio">Reporte O.Espacio.h</option>
+                </select>
+                <p class="ocupacion-hint">Seleccione el formato que desea generar.</p>
+            </section>
+        </div>
+
+        <div class="ocupacion-actions" aria-label="Acciones del reporte">
+            <label class="ocupacion-excel-option">
+                <input id="generarExcel" name="generar_excel" type="checkbox" value="1">
+                <span>Generar Archivo Excel</span>
+            </label>
+            <button id="descargarPdf" class="ocupacion-button ocupacion-button-pdf" type="button" data-export-format="pdf" data-export-url="">
+                Descargar PDF
+            </button>
+            <button class="ocupacion-button ocupacion-button-primary" type="submit">Aceptar</button>
+            <button class="ocupacion-button ocupacion-button-secondary" type="reset">Cancelar</button>
+        </div>
+    </form>
+</section>
+
+{{ buques|default:'[]'|json_script:'ocupacionBuquesData' }}
+
+<div id="buquesModal" class="ocupacion-modal" role="dialog" aria-modal="true" aria-labelledby="buquesModalTitle" hidden>
+    <div class="ocupacion-modal-backdrop" data-close-buques-modal></div>
+    <section class="ocupacion-modal-dialog">
+        <header class="ocupacion-modal-header">
+            <div>
+                <p class="ocupacion-panel-eyebrow">Selección de filtro</p>
+                <h2 id="buquesModalTitle">Buques</h2>
+            </div>
+            <button class="ocupacion-modal-close" type="button" aria-label="Cerrar" data-close-buques-modal>&times;</button>
+        </header>
+
+        <div class="ocupacion-modal-toolbar">
+            <label class="ocupacion-modal-search" for="buscarBuqueModal">
+                Buscar
+                <input id="buscarBuqueModal" type="search" placeholder="Escriba el nombre del buque">
+            </label>
+            <span id="buquesSeleccionados" class="ocupacion-selection-count">0 seleccionados</span>
+        </div>
+
+        <div class="ocupacion-ship-table-wrap">
+            <table class="ocupacion-ship-table">
+                <thead>
+                    <tr>
+                        <th scope="col"><span class="ocupacion-visually-hidden">Seleccionar</span></th>
+                        <th scope="col">Nombre</th>
+                    </tr>
+                </thead>
+                <tbody id="buquesModalBody"></tbody>
+            </table>
+        </div>
+
+        <footer class="ocupacion-modal-actions">
+            <button class="ocupacion-button ocupacion-button-secondary" type="button" data-close-buques-modal>Cancelar</button>
+            <button id="aceptarBuques" class="ocupacion-button ocupacion-button-primary" type="button">Aceptar</button>
+        </footer>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'bitacora/js/ocupacion_espacios.js' %}"></script>
+{% endblock %}

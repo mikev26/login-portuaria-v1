@@ -21,6 +21,7 @@ from .services import (
     DatabaseContractError,
     generar_excel_datos_abiertos,
     obtener_buques_artesanales,
+    obtener_buques_info,
     obtener_buques_industriales,
     obtener_reporte_combustible,
     obtener_reporte_datos_abiertos,
@@ -1676,6 +1677,33 @@ def registro_combustible_home(request):
             "fecha_emision": fecha_emision,
             "fecha_desde": fecha_desde,
             "fecha_hasta": fecha_hasta,
+        },
+    )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def ocupacion_espacios_home(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    buques = []
+    try:
+        buques = obtener_buques_info()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de configuración al cargar buques de ocupación")
+        messages.error(request, str(exc))
+    except Exception:
+        logger.exception("Error al cargar buques desde dbo.SPJ_InfoBuques")
+        messages.error(request, "No fue posible cargar los buques desde SQL Server.")
+
+    return render(
+        request,
+        "bitacora/ocupacion_espacios.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
+            "buques": buques,
         },
     )
 
