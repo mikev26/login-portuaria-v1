@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime
 import io
 import os
 
@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
@@ -177,6 +178,19 @@ def registro_combustible_home(request):
                         registro["c_ticket"] = registro["c_tikect"]
                     elif "c_tikect" in registro:
                         registro["c_ticket"] = registro.get("c_tikect", "")
+                    registro["licencia"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "licencia",
+                                "licencia_conductor",
+                                "licencia_no",
+                                "liciencia",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
                     registro["estado"] = registro.get(
                         "estado",
                         registro.get("estado_registro", ""),
@@ -402,9 +416,6 @@ def exportar_excel(request):
             if cell.__class__.__name__ != "MergedCell":
                 cell.value = val
 
-<<<<<<< Updated upstream
-        # Escribir fecha de emisión en Celda A4
-=======
         headers = [
             "Fecha",
             "Tickets",
@@ -423,7 +434,6 @@ def exportar_excel(request):
         for column, header in enumerate(headers, start=1):
             safe_write_cell(ws, 7, column, header)
 
->>>>>>> Stashed changes
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
         safe_write_cell(ws, 4, 1, f"Fecha de Emisión : Manta, {fecha_emision_str}")
 
@@ -461,10 +471,8 @@ def exportar_excel(request):
                         return val
             return ""
 
-<<<<<<< Updated upstream
         # Limpiar celdas combinadas de la plantilla a partir de la fila 8 hacia abajo
         # para evitar solapamientos y distorsión al escribir los registros.
-=======
         def excel_datetime(value):
             if isinstance(value, datetime):
                 parsed = value
@@ -494,7 +502,6 @@ def exportar_excel(request):
                 parsed = timezone.localtime(parsed).replace(tzinfo=None)
             return parsed.replace(microsecond=0)
 
->>>>>>> Stashed changes
         for rng in list(ws.merged_cells.ranges):
             if rng.min_row >= 8:
                 ws.unmerge_cells(str(rng))
@@ -502,25 +509,6 @@ def exportar_excel(request):
         start_row = 8
         for idx, reg in enumerate(registros, start=start_row):
             fila = [
-<<<<<<< Updated upstream
-                first_value(reg, ("fecha_ingresa", "fecha", "fecha_registro", "fecha_mov")),
-                first_value(reg, ("c_tikect", "c_ticket", "tikect", "ticket", "tickets")),
-                first_value(reg, ("guia", "guia_r", "guia_no")),
-                first_value(reg, ("idplaca", "placa")),
-                first_value(reg, ("chofer", "conductor")),
-                first_value(reg, ("licencia", "licencia_conductor", "licencia_no")),
-                first_value(reg, ("codbuque", "cod_buque", "scbuque")),
-                first_value(reg, ("buque", "nombre")),
-                first_value(reg, ("matricula", "n_matricula")),
-                first_value(reg, ("galones", "cantidad_litros", "litros")),
-                first_value(reg, ("motivo",)),
-                first_value(reg, ("estado",)),
-                first_value(reg, ("tipo_carro", "tipo carro", "tipo")),
-            ]
-
-            for col_idx, value in enumerate(fila, start=1):
-                safe_write_cell(ws, idx, col_idx, value)
-=======
                 excel_datetime(
                     first_value(
                         reg,
@@ -650,7 +638,6 @@ def exportar_excel(request):
                     ws.cell(row=idx, column=col_idx).number_format = (
                         "yyyy-mm-dd hh:mm:ss"
                     )
->>>>>>> Stashed changes
 
         # Determinar la última fila escrita y calcular el inicio del bloque de firmas
         last_data_row = start_row + len(registros) - 1

@@ -248,11 +248,12 @@
         }
         .table-wrapper {
             width: 100%;
-            overflow-x: auto;
+            max-height: min(65vh, 720px);
+            overflow: auto;
         }
         .report-table {
-            width: 100%;
-            table-layout: fixed;
+            width: max-content;
+            min-width: 1200px;
             border-collapse: collapse;
             margin-top: 10px;
         }
@@ -271,6 +272,9 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .6px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
         .report-table td {
             background: #fff;
@@ -349,11 +353,10 @@
             color: var(--muted);
         }
         @media (max-width: 760px) {
-            .report-shell { padding: 60px; }
+            .report-shell { padding: 24px; }
             .top-bar { flex-direction: column; align-items: stretch; }
             .info-row, .signatures { flex-direction: column; }
             .field-box { width: 100%; }
-            .report-table { min-width: 100%; }
         }
     </style>
 </head>
@@ -400,26 +403,6 @@
             </div>
             <div class="field-empty">&nbsp;</div>
         </div>
-<<<<<<< Updated upstream
-        <div class="info-row">
-            <div class="field-box">
-                <div>
-                    <div class="field-label">Fecha Desde</div>
-                    <div id="header-fecha-desde" class="field-value">{{ fecha_desde|date:"d/m/Y" }}</div>
-                </div>
-            </div>
-            <div class="field-box">
-                <div>
-                    <div class="field-label">Fecha Hasta</div>
-                    <div id="header-fecha-hasta" class="field-value">{{ fecha_hasta|date:"d/m/Y" }}</div>
-                </div>
-            </div>
-        </div>
-=======
-
-
-        <!-- Filtros -->
->>>>>>> Stashed changes
         <form method="get" class="date-range-form">
             <div class="date-range">
                 <label>
@@ -453,150 +436,45 @@
                     <th>Guía</th>
                     <th>Placa</th>
                     <th>Chofer</th>
+                    <th>Liciencia</th>
                     <th>CodBuque</th>
-                    <th>Barco</th>
+                    <th>Buque</th>
                     <th>Matrícula</th>
                     <th>Galones</th>
                     <th>Motivo</th>
+                    <th>Estado</th>
+                    <th>Tipo de Vehiculo</th>
                 </tr>
             </thead>
             <tbody id="report-table-body">
             {% if registros %}
                 {% for registro in registros %}
                     <tr>
-<<<<<<< Updated upstream
                         <td>{{ registro.fecha_ingresa }}</td>
                         <td>{{ registro.c_tikect }}</td>
                         <td>{{ registro.guia }}</td>
                         <td>{{ registro.idplaca }}</td>
                         <td>{{ registro.chofer }}</td>
+                        <td>{{ registro.licencia }}</td>
                         <td>{{ registro.codbuque }}</td>
                         <td>{{ registro.buque }}</td>
                         <td>{{ registro.matricula }}</td>
                         <td>{{ registro.galones }}</td>
                         <td>{{ registro.motivo }}</td>
-=======
-                        <th>Fecha</th>
-                        <th>Tickets</th>
-                        <th>Guía</th>
-                        <th>Placa</th>
-                        <th>Chofer</th>
-                        <th>Liciencia</th>
-                        <th>CodBuque</th>
-                        <th>Buque</th>
-                        <th>Matrícula</th>
-                        <th>Galones</th>
-                        <th>Motivo</th>
-                        <th>Estado</th>
-                        <th>Tipo de Vehiculo</th>
->>>>>>> Stashed changes
+                        <td>{{ registro.estado }}</td>
+                        <td>{{ registro.tipo_carro }}</td>
                     </tr>
                 {% endfor %}
             {% else %}
                 <tr class="table-placeholder">
-                    <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
+                    <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
                 </tr>
             {% endif %}
         </tbody>
         </table>
     </div>
 
-<<<<<<< Updated upstream
     <div class="signatures">
-=======
-                </thead>
-
-
-                <tbody id="report-table-body">
-
-                    {% if registros %}
-
-                        {% for registro in registros %}
-
-                            <tr>
-
-                                <td>
-                                    {{ registro.fecha_ingresa }}
-                                </td>
-
-                                <td>
-                                    {{ registro.c_tikect }}
-                                </td>
-
-                                <td>
-                                    {{ registro.guia }}
-                                </td>
-
-                                <td>
-                                    {{ registro.idplaca }}
-                                </td>
-
-                                <td>
-                                    {{ registro.chofer }}
-                                </td>
-
-                                <td>
-                                    {{ registro.licencia }}
-                                </td>
-
-                                <td>
-                                    {{ registro.codbuque }}
-                                </td>
-
-                                <td>
-                                    {{ registro.buque }}
-                                </td>
-
-                                <td>
-                                    {{ registro.matricula }}
-                                </td>
-
-                                <td>
-                                    {{ registro.galones }}
-                                </td>
-
-                                <td>
-                                    {{ registro.motivo }}
-                                </td>
-
-                                <td>
-                                    {{ registro.estado }}
-                                </td>
-
-                                <td>
-                                    {{ registro.tipo_carro }}
-                                </td>
-
-                            </tr>
-
-                        {% endfor %}
-
-                    {% else %}
-
-                        <tr class="table-placeholder">
-
-                            <td colspan="13">
-                                No hay datos disponibles.
-                                Seleccione fechas y presione Buscar.
-                            </td>
-
-                        </tr>
-
-                    {% endif %}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </section>
-
-
-    <!-- Firmas -->
-    <section class="signatures">
-
->>>>>>> Stashed changes
         <div class="signature signature-left">
             <div class="signature-wrapper">
                 <span class="signature-title">Preparado por:</span>
@@ -617,8 +495,6 @@
         const form = document.querySelector(".date-range-form");
         const tableBody = document.querySelector("#report-table-body");
         const messagesContainer = document.querySelector("#report-messages");
-        const fechaDesdeElement = document.querySelector("#header-fecha-desde");
-        const fechaHastaElement = document.querySelector("#header-fecha-hasta");
         const submitButton = form.querySelector("button[type=submit]");
         const exportLink = document.querySelector("#export-link");
         const exportMessage = document.querySelector('#export-message');
@@ -696,20 +572,6 @@
             setExportEnabled(true);
         }
 
-        function formatIsoDate(value) {
-            if (!value) {
-                return "";
-            }
-            const dateValue = new Date(value);
-            if (Number.isNaN(dateValue.getTime())) {
-                return value;
-            }
-            const day = String(dateValue.getDate()).padStart(2, "0");
-            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
-            const year = dateValue.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
         function buildMessageHtml(messages) {
             return messages
                 .map(msg => `<div class="message-banner ${msg.tags}">${msg.text}</div>`)
@@ -720,7 +582,7 @@
             if (!rows || !rows.length) {
                 return `
                     <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
+                        <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
                     </tr>
                 `;
             }
@@ -733,11 +595,14 @@
                         <td>${row.guia}</td>
                         <td>${row.idplaca}</td>
                         <td>${row.chofer}</td>
+                        <td>${row.licencia}</td>
                         <td>${row.codbuque}</td>
                         <td>${row.buque}</td>
                         <td>${row.matricula}</td>
                         <td>${row.galones}</td>
                         <td>${row.motivo}</td>
+                        <td>${row.estado}</td>
+                        <td>${row.tipo_carro}</td>
                     </tr>
                 `)
                 .join("");
@@ -769,8 +634,6 @@
                 const data = await response.json();
 
                 messagesContainer.innerHTML = buildMessageHtml(data.messages);
-                fechaDesdeElement.textContent = formatIsoDate(data.fecha_desde);
-                fechaHastaElement.textContent = formatIsoDate(data.fecha_hasta);
                 tableBody.innerHTML = buildTableRows(data.rows);
 
                 if (exportLink) {
@@ -787,7 +650,7 @@
                 messagesContainer.innerHTML = `<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>`;
                 tableBody.innerHTML = `
                     <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
+                        <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
                     </tr>
                 `;
             } finally {
