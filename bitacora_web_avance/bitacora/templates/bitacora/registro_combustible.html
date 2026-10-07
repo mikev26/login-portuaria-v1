@@ -400,6 +400,7 @@
             </div>
             <div class="field-empty">&nbsp;</div>
         </div>
+<<<<<<< Updated upstream
         <div class="info-row">
             <div class="field-box">
                 <div>
@@ -414,6 +415,11 @@
                 </div>
             </div>
         </div>
+=======
+
+
+        <!-- Filtros -->
+>>>>>>> Stashed changes
         <form method="get" class="date-range-form">
             <div class="date-range">
                 <label>
@@ -458,6 +464,7 @@
             {% if registros %}
                 {% for registro in registros %}
                     <tr>
+<<<<<<< Updated upstream
                         <td>{{ registro.fecha_ingresa }}</td>
                         <td>{{ registro.c_tikect }}</td>
                         <td>{{ registro.guia }}</td>
@@ -468,6 +475,21 @@
                         <td>{{ registro.matricula }}</td>
                         <td>{{ registro.galones }}</td>
                         <td>{{ registro.motivo }}</td>
+=======
+                        <th>Fecha</th>
+                        <th>Tickets</th>
+                        <th>Guía</th>
+                        <th>Placa</th>
+                        <th>Chofer</th>
+                        <th>Liciencia</th>
+                        <th>CodBuque</th>
+                        <th>Buque</th>
+                        <th>Matrícula</th>
+                        <th>Galones</th>
+                        <th>Motivo</th>
+                        <th>Estado</th>
+                        <th>Tipo de Vehiculo</th>
+>>>>>>> Stashed changes
                     </tr>
                 {% endfor %}
             {% else %}
@@ -479,7 +501,102 @@
         </table>
     </div>
 
+<<<<<<< Updated upstream
     <div class="signatures">
+=======
+                </thead>
+
+
+                <tbody id="report-table-body">
+
+                    {% if registros %}
+
+                        {% for registro in registros %}
+
+                            <tr>
+
+                                <td>
+                                    {{ registro.fecha_ingresa }}
+                                </td>
+
+                                <td>
+                                    {{ registro.c_tikect }}
+                                </td>
+
+                                <td>
+                                    {{ registro.guia }}
+                                </td>
+
+                                <td>
+                                    {{ registro.idplaca }}
+                                </td>
+
+                                <td>
+                                    {{ registro.chofer }}
+                                </td>
+
+                                <td>
+                                    {{ registro.licencia }}
+                                </td>
+
+                                <td>
+                                    {{ registro.codbuque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.buque }}
+                                </td>
+
+                                <td>
+                                    {{ registro.matricula }}
+                                </td>
+
+                                <td>
+                                    {{ registro.galones }}
+                                </td>
+
+                                <td>
+                                    {{ registro.motivo }}
+                                </td>
+
+                                <td>
+                                    {{ registro.estado }}
+                                </td>
+
+                                <td>
+                                    {{ registro.tipo_carro }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr class="table-placeholder">
+
+                            <td colspan="13">
+                                No hay datos disponibles.
+                                Seleccione fechas y presione Buscar.
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- Firmas -->
+    <section class="signatures">
+
+>>>>>>> Stashed changes
         <div class="signature signature-left">
             <div class="signature-wrapper">
                 <span class="signature-title">Preparado por:</span>

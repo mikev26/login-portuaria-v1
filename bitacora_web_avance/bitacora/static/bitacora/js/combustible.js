@@ -2,8 +2,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const form = document.querySelector(".date-range-form");
         const tableBody = document.querySelector("#report-table-body");
         const messagesContainer = document.querySelector("#report-messages");
-        const fechaDesdeElement = document.querySelector("#header-fecha-desde");
-        const fechaHastaElement = document.querySelector("#header-fecha-hasta");
         const submitButton = form.querySelector("button[type=submit]");
         const exportLink = document.querySelector("#export-link");
         const exportMessage = document.querySelector('#export-message');
@@ -81,49 +79,27 @@ document.addEventListener("DOMContentLoaded", function () {
             setExportEnabled(true);
         }
 
-        function formatIsoDate(value) {
-            if (!value) {
-                return "";
-            }
-
-            const rawValue = String(value).trim();
-            if (!rawValue) {
-                return "";
-            }
-
-            const directMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
-            if (directMatch) {
-                const [, year, month, day] = directMatch;
-                return `${day}/${month}/${year}`;
-            }
-
-            const slashMatch = rawValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (slashMatch) {
-                return rawValue;
-            }
-
-            const dateValue = new Date(rawValue);
-            if (Number.isNaN(dateValue.getTime())) {
-                return rawValue;
-            }
-
-            const day = String(dateValue.getDate()).padStart(2, "0");
-            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
-            const year = dateValue.getFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
         function buildMessageHtml(messages) {
             return messages
-                .map(msg => `<div class="message-banner ${msg.tags}">${msg.text}</div>`)
+                .map(msg => `<div class="message-banner ${escapeHtml(msg.tags)}">${escapeHtml(msg.text)}</div>`)
                 .join("");
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
         }
 
         function buildTableRows(rows) {
             if (!rows || !rows.length) {
                 return `
                     <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
+                        <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
                     </tr>
                 `;
             }
@@ -131,16 +107,19 @@ document.addEventListener("DOMContentLoaded", function () {
             return rows
                 .map(row => `
                     <tr>
-                        <td>${row.fecha_ingresa}</td>
-                        <td>${row.c_tikect}</td>
-                        <td>${row.guia}</td>
-                        <td>${row.idplaca}</td>
-                        <td>${row.chofer}</td>
-                        <td>${row.codbuque}</td>
-                        <td>${row.buque}</td>
-                        <td>${row.matricula}</td>
-                        <td>${row.galones}</td>
-                        <td>${row.motivo}</td>
+                        <td>${escapeHtml(row.fecha_ingresa)}</td>
+                        <td>${escapeHtml(row.c_tikect)}</td>
+                        <td>${escapeHtml(row.guia)}</td>
+                        <td>${escapeHtml(row.idplaca)}</td>
+                        <td>${escapeHtml(row.chofer)}</td>
+                        <td>${escapeHtml(row.licencia)}</td>
+                        <td>${escapeHtml(row.codbuque)}</td>
+                        <td>${escapeHtml(row.buque)}</td>
+                        <td>${escapeHtml(row.matricula)}</td>
+                        <td>${escapeHtml(row.galones)}</td>
+                        <td>${escapeHtml(row.motivo)}</td>
+                        <td>${escapeHtml(row.estado)}</td>
+                        <td>${escapeHtml(row.tipo_carro)}</td>
                     </tr>
                 `)
                 .join("");
@@ -172,8 +151,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 const data = await response.json();
 
                 messagesContainer.innerHTML = buildMessageHtml(data.messages);
-                fechaDesdeElement.textContent = formatIsoDate(data.fecha_desde);
-                fechaHastaElement.textContent = formatIsoDate(data.fecha_hasta);
                 tableBody.innerHTML = buildTableRows(data.rows);
 
                 if (exportLink) {
@@ -190,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 messagesContainer.innerHTML = `<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>`;
                 tableBody.innerHTML = `
                     <tr class="table-placeholder">
-                        <td colspan="10">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
+                        <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
                     </tr>
                 `;
             } finally {
