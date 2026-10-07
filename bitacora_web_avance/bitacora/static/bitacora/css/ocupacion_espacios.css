@@ -354,6 +354,11 @@
     border-radius: 6px;
 }
 
+.ocupacion-record-table-wrap {
+    max-height: min(46vh, 390px);
+    overflow-y: auto;
+}
+
 .ocupacion-ship-table {
     width: 100%;
     border-collapse: collapse;

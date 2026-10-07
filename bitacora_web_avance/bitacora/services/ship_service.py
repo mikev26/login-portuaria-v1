@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
 
 from django.conf import settings
+from django.utils import timezone
 
 from .db_connection import (
+    DatabaseContractError,
+    execute_procedure,
     execute_query,
     format_datetime,
     first_value,
+    validated_procedure,
 )
 
 
@@ -73,6 +78,35 @@ def obtener_buques_info() -> list[dict[str, str]]:
         {"nombre": str(row["buque"]).strip()}
         for row in rows
         if row.get("buque") is not None and str(row["buque"]).strip()
+    ]
+
+
+def obtener_registros_ocupacion() -> list[dict[str, Any]]:
+    """Obtiene registros para el filtro de Ocupación de Espacios."""
+    rows = execute_procedure(
+        "dbo.SPJ_ReporteRegistroBuques",
+        (
+            ("@s_fechaInit", date(2010, 1, 1)),
+            ("@s_fechaFin", timezone.localdate() + timedelta(days=1)),
+        ),
+        database_name="dim_sis_puerto_v1",
+    )
+
+    if rows and any(
+        "scregistro" not in row or "buque" not in row
+        for row in rows
+    ):
+        raise DatabaseContractError(
+            "SPJ_ReporteRegistroBuques no devolvió las columnas "
+            "scregistro y buque."
+        )
+
+    return [
+        {
+            "scregistro": row["scregistro"],
+            "buque": row["buque"],
+        }
+        for row in rows
     ]
 
 

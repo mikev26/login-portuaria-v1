@@ -48,8 +48,8 @@
                             <input id="filtroRegistroActivo" name="filtro_registro_activo" type="checkbox">
                             <span>Registro</span>
                         </label>
-                        <input id="filtroRegistro" name="registro" type="text" placeholder="Buscar registro" disabled>
-                        <button class="ocupacion-lookup" type="button" aria-label="Seleccionar registro">...</button>
+                        <input id="filtroRegistro" name="registro" type="text" placeholder="Seleccionar registro" readonly disabled>
+                        <button id="abrirRegistros" class="ocupacion-lookup" type="button" aria-label="Seleccionar registro" disabled>...</button>
                     </div>
 
                     <div class="ocupacion-search-row">
@@ -58,7 +58,6 @@
                             <span>Buque</span>
                         </label>
                         <input id="filtroBuque" name="buque" type="text" placeholder="Buscar buque" readonly disabled>
-                        <input id="filtroBuqueCodigos" name="buque_codigos" type="hidden">
                         <button id="abrirBuques" class="ocupacion-lookup" type="button" aria-label="Seleccionar buque" disabled>...</button>
                     </div>
 
@@ -128,7 +127,7 @@
     </form>
 </section>
 
-{{ buques|default:'[]'|json_script:'ocupacionBuquesData' }}
+{{ buques|json_script:'ocupacionBuquesData' }}
 
 <div id="buquesModal" class="ocupacion-modal" role="dialog" aria-modal="true" aria-labelledby="buquesModalTitle" hidden>
     <div class="ocupacion-modal-backdrop" data-close-buques-modal></div>
@@ -167,9 +166,56 @@
         </footer>
     </section>
 </div>
+
+<div
+    id="registrosModal"
+    class="ocupacion-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="registrosModalTitle"
+    data-registros-url="{% url 'ocupacion_registros_api' %}"
+    hidden
+>
+    <div class="ocupacion-modal-backdrop" data-close-registros-modal></div>
+    <section class="ocupacion-modal-dialog">
+        <header class="ocupacion-modal-header">
+            <div>
+                <p class="ocupacion-panel-eyebrow">Selección de filtro</p>
+                <h2 id="registrosModalTitle">Registros</h2>
+            </div>
+            <button class="ocupacion-modal-close" type="button" aria-label="Cerrar" data-close-registros-modal>&times;</button>
+        </header>
+
+        <div class="ocupacion-modal-toolbar">
+            <label class="ocupacion-modal-search" for="buscarRegistroModal">
+                Buscar
+                <input id="buscarRegistroModal" type="search" placeholder="Buscar por registro o buque">
+            </label>
+            <span id="registrosSeleccionados" class="ocupacion-selection-count">0 seleccionados</span>
+        </div>
+
+        <div class="ocupacion-ship-table-wrap ocupacion-record-table-wrap">
+            <table class="ocupacion-ship-table ocupacion-record-table">
+                <thead>
+                    <tr>
+                        <th scope="col"><span class="ocupacion-visually-hidden">Seleccionar</span></th>
+                        <th scope="col">Registro</th>
+                        <th scope="col">Buque</th>
+                    </tr>
+                </thead>
+                <tbody id="registrosModalBody"></tbody>
+            </table>
+        </div>
+
+        <footer class="ocupacion-modal-actions">
+            <button class="ocupacion-button ocupacion-button-secondary" type="button" data-close-registros-modal>Cancelar</button>
+            <button id="aceptarRegistros" class="ocupacion-button ocupacion-button-primary" type="button">Aceptar</button>
+        </footer>
+    </section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'bitacora/js/ocupacion_espacios.js' %}"></script>
+<script src="{% static 'bitacora/js/ocupacion_espacios.js' %}?v=3"></script>
 {% endblock %}

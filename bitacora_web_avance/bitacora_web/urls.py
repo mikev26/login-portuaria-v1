@@ -16,12 +16,12 @@ urlpatterns = [
     path("datos-practicaje/exportar-excel/", practicaje_views.exportar_datos_practicaje_excel, name="datos_practicaje_exportar"),
     path("datos-practicaje/exportar-excel/validar/", practicaje_views.validar_exportacion_practicaje, name="datos_practicaje_exportar_validar"),
     path("datos-abiertos/", views.datos_abiertos_home, name="datos_abiertos"),
-<<<<<<< Updated upstream
-    path("datos-abiertos/exportar-excel/", views.datos_abiertos_exportar_view, name="datos_abiertos_exportar",),
-    path("registro-combustible/exportar-excel/", views.exportar_excel, name="registro_combustible_exportar"),
-    path("registro-combustible/exportar-excel/validar/", views.exportar_excel_validar, name="registro_combustible_exportar_validar"),
-=======
     path("ocupacion-espacios/", views.ocupacion_espacios_home, name="ocupacion_espacios"),
+    path(
+        "ocupacion-espacios/registros/",
+        views.ocupacion_registros_api,
+        name="ocupacion_registros_api",
+    ),
     path(
         "datos-abiertos/exportar-excel/",
         views.datos_abiertos_exportar_view,
@@ -38,7 +38,6 @@ urlpatterns = [
         views.exportar_excel_validar,
         name="registro_combustible_exportar_validar",
     ),
->>>>>>> Stashed changes
     path("tarifa/", views.tarifa_view, name="tarifa"),
     path("tarifa/inflacion/", views.tarifa_inflacion_view, name="tarifa_inflacion"),
     path("tarifa/inflacion/guardar/", views.guardar_tarifa_inflacion_view, name="tarifa_inflacion_guardar"),

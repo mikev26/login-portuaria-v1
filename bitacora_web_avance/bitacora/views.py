@@ -25,6 +25,7 @@ from .services import (
     obtener_buques_industriales,
     obtener_reporte_combustible,
     obtener_reporte_datos_abiertos,
+    obtener_registros_ocupacion,
     obtener_turnos_usuario,
     validar_usuario,
     obtener_reporte_inec,
@@ -1706,6 +1707,30 @@ def ocupacion_espacios_home(request):
             "buques": buques,
         },
     )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def ocupacion_registros_api(request):
+    if not request.session.get("usuario_id"):
+        return JsonResponse(
+            {"error": "Debe iniciar sesión para consultar los registros."},
+            status=401,
+        )
+
+    try:
+        registros = obtener_registros_ocupacion()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error al cargar registros para Ocupación de Espacios")
+        return JsonResponse({"error": str(exc)}, status=503)
+    except Exception:
+        logger.exception("Error inesperado al cargar registros de ocupación")
+        return JsonResponse(
+            {"error": "No fue posible cargar los registros desde SQL Server."},
+            status=500,
+        )
+
+    return JsonResponse({"registros": registros})
 
 
 @never_cache

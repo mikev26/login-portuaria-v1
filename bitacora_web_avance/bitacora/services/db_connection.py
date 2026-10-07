@@ -110,9 +110,30 @@ def get_connection(database_name: str | None = None):
             "Ejecuta: pip install -r requirements.txt"
         )
 
-    return pyodbc.connect(
-        _connection_string(database_name)
-    )
+    try:
+        return pyodbc.connect(
+            _connection_string(database_name)
+        )
+    except pyodbc.Error as exc:
+        error_details = " ".join(str(value) for value in exc.args)
+        network_error = re.search(
+            r"\b(08001|08S01|HYT00|HYT01)\b",
+            error_details,
+            re.IGNORECASE,
+        )
+        if network_error:
+            raise DatabaseConfigurationError(
+                "No fue posible alcanzar SQL Server por la red "
+                f"(ODBC {network_error.group(1)}). Conéctese a la red o VPN "
+                "institucional y verifique que SQL Server escuche en "
+                "DB_SERVER:DB_PORT y que el puerto TCP esté permitido."
+            ) from exc
+
+        raise DatabaseConfigurationError(
+            "No fue posible conectar a SQL Server. Compruebe la "
+            "configuración de DB_SERVER, DB_NAME, DB_USER, "
+            "DB_PASSWORD y la disponibilidad del servidor."
+        ) from exc
 
 
 def _rows_as_dicts(
@@ -137,6 +158,7 @@ def execute_procedure(
     parameters: Iterable[tuple[str, Any]] = (),
     *,
     commit: bool = False,
+    database_name: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Ejecuta un procedimiento almacenado
@@ -165,39 +187,45 @@ def execute_procedure(
         for _, value in params
     ]
 
-    with closing(get_connection()) as connection:
-        try:
-            with closing(connection.cursor()) as cursor:
+    try:
+        with closing(get_connection(database_name)) as connection:
+            try:
+                with closing(connection.cursor()) as cursor:
 
-                if values:
-                    cursor.execute(
-                        sql,
-                        *values
-                    )
-                else:
-                    cursor.execute(sql)
+                    if values:
+                        cursor.execute(
+                            sql,
+                            *values
+                        )
+                    else:
+                        cursor.execute(sql)
 
-                # Algunos procedimientos primero
-                # emiten resultados auxiliares.
-                while (
-                    cursor.description is None
-                    and cursor.nextset()
-                ):
-                    pass
+                    # Algunos procedimientos primero
+                    # emiten resultados auxiliares.
+                    while (
+                        cursor.description is None
+                        and cursor.nextset()
+                    ):
+                        pass
 
-                rows = _rows_as_dicts(cursor)
+                    rows = _rows_as_dicts(cursor)
 
-            # Solo confirmar cuando el procedimiento
-            # modifica información en la base de datos.
-            if commit:
-                connection.commit()
+                # Solo confirmar cuando el procedimiento
+                # modifica información en la base de datos.
+                if commit:
+                    connection.commit()
 
-            return rows
+                return rows
 
-        except Exception:
-            if commit:
-                connection.rollback()
-            raise
+            except Exception:
+                if commit:
+                    connection.rollback()
+                raise
+    except pyodbc.Error as exc:
+        raise DatabaseConfigurationError(
+            "No fue posible conectar a SQL Server. Revise la "
+            "configuración de la base de datos y la disponibilidad del servidor."
+        ) from exc
 
 # ==========================================================
 # CONSULTAS SQL DIRECTAS
@@ -216,18 +244,24 @@ def execute_query(
 
     values = list(parameters)
 
-    with closing(get_connection()) as connection:
-        with closing(connection.cursor()) as cursor:
+    try:
+        with closing(get_connection()) as connection:
+            with closing(connection.cursor()) as cursor:
 
-            if values:
-                cursor.execute(
-                    sql,
-                    *values
-                )
-            else:
-                cursor.execute(sql)
+                if values:
+                    cursor.execute(
+                        sql,
+                        *values
+                    )
+                else:
+                    cursor.execute(sql)
 
-            return _rows_as_dicts(cursor)
+                return _rows_as_dicts(cursor)
+    except pyodbc.Error as exc:
+        raise DatabaseConfigurationError(
+            "No fue posible conectar a SQL Server. Revise la "
+            "configuración de la base de datos y la disponibilidad del servidor."
+        ) from exc
 
 
 # ==========================================================
