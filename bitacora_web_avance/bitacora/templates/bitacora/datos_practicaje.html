@@ -78,16 +78,24 @@
             <div class="date-range">
 
                 <label>
-                    <span class="field-label">Año</span>
-                    <input type="number" name="sano" min="1900" max="9999" value="{{ sano }}" required>
+                    <span class="field-label">Fecha Desde</span>
+                    <input
+                        type="date"
+                        name="fecha_inicio"
+                        value="{{ fecha_inicio }}"
+                        required
+                    >
                 </label>
 
                 <label>
-                    <span class="field-label">Trimestre</span>
-                    <select name="sTrimestre" required>
-                        <option value="">Seleccione</option>
-                        <option value="1"{% if sTrimestre == "1" %} selected{% endif %}>Primer trimestre</option>
-                    </select>
+                    <span class="field-label">Fecha Hasta</span>
+                    <input
+                        type="date"
+                        name="fecha_fin"
+                        value="{{ fecha_fin }}"
+                        min="{{ fecha_inicio }}"
+                        required
+                    >
                 </label>
 
                 <button type="submit" class="search-button">Buscar</button>
@@ -117,7 +125,7 @@
 
         {% if consulta_realizada and not registros %}
             <div class="message-banner info">
-                No se encontraron datos para el año y trimestre seleccionados.
+                No se encontraron datos para el rango de fechas seleccionado.
             </div>
         {% endif %}
 

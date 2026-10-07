@@ -8,8 +8,7 @@
     min-width: 150px;
 }
 
-.practicaje-page .date-range input[type="number"],
-.practicaje-page .date-range select {
+.practicaje-page .date-range input[type="date"] {
     border: 1px solid var(--border);
     border-radius: 5px;
     padding: 8px 10px;
@@ -20,7 +19,8 @@
 }
 
 .practicaje-page .table-wrapper {
-    overflow-x: auto;
+    max-height: min(65vh, 720px);
+    overflow: auto;
 }
 
 .practicaje-page .report-table {
@@ -32,6 +32,12 @@
 .practicaje-page .report-table td {
     min-width: 110px;
     white-space: nowrap;
+}
+
+.practicaje-page .report-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .practicaje-page .report-table th:nth-child(2),

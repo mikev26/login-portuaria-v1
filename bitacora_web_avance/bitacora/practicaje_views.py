@@ -20,27 +20,35 @@ def datos_practicaje_home(request):
     if not request.session.get("usuario_id"):
         return redirect("login")
 
-    sano = request.GET.get("sano", "")
-    s_trimestre = request.GET.get("sTrimestre", "")
+    fecha_inicio_valor = request.GET.get("fecha_inicio", "").strip()
+    fecha_fin_valor = request.GET.get("fecha_fin", "").strip()
+    fecha_inicio = None
+    fecha_fin = None
     registros: list[dict[str, object]] = []
     consulta_realizada = False
 
-    if sano or s_trimestre:
+    if fecha_inicio_valor or fecha_fin_valor:
         request.session.pop("reporte_practicaje_last", None)
         try:
-            anio_numero = int(sano)
-            trimestre_numero = int(s_trimestre)
-            if trimestre_numero != 1:
-                raise ValueError
-            registros = obtener_datos_practicaje(anio_numero, trimestre_numero)
+            if not fecha_inicio_valor or not fecha_fin_valor:
+                raise ValueError("Seleccione ambas fechas.")
+            fecha_inicio = date.fromisoformat(fecha_inicio_valor)
+            fecha_fin = date.fromisoformat(fecha_fin_valor)
+            if fecha_inicio > fecha_fin:
+                raise ValueError("La fecha inicial no puede ser posterior a la fecha final.")
+
+            registros = obtener_datos_practicaje(fecha_inicio, fecha_fin)
             consulta_realizada = True
             request.session["reporte_practicaje_last"] = {
-                "sano": sano,
-                "sTrimestre": s_trimestre,
+                "fecha_inicio": fecha_inicio.isoformat(),
+                "fecha_fin": fecha_fin.isoformat(),
                 "registros": _serializar_registros(registros),
             }
-        except ValueError:
-            messages.error(request, "Ingrese un año válido y seleccione un trimestre.")
+        except ValueError as exc:
+            messages.error(
+                request,
+                str(exc) or "Ingrese un rango de fechas válido.",
+            )
         except (DatabaseConfigurationError, DatabaseContractError):
             messages.error(request, "No fue posible obtener los datos de practicaje.")
 
@@ -51,8 +59,8 @@ def datos_practicaje_home(request):
             "demo_mode": settings.DEMO_MODE,
             "usuario_nombre": request.session.get("usuario_nombre", ""),
             "usuario_cargo": request.session.get("usuario_cargo", ""),
-            "sano": sano,
-            "sTrimestre": s_trimestre,
+            "fecha_inicio": fecha_inicio_valor,
+            "fecha_fin": fecha_fin_valor,
             "registros": registros,
             "consulta_realizada": consulta_realizada,
             "export_enabled": consulta_realizada and bool(registros),
@@ -82,15 +90,21 @@ def exportar_datos_practicaje_excel(request):
         messages.info(request, "No existen registros de practicaje para exportar.")
         return redirect("datos_practicaje")
 
-    sano = ultima_busqueda.get("sano", "")
+    fecha_inicio = ultima_busqueda.get("fecha_inicio", "")
+    fecha_fin = ultima_busqueda.get("fecha_fin", "")
     try:
-        contenido = crear_excel_practicaje(ultima_busqueda["registros"], sano=sano)
+        contenido = crear_excel_practicaje(
+            ultima_busqueda["registros"],
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+        )
     except ImportError:
         messages.error(request, "La dependencia 'openpyxl' no está instalada.")
         return redirect("datos_practicaje")
 
-    sano_filename = sano or "sin_anio"
-    trimestre = ultima_busqueda.get("sTrimestre", "sin_trimestre")
+    rango_filename = (
+        f"{fecha_inicio or 'sin_fecha'}_a_{fecha_fin or 'sin_fecha'}"
+    )
     response = HttpResponse(
         contenido,
         content_type=(
@@ -99,7 +113,7 @@ def exportar_datos_practicaje_excel(request):
         ),
     )
     response["Content-Disposition"] = (
-        f'attachment; filename="DatosPracticaje_{sano_filename}_T{trimestre}.xlsx"'
+        f'attachment; filename="DatosPracticaje_{rango_filename}.xlsx"'
     )
     return response
 

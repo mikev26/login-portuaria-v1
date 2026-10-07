@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from .db_connection import execute_procedure
@@ -10,13 +11,16 @@ from .db_connection import execute_procedure
 PRACTICAJE_PROCEDURE = "dbo.SPJ_DatosPracticaje"
 
 
-def obtener_datos_practicaje(anio: int, trimestre: int) -> list[dict[str, Any]]:
-    """Obtiene los datos de practicaje para un año y trimestre."""
+def obtener_datos_practicaje(
+    fecha_inicio: date,
+    fecha_fin: date,
+) -> list[dict[str, Any]]:
+    """Obtiene los datos de practicaje para un rango de fechas."""
     filas = execute_procedure(
         PRACTICAJE_PROCEDURE,
         (
-            ("@sano", anio),
-            ("@sTrimestre", trimestre),
+            ("@s_fechaInit", fecha_inicio),
+            ("@s_fechaFin", fecha_fin),
         ),
     )
     registros = []
