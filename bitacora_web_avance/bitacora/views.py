@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime
 import logging
 import io
 import os
@@ -1615,6 +1615,37 @@ def registro_combustible_home(request):
                         registro["c_ticket"] = registro["c_tikect"]
                     elif "c_tikect" in registro:
                         registro["c_ticket"] = registro.get("c_tikect", "")
+                    registro["licencia"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "licencia",
+                                "licencia_conductor",
+                                "licencia_no",
+                                "liciencia",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
+                    registro["estado"] = registro.get(
+                        "estado",
+                        registro.get("estado_registro", ""),
+                    )
+                    registro["tipo_carro"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "tipo_carro",
+                                "tipo_vehiculo",
+                                "tipo de vehiculo",
+                                "tipo de vehículo",
+                                "tipo",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
                 # Guardar último resultado de búsqueda en sesión para la exportación.
                 try:
                     def _serialize_value(v):
@@ -1673,6 +1704,28 @@ def registro_combustible_home(request):
                 "guia": str(registro.get("guia", "")),
                 "idplaca": str(registro.get("idplaca", "")),
                 "chofer": str(registro.get("chofer", "")),
+                "licencia": str(
+                    registro.get(
+                        "licencia",
+                        registro.get(
+                            "licencia_conductor",
+                            registro.get("licencia_no", registro.get("liciencia", "")),
+                        ),
+                    )
+                ),
+                "estado": str(registro.get("estado", registro.get("estado_registro", ""))),
+                "tipo_carro": str(
+                    registro.get(
+                        "tipo_carro",
+                        registro.get(
+                            "tipo_vehiculo",
+                            registro.get(
+                                "tipo de vehiculo",
+                                registro.get("tipo de vehículo", registro.get("tipo", "")),
+                            ),
+                        ),
+                    )
+                ),
                 "codbuque": str(registro.get("codbuque", "")),
                 "buque": str(registro.get("buque", "")),
                 "matricula": str(registro.get("matricula", "")),
@@ -2063,6 +2116,24 @@ def exportar_excel(request):
                 cell.value = val
                 cell.font = Font(name="Calibri", size=11, color="000000", bold=False)
 
+        headers = [
+            "Fecha",
+            "Tickets",
+            "Guía",
+            "Placa",
+            "Chofer",
+            "Liciencia",
+            "CodBuque",
+            "Buque",
+            "Matrícula",
+            "Galones",
+            "Motivo",
+            "Estado",
+            "Tipo de Vehiculo",
+        ]
+        for column, header in enumerate(headers, start=1):
+            safe_write_cell(ws, 7, column, header)
+
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
 
         safe_write_cell(
@@ -2131,6 +2202,35 @@ def exportar_excel(request):
 
             return ""
 
+        def excel_datetime(value):
+            if isinstance(value, datetime):
+                parsed = value
+            elif isinstance(value, date):
+                parsed = datetime.combine(value, datetime.min.time())
+            else:
+                raw_value = str(value or "").strip()
+                if not raw_value:
+                    return ""
+                try:
+                    parsed = datetime.fromisoformat(
+                        raw_value.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    try:
+                        parsed = datetime.combine(
+                            date.fromisoformat(raw_value[:10]),
+                            datetime.min.time(),
+                        )
+                    except ValueError:
+                        try:
+                            parsed = datetime.strptime(raw_value, "%d/%m/%Y")
+                        except ValueError:
+                            return raw_value
+
+            if timezone.is_aware(parsed):
+                parsed = timezone.localtime(parsed).replace(tzinfo=None)
+            return parsed.replace(microsecond=0)
+
         for rng in list(ws.merged_cells.ranges):
 
             if rng.min_row >= 8:
@@ -2144,14 +2244,16 @@ def exportar_excel(request):
         ):
 
             fila = [
-                first_value(
-                    reg,
-                    (
-                        "fecha_ingresa",
-                        "fecha",
-                        "fecha_registro",
-                        "fecha_mov",
-                    ),
+                excel_datetime(
+                    first_value(
+                        reg,
+                        (
+                            "fecha_ingresa",
+                            "fecha",
+                            "fecha_registro",
+                            "fecha_mov",
+                        ),
+                    )
                 ),
 
                 first_value(
@@ -2196,6 +2298,7 @@ def exportar_excel(request):
                         "licencia",
                         "licencia_conductor",
                         "licencia_no",
+                        "liciencia",
                     ),
                 ),
 
@@ -2248,6 +2351,9 @@ def exportar_excel(request):
                     (
                         "tipo_carro",
                         "tipo carro",
+                        "tipo_vehiculo",
+                        "tipo de vehiculo",
+                        "tipo de vehículo",
                         "tipo",
                     ),
                 ),
@@ -2263,6 +2369,10 @@ def exportar_excel(request):
                     col_idx,
                     value,
                 )
+                if col_idx == 1 and isinstance(value, datetime):
+                    ws.cell(row=idx, column=col_idx).number_format = (
+                        "yyyy-mm-dd hh:mm:ss"
+                    )
 
         last_data_row = (
             start_row
