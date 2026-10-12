@@ -4,15 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso | Bitácora Electrónica</title>
+    <title>Acceso | Sistema de Reportes</title>
         <link rel="stylesheet" href="{% static 'bitacora/css/login.css' %}">
+
 </head>
 <body>
     <main class="login-card">
         <section class="institution">
             <img src="{% static 'bitacora/img/logo_manta.png' %}" alt="Logo institucional">
             <h1>Autoridad Portuaria</h1>
-            <p class="subtitle">Acceso a la Bitácora Electrónica</p>
+            <p class="subtitle">Acceso a Sistema de Reportes</p>
         </section>
 
         <section class="form-area">
@@ -33,7 +34,10 @@
                 </div>
                 <div class="field">
                     {{ form.clave.label_tag }}
-                    {{ form.clave }}
+                    <div class="password-input-wrap" style="position: relative; width: 100%; display: flex; align-items: center;">
+                        {{ form.clave }}
+                        <button type="button" class="password-eye" data-target="id_clave" aria-label="Mostrar contraseña" title="Mostrar contraseña" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; padding: 0; margin: 0; width: auto; height: auto; font-size: 16px; cursor: pointer; color: #07345f; z-index: 10;">👁</button>
+                    </div>
                     {% if form.clave.errors %}
                         <div class="field-error">{{ form.clave.errors|striptags }}</div>
                     {% endif %}
@@ -42,7 +46,9 @@
             </form>
         </section>
 
-        <div class="footer">Sistema interno · Acceso restringido a personal autorizado</div>
+        <div class="footer">Sistema interno · Acceso restringido solo personal autorizado</div>
     </main>
+
+    <script src="{% static 'bitacora/js/login.js' %}"></script>
 </body>
 </html>

@@ -1,0 +1,175 @@
+{% extends "bitacora/base.html" %}
+{% load static %}
+
+{% block title %}Inicio | Sistema de Reportes{% endblock %}
+
+{% block header_title %}SISTEMA DE REPORTES Y MÓDULOS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-card {
+        background: linear-gradient(135deg, #07345f, #17689d);
+        color: white;
+        padding: 28px 32px;
+        border-radius: 14px;
+        margin-bottom: 28px;
+        box-shadow: 0 8px 24px rgba(7, 52, 95, 0.15);
+    }
+    .welcome-card h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+    .welcome-card p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 15px;
+    }
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+    }
+    .module-card {
+        background: white;
+        border: 1px solid #cbd5df;
+        border-radius: 12px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-decoration: none;
+        color: #162536;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .module-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(7, 52, 95, 0.12);
+        border-color: #17689d;
+    }
+    .module-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: #eef4f8;
+        color: #07345f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 16px;
+        transition: background-color 0.2s, color 0.2s;
+    }
+    .module-card:hover .module-icon-wrap {
+        background: #07345f;
+        color: white;
+    }
+    .module-card h3 {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #07345f;
+    }
+    .module-card p {
+        margin: 0 0 16px;
+        font-size: 13.5px;
+        color: #66788a;
+        line-height: 1.45;
+        flex-grow: 1;
+    }
+    .module-action {
+        font-size: 13px;
+        font-weight: 700;
+        color: #17689d;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .module-card:hover .module-action {
+        color: #07345f;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-card">
+    <h2>¡Bienvenido/a, {{ usuario_nombre|default:"Usuario" }}!</h2>
+    <p>Acceda a cualquiera de los módulos y reportes de la Autoridad Portuaria de Manta.</p>
+</div>
+
+<div class="modules-grid">
+    <a href="{% url 'bitacora_home' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">▣</div>
+            <h3>Bitácora Electrónica</h3>
+            <p>Registro y control de novedades de turno portuario.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'tarifa' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">⚙</div>
+            <h3>Servicios y Tarifario</h3>
+            <p>Gestión de tarifas, cálculo de inflación y servicios TPyC.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'reporte_inec' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">⧉</div>
+            <h3>Reportes INEC</h3>
+            <p>Generación y consulta de reportes estadísticos INEC.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'registro_combustible' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">⛽</div>
+            <h3>Reporte Combustible</h3>
+            <p>Control y registro de consumos de combustible.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'datos_practicaje' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">🧑‍✈️</div>
+            <h3>Datos Practicaje</h3>
+            <p>Maniobras y operaciones del servicio de practicaje.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'datos_abiertos' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">🗂</div>
+            <h3>Datos Abiertos</h3>
+            <p>Consulta y exportación de datos abiertos institucionales.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'reporte_buque' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">▤</div>
+            <h3>Reporte Buques</h3>
+            <p>Seguimiento e informes de buques en puerto.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+
+    <a href="{% url 'modulo_buques_home' %}" class="module-card">
+        <div>
+            <div class="module-icon-wrap">⚓</div>
+            <h3>Información del Buque</h3>
+            <p>Catálogo y detalles técnicos de buques.</p>
+        </div>
+        <span class="module-action">Acceder al módulo &rarr;</span>
+    </a>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
-
 from __future__ import annotations
 
 import json
+import logging
 from contextlib import closing
 from typing import Any
 
@@ -19,6 +19,23 @@ from .db_connection import (
     is_missing_object_error,
 )
 
+logger = logging.getLogger(__name__)
+
+
+# ==============================================================================
+# FUNCIONES AUXILIARES INTERNAS
+# ==============================================================================
+
+def _str_or_empty(val: Any, default: str = "") -> str:
+    """Convierte un valor a string limpio o retorna el valor por defecto si es None/vacío."""
+    if val is None or str(val).strip().lower() == "none":
+        return default
+    return str(val).strip()
+
+
+# ==============================================================================
+# SECCIÓN 1: CATÁLOGOS Y CONSULTAS MAESTRAS
+# ==============================================================================
 
 def obtener_partidas(codigo: str | int = 1) -> list[dict[str, Any]]:
     """
@@ -201,6 +218,10 @@ def obtener_siguiente_codigo_tarifa(idtasa: int | str) -> int:
         return tasa_next_map.get(str(idtasa), 1)
 
 
+# ==============================================================================
+# SECCIÓN 2: GESTIÓN Y OPERACIONES DE TARIFAS (CRUD)
+# ==============================================================================
+
 def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
     """
     Ejecuta el procedimiento almacenado sp_v_tarifas para obtener el listado de tarifas.
@@ -334,12 +355,7 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                 
                 normalized = []
                 for r in rows:
-                    def str_or_empty(val: Any, default: str = "") -> str:
-                        if val is None or str(val).strip().lower() == "none":
-                            return default
-                        return str(val).strip()
-
-                    tasa_id_str = str_or_empty(first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
+                    tasa_id_str = _str_or_empty(first_value(r, ["tasa_id", "idtasa", "id_tasa"]))
                     
                     tasa_db_val = first_value(r, ["tasa", "tasa_nombre"])
                     if tasa_db_val and not str(tasa_db_val).isdigit():
@@ -356,23 +372,23 @@ def obtener_tarifas_existentes(estado: int = 1) -> list[dict[str, Any]]:
                         aplica_inflacion_txt = "Aplica inflación anual" if aplica_inflacion == 1 else "No aplica Inflación anual"
 
                     t_val = {
-                        "id": str_or_empty(first_value(r, ["idtarifa", "id", "id_tarifa"])),
-                        "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
+                        "id": _str_or_empty(first_value(r, ["idtarifa", "id", "id_tarifa"])),
+                        "codigo": _str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa", "cod"])),
                         "activa": bool_value(first_value(r, ["activa", "activo", "estado"], True)),
                         "tasa_id": tasa_id_str,
                         "tasa": tasa_nombre,
-                        "tarifa": str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
-                        "partida_cod": str_or_empty(first_value(r, ["partida_cod", "scpartida", "partida"])),
-                        "partida_desc": str_or_empty(first_value(r, ["partida", "partida_desc", "nombrefinanza", "partidafinanzas"])),
-                        "partida_cedula": str_or_empty(first_value(r, ["cedulafinanza", "partida_cedula", "cedula"])),
-                        "partida_id": str_or_empty(first_value(r, ["idpartida", "partida_id"], "")),
-                        "formula": str_or_empty(first_value(r, ["formula", "formula_calc"])),
-                        "detalle": str_or_empty(first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
-                        "valor": str_or_empty(first_value(r, ["valor", "monto", "precio"], "0.0000")),
-                        "s_ante": str_or_empty(first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
+                        "tarifa": _str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion", "tarifa_desc"])),
+                        "partida_cod": _str_or_empty(first_value(r, ["partida_cod", "scpartida", "partida"])),
+                        "partida_desc": _str_or_empty(first_value(r, ["partida", "partida_desc", "nombrefinanza", "partidafinanzas"])),
+                        "partida_cedula": _str_or_empty(first_value(r, ["cedulafinanza", "partida_cedula", "cedula"])),
+                        "partida_id": _str_or_empty(first_value(r, ["idpartida", "partida_id"], "")),
+                        "formula": _str_or_empty(first_value(r, ["formula", "formula_calc"])),
+                        "detalle": _str_or_empty(first_value(r, ["detalle", "especificacion", "obs", "observacion"])),
+                        "valor": _str_or_empty(first_value(r, ["valor", "monto", "precio"], "0.0000")),
+                        "s_ante": _str_or_empty(first_value(r, ["s_ante", "s_antecedente", "id_ante"])),
                         "se_cobra_iva": bool_value(first_value(r, ["se_cobra_iva", "iva", "cobra_iva", "cobrar_iva"], False)),
-                        "senae_cod": str_or_empty(first_value(r, ["senae_cod", "codigo_senae", "senae"])),
-                        "senae_desc": str_or_empty(first_value(r, ["senae_desc", "detalle_senae"])),
+                        "senae_cod": _str_or_empty(first_value(r, ["senae_cod", "codigo_senae", "senae"])),
+                        "senae_desc": _str_or_empty(first_value(r, ["senae_desc", "detalle_senae"])),
                         "ptipo": int(first_value(r, ["ptipo"], 0) or 0),
                         "calc_param": "eslora" if first_value(r, ["eslora_toneto"]) == 1 else ("ton_bruto" if first_value(r, ["eslora_toneto"]) == 2 else ("t_neto" if first_value(r, ["eslora_toneto"]) == 4 else "otros")),
                         "calc_unidad": "dia" if first_value(r, ["dia_hora"]) == 1 else ("horas" if first_value(r, ["dia_hora"]) == 2 else "cantidad"),
@@ -539,6 +555,10 @@ def anular_tarifa(idtarifa: int | str) -> bool:
         raise
 
 
+# ==============================================================================
+# SECCIÓN 3: PROCESO DE INFLACIÓN E HISTORIAL AUDITABLE
+# ==============================================================================
+
 def guardar_inflacion(porcentaje: float, anio: int, idusuario: int, detalle: str = "", fecha_inflacion: str | None = None) -> int:
     """
     Aplica el ajuste por inflación a todas las tarifas configuradas (inflacion = 1).
@@ -577,14 +597,6 @@ def guardar_inflacion(porcentaje: float, anio: int, idusuario: int, detalle: str
         raise
 
 
-def obtener_cabeceras_historico_inflacion() -> list[dict[str, Any]]:
-    """
-    Retorna la lista de cabeceras de ajustes por inflación históricos
-    disponibles en dbo.dim_TarifaCab delegando en obtener_listado_cabeceras_historico.
-    """
-    return obtener_listado_cabeceras_historico()
-
-
 def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
     """
     Ejecuta dbo.SPJ_HistoricoTarifas @listarCabeceras = 1
@@ -615,22 +627,17 @@ def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
                 rows = _rows_as_dicts(cursor)
                 result = []
                 for r in rows:
-                    def str_or_empty(val: Any, default: str = "") -> str:
-                        if val is None or str(val).strip().lower() == "none":
-                            return default
-                        return str(val).strip()
-
                     fecha_reg = first_value(r, ["fecharegistro", "fecha_registro"])
                     if hasattr(fecha_reg, "strftime"):
                         fecha_reg_str = fecha_reg.strftime("%Y-%m-%d %H:%M")
                     else:
-                        fecha_reg_str = str_or_empty(fecha_reg)
+                        fecha_reg_str = _str_or_empty(fecha_reg)
 
                     fecha_inf = first_value(r, ["fechainflacion", "fecha_inflacion"])
                     if hasattr(fecha_inf, "strftime"):
                         fecha_inf_str = fecha_inf.strftime("%Y-%m-%d")
                     else:
-                        fecha_inf_str = str_or_empty(fecha_inf)
+                        fecha_inf_str = _str_or_empty(fecha_inf)
 
                     item = {
                         "id_tarifaCab": first_value(r, ["id_tarifacab", "idcabotaje", "id"]),
@@ -641,11 +648,11 @@ def obtener_listado_cabeceras_historico() -> list[dict[str, Any]]:
                         "anio_anterior": first_value(r, ["anio_anterior", "ano_anterior"]),
                         "porcentaje_inflacion": float(first_value(r, ["porcentaje_inflacion", "porcentajeactual", "porcentaje_actual"]) or 0),
                         "porcentaje_actual": float(first_value(r, ["porcentaje_inflacion", "porcentajeactual", "porcentaje_actual"]) or 0),
-                        "detalle": str_or_empty(first_value(r, ["detalle", "justificacion"])),
+                        "detalle": _str_or_empty(first_value(r, ["detalle", "justificacion"])),
                         "fecha_inflacion": fecha_inf_str,
                         "fecha_registro": fecha_reg_str,
                         "id_usuario": first_value(r, ["idusuario", "id_usuario"]),
-                        "nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
+                        "nombre": _str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
                     }
                     result.append(item)
                 return result
@@ -746,11 +753,6 @@ def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = 
 
                 normalized = []
                 for r in rows:
-                    def str_or_empty(val: Any, default: str = "") -> str:
-                        if val is None or str(val).strip().lower() == "none":
-                            return default
-                        return str(val).strip()
-
                     inflacion_val = first_value(r, ["inflacion", "aplicainflacion", "aplica_inflacion"])
                     if isinstance(inflacion_val, str):
                         aplica_inflacion = 1 if "aplica" in inflacion_val.lower() and "no aplica" not in inflacion_val.lower() else 0
@@ -764,30 +766,30 @@ def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = 
 
                     item = {
                         "nro": first_value(r, ["nro", "item", "row_number"]),
-                        "tasa": str_or_empty(first_value(r, ["tasa", "tasa_nombre"])),
-                        "codigo": str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa"])),
-                        "tarifa": str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion"])),
-                        "valor": str_or_empty(first_value(r, ["valor", "valor_anterior", "monto"]), "0.0000"),
-                        "valor_anterior": str_or_empty(first_value(r, ["valor_anterior", "valor"]), "0.0000"),
+                        "tasa": _str_or_empty(first_value(r, ["tasa", "tasa_nombre"])),
+                        "codigo": _str_or_empty(first_value(r, ["sctarifa", "codigo", "cod_tarifa"])),
+                        "tarifa": _str_or_empty(first_value(r, ["tarifa", "nombre", "descripcion"])),
+                        "valor": _str_or_empty(first_value(r, ["valor", "valor_anterior", "monto"]), "0.0000"),
+                        "valor_anterior": _str_or_empty(first_value(r, ["valor_anterior", "valor"]), "0.0000"),
                         "inflacion": aplica_inflacion,
                         "aplica_inflacion": aplica_inflacion,
                         "aplica_inflacion_txt": "Aplica inflación anual" if aplica_inflacion == 1 else "No aplica Inflación anual",
                         "porcentaje_inflacion": float(first_value(r, ["porcentajeactual", "porcentaje_actual", "porcentajeinflacion"]) or 0),
                         "porcentaje_actual": float(first_value(r, ["porcentajeactual", "porcentaje_actual"]) or 0),
-                        "tarifa_inflacion": str_or_empty(first_value(r, ["tarifainflacion", "tarifa_inflacion"]), "0.0000"),
-                        "valor_final": str_or_empty(first_value(r, ["valorfinaltarifa", "valor_final"]), "0.0000"),
+                        "tarifa_inflacion": _str_or_empty(first_value(r, ["tarifainflacion", "tarifa_inflacion"]), "0.0000"),
+                        "valor_final": _str_or_empty(first_value(r, ["valorfinaltarifa", "valor_final"]), "0.0000"),
                         "idtarifa": first_value(r, ["idtarifa", "id_tarifa"]),
                         "idtasa": first_value(r, ["idtasa", "id_tasa"]),
                         "activo": bool_value(first_value(r, ["activo", "activa"], True)),
                         "id_tarifaCab": cab_id_val,
                         "ano": first_value(r, ["ano", "anio", "anio_actual"]),
                         "ano_anterior": first_value(r, ["ano_anterior", "anio_anterior"]),
-                        "fecha_inflacion": str_or_empty(first_value(r, ["fechainflacion", "fecha_inflacion"])),
-                        "fecha_registro": str_or_empty(first_value(r, ["fecharegistro", "fecha_registro"])),
-                        "detalle": str_or_empty(first_value(r, ["detalle", "justificacion"])),
+                        "fecha_inflacion": _str_or_empty(first_value(r, ["fechainflacion", "fecha_inflacion"])),
+                        "fecha_registro": _str_or_empty(first_value(r, ["fecharegistro", "fecha_registro"])),
+                        "detalle": _str_or_empty(first_value(r, ["detalle", "justificacion"])),
                         "id_usuario": id_usr,
-                        "nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
-                        "usuario_nombre": str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
+                        "nombre": _str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
+                        "usuario_nombre": _str_or_empty(first_value(r, ["nombre", "usuario_nombre"])),
                     }
                     normalized.append(item)
                 return normalized
@@ -795,3 +797,4 @@ def obtener_historico_tarifas(id_cabotaje: int | None = None, ano: int | None = 
         if is_missing_object_error(exc):
             return []
         raise
+
