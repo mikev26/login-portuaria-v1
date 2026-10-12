@@ -3,7 +3,7 @@
 from .auth_service import validar_usuario, obtener_turnos_usuario
 from .ship_service import obtener_buques_industriales, obtener_buques_artesanales
 from .report_service import obtener_reporte_inec
-from .tarifario import (obtener_tarifas_existentes, obtener_partidas, obtener_tasa_por_id, obtener_siguiente_codigo_tarifa, guardar_tarifa, anular_tarifa, guardar_inflacion, obtener_historico_tarifas, obtener_listado_cabeceras_historico, obtener_listado_cabeceras_historico as obtener_cabeceras_historico_inflacion,)
+from .tarifario import (obtener_tarifas_existentes, obtener_partidas, obtener_tasa_por_id, obtener_siguiente_codigo_tarifa, guardar_tarifa, anular_tarifa, guardar_inflacion, obtener_historico_tarifas, obtener_listado_cabeceras_historico,)
 from .combustible import obtener_reporte_combustible
 from .reporte_buque import ( obtener_catalogos_reporte_buques, obtener_datos_reporte_buques,)
 from .reporte_buque_excel import (exportar_reporte_buques_excel)
@@ -44,7 +44,6 @@ __all__ = [
     "guardar_inflacion",
     "obtener_historico_tarifas",
     "obtener_listado_cabeceras_historico",
-    "obtener_cabeceras_historico_inflacion",
     "generar_pdf_tarifario_inflacion",
     "enviar_correo_ajuste_inflacion",
 ]
