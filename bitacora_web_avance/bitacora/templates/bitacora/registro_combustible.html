@@ -56,14 +56,14 @@
         <form method="get" class="date-range-form">
             <div class="date-range">
                 <label>
-                    <span class="field-label">F. Desde</span>
+                    <span class="field-label">F.Desde</span>
                     {{ form.fecha_inicio }}
                     {% if form.fecha_inicio.errors %}
                         <span class="field-error">{{ form.fecha_inicio.errors|join:", " }}</span>
                     {% endif %}
                 </label>
                 <label>
-                    <span class="field-label">F. Hasta</span>
+                    <span class="field-label">F.Hasta</span>
                     {{ form.fecha_fin }}
                     {% if form.fecha_fin.errors %}
                         <span class="field-error">{{ form.fecha_fin.errors|join:", " }}</span>

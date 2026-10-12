@@ -151,7 +151,7 @@ def login_view(request):
 
                     return redirect("main_index")
 
-            except (DatabaseConfigurationError, DatabaseContractError) as exc:
+            except (DatabaseConfigurationError, DatabaseContractError):
                 logger.exception("Configuración o contrato de base de datos inválido")
                 messages.error(request, str(exc))
             except Exception:
@@ -1673,27 +1673,19 @@ def registro_combustible_home(request):
                     logger.exception("No fue posible guardar el resultado en sesión para exportación")
                 if not registros:
                     msg = "No existen registros para el rango de fechas seleccionado."
-                    messages.info(request, msg)
                     ajax_response["messages"].append({"text": msg, "tags": "info"})
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Error de base de datos al obtener el reporte")
                 generic_msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
             except Exception:
                 logger.exception("Error inesperado al obtener el reporte de combustible")
                 generic_msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
         else:
             for field, errors in form.errors.items():
                 for error in errors:
                     ajax_response["messages"].append({"text": str(error), "tags": "error"})
-            messages.error(
-                request,
-                "Complete correctamente Fecha Desde y Fecha Hasta antes de buscar.",
-            )
-
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("accept", "")
 
     if is_ajax:
@@ -1815,6 +1807,36 @@ def datos_abiertos_home(request):
     fecha_emision = date.today()
     anio_sel = None
     semestre_sel = None
+    report_notices = {
+        "filtro": {
+            "text": "Primero debe realizar una búsqueda antes de exportar la información.",
+            "tags": "info",
+        },
+        "plantilla": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "base-datos": {
+            "text": "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "consulta": {
+            "text": "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "sin-registros": {
+            "text": "No existen registros para exportar.",
+            "tags": "info",
+        },
+        "archivo": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "excel": {
+            "text": "Ocurrió un error técnico al generar el archivo Excel.",
+            "tags": "error",
+        },
+    }
 
     ajax_response = {
         "fecha_emision": fecha_emision.isoformat(),
@@ -1877,6 +1899,11 @@ def datos_abiertos_home(request):
             "anio": anio_sel,
             "semestre": semestre_sel,
             "current_year": fecha_emision.year,
+            "report_messages": (
+                [report_notices[request.GET["aviso"]]]
+                if request.GET.get("aviso") in report_notices
+                else []
+            ),
         },
     )
 
@@ -1892,6 +1919,9 @@ def datos_abiertos_exportar_view(request):
         or "application/json" in request.headers.get("accept", "")
     )
 
+    def redirect_with_notice(notice):
+        return redirect(f"{reverse('datos_abiertos')}?aviso={notice}")
+
     form = DatosAbiertosFilterForm(request.GET or None)
     buscar_flag = request.GET.get("buscar")
 
@@ -1902,8 +1932,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=400,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("filtro")
 
     anio_sel = form.cleaned_data.get("anio")
     semestre_sel = form.cleaned_data.get("semestre")
@@ -1918,8 +1947,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("plantilla")
 
     try:
         semestre_num = 1 if semestre_sel in {"1er", "1", 1} else 2
@@ -1932,8 +1960,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("base-datos")
     except Exception:
         logger.exception("Error inesperado al obtener reporte para exportación de datos abiertos")
         msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
@@ -1942,8 +1969,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("consulta")
 
     if not registros:
         msg = "No existen registros para exportar."
@@ -1952,8 +1978,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=200,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("sin-registros")
 
     output_dir = getattr(settings, "RUTA_EXPORTACION_DATOS_ABIERTOS", "")
     try:
@@ -1970,8 +1995,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("archivo")
     except Exception:
         logger.exception("Error al generar archivo Excel de Datos Abiertos")
         msg = "Ocurrió un error técnico al generar el archivo Excel."
@@ -1980,8 +2004,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("excel")
 
     fecha_str = date.today().strftime("%Y-%m-%d")
     filename = f"F004_GSW_DATO_{fecha_str}.xlsx"

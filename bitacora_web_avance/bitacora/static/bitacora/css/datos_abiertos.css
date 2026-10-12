@@ -207,12 +207,20 @@ body {
     transform: translateY(-1px);
 }
 
-.export-button {
-    background: #166534;
+.datos-abiertos-page .export-button {
+    background: var(--da-accent);
 }
 
-.export-button:hover {
-    background: #14532d;
+.datos-abiertos-page .export-button:hover {
+    background: #173a57;
+}
+
+.datos-abiertos-page #btn-exportar-excel:disabled,
+.datos-abiertos-page #btn-exportar-excel:disabled:hover {
+    background: #8aa6bf;
+    color: #f3f7fa;
+    cursor: not-allowed;
+    transform: none;
 }
 
 

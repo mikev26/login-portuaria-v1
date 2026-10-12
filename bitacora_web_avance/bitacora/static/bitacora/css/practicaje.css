@@ -18,6 +18,14 @@
     min-height: 38px;
 }
 
+.practicaje-page #export-button:disabled,
+.practicaje-page #export-button:disabled:hover {
+    background: #8aa6bf;
+    color: #f3f7fa;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .practicaje-page .table-wrapper {
     max-height: min(65vh, 720px);
     overflow: auto;

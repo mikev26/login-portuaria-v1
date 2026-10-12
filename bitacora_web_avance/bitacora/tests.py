@@ -2,6 +2,7 @@ import io
 from datetime import date
 from unittest.mock import patch
 
+from django.contrib.messages import get_messages
 from django.test import TestCase, override_settings
 
 import openpyxl
@@ -178,6 +179,104 @@ class ProjectSmokeTest(TestCase):
         self.assertEqual(row["estado"], "Activo")
         self.assertEqual(row["tipo_carro"], "Camión")
         self.assertEqual(mock_obtener_reporte.call_count, 1)
+
+    @patch("bitacora.views.obtener_reporte_combustible", return_value=[])
+    def test_fuel_empty_result_message_is_not_stored_globally(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/registro-combustible/",
+            {
+                "fecha_inicio": "2025-02-01",
+                "fecha_fin": "2025-02-28",
+                "buscar": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["messages"],
+            [{
+                "text": "No existen registros para el rango de fechas seleccionado.",
+                "tags": "info",
+            }],
+        )
+        self.assertEqual(list(get_messages(response.wsgi_request)), [])
+        mock_obtener_reporte.assert_called_once()
+
+    def test_datos_abiertos_page_keeps_filters_and_starts_with_export_disabled(self):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/datos-abiertos/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="anio"')
+        self.assertContains(response, 'name="semestre"')
+        self.assertContains(response, 'id="btn-exportar-excel"')
+        self.assertContains(response, "disabled")
+        self.assertContains(response, "datos_abiertos.js?v=20261012-1")
+        self.assertContains(response, "datos_abiertos.css?v=20261012-1")
+        self.assertNotContains(response, 'id="header-anio"')
+        self.assertNotContains(response, 'id="header-semestre"')
+
+    @patch("bitacora.views.obtener_reporte_datos_abiertos", return_value=[])
+    def test_datos_abiertos_empty_result_message_is_local_to_report(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/datos-abiertos/",
+            {"anio": "2026", "semestre": "1er", "buscar": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["messages"],
+            [{"text": "No existen registros.", "tags": "info"}],
+        )
+        self.assertEqual(list(get_messages(response.wsgi_request)), [])
+        mock_obtener_reporte.assert_called_once_with(2026, 1)
+
+    @patch(
+        "bitacora.views.obtener_reporte_datos_abiertos",
+        return_value=[{"Registro": 101, "BUQUE": "Mar Azul"}],
+    )
+    def test_datos_abiertos_ajax_search_returns_json_rows(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/datos-abiertos/",
+            {"anio": "2026", "semestre": "1er", "buscar": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["rows"],
+            [{"Registro": 101, "Buque": "Mar Azul"}],
+        )
+        mock_obtener_reporte.assert_called_once_with(2026, 1)
 
     @patch(
         "bitacora.views._obtener_datos_exportacion",

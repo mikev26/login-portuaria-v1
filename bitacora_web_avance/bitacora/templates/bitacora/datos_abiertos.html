@@ -8,11 +8,11 @@
 {% endblock %}
 
 {% block body_class %}
-    report-page combustible-page
+    report-page datos-abiertos-page
 {% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'bitacora/css/datos_abiertos.css' %}">
+    <link rel="stylesheet" href="{% static 'bitacora/css/datos_abiertos.css' %}?v=20261012-1">
 {% endblock %}
 
 {% block content %}
@@ -63,16 +63,10 @@
     <!-- Información del reporte -->
     <section class="info-block">
 
-        <!-- Mensajes -->
         <div id="report-messages">
-
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="message-banner {{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-                {% for _ in messages %}{% endfor %}  <!-- limpia los mensajes -->
-            {% endif %}
-
+            {% for message in report_messages %}
+                <div class="message-banner {{ message.tags }}">{{ message.text }}</div>
+            {% endfor %}
         </div>
 
 
@@ -87,59 +81,6 @@
 
                 <div class="field-value">
                     Manta, {{ fecha_emision|date:"d/m/Y" }}
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- Año y Semestre seleccionados -->
-        <div class="info-row">
-
-            <div class="field-box">
-
-                <div>
-
-                    <div class="field-label">
-                        Año
-                    </div>
-
-                    <div
-                        id="header-anio"
-                        class="field-value"
-                    >
-                        {% if anio %}
-                            {{ anio }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="field-box">
-
-                <div>
-
-                    <div class="field-label">
-                        Semestre
-                    </div>
-
-                    <div
-                        id="header-semestre"
-                        class="field-value"
-                    >
-                        {% if semestre %}
-                            {{ semestre }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </div>
-
                 </div>
 
             </div>
@@ -205,6 +146,8 @@
                     id="btn-exportar-excel"
                     class="export-button search-button"
                     data-export-url="{% url 'datos_abiertos_exportar' %}"
+                    aria-disabled="{% if registros %}false{% else %}true{% endif %}"
+                    {% if not registros %}disabled{% endif %}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 6px;">
                         <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
@@ -305,5 +248,5 @@
 
 {% block extra_js %}
     {{ block.super }}
-    <script src="{% static 'bitacora/js/datos_abiertos.js' %}"></script>
+    <script src="{% static 'bitacora/js/datos_abiertos.js' %}?v=20261012-1"></script>
 {% endblock %}

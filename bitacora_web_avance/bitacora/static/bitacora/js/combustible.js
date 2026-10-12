@@ -5,6 +5,22 @@ document.addEventListener("DOMContentLoaded", function () {
         const submitButton = form.querySelector("button[type=submit]");
         const exportLink = document.querySelector("#export-link");
         const exportMessage = document.querySelector('#export-message');
+        let reportMessagesTimeout;
+
+        function setReportMessages(content) {
+            if (!messagesContainer) return;
+            window.clearTimeout(reportMessagesTimeout);
+            messagesContainer.innerHTML = content;
+            if (messagesContainer.childElementCount) {
+                reportMessagesTimeout = window.setTimeout(function () {
+                    messagesContainer.replaceChildren();
+                }, 5000);
+            }
+        }
+
+        if (messagesContainer && messagesContainer.childElementCount) {
+            setReportMessages(messagesContainer.innerHTML);
+        }
 
         function clearExportMessage() {
             if (exportMessage) {
@@ -150,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 const data = await response.json();
 
-                messagesContainer.innerHTML = buildMessageHtml(data.messages);
+                setReportMessages(buildMessageHtml(data.messages));
                 tableBody.innerHTML = buildTableRows(data.rows);
 
                 if (exportLink) {
@@ -164,7 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 }
             } catch (error) {
-                messagesContainer.innerHTML = `<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>`;
+                setReportMessages('<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>');
                 tableBody.innerHTML = `
                     <tr class="table-placeholder">
                         <td colspan="13">No hay datos disponibles. Seleccione fechas y presione Buscar.</td>
