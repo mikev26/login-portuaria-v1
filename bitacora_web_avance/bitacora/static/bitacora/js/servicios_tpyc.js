@@ -25,32 +25,153 @@ document.addEventListener("DOMContentLoaded", function() {
     if (chkEspecificas) chkEspecificas.addEventListener("change", togglePanels);
     if (chkNaves) chkNaves.addEventListener("change", togglePanels);
 
-    // Agregar filas a tablas
-    document.querySelectorAll(".tpyc-btn-add-row").forEach(button => {
-        button.addEventListener("click", function() {
-            const targetId = this.getAttribute("data-target");
-            const tbody = document.querySelector(`#${targetId} tbody`);
-            if (tbody) {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                    <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción"></td>
-                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
-                `;
-                tbody.appendChild(tr);
+    // =========================================================
+    // AUTOCOMPLETADO DE SERVICIOS (SPJ_v_servicios)
+    // =========================================================
+    const inputServicio = document.getElementById("inputServicio");
+    const inputId = document.getElementById("inputId");
+    const inputGrupo = document.getElementById("inputGrupo");
+    const inputMedida = document.getElementById("inputMedida");
+    const dropdown = document.getElementById("dropdownServiciosTPyC");
+    let activeIndex = -1;
+
+    function getServicios() {
+        return Array.isArray(window.SERVICIOS_DATA) ? window.SERVICIOS_DATA : [];
+    }
+
+    function renderDropdownItems(filterText = "") {
+        if (!dropdown) return;
+        const query = filterText.trim().toLowerCase();
+        const lista = getServicios();
+        const filtradas = query
+            ? lista.filter(s => (s.servicio || "").toLowerCase().includes(query))
+            : lista;
+
+        if (filtradas.length === 0) {
+            dropdown.innerHTML = '<div class="tpyc-autocomplete-item" style="color: #94a3b8; cursor: default;">No se encontraron servicios</div>';
+            dropdown.classList.add("show");
+            return;
+        }
+
+        let html = "";
+        filtradas.forEach((item, index) => {
+            const nombre = escapeHtml(item.servicio || "");
+            html += `<div class="tpyc-autocomplete-item" data-index="${index}">${nombre}</div>`;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.classList.add("show");
+        activeIndex = -1;
+    }
+
+    function hideDropdown() {
+        if (dropdown) {
+            dropdown.classList.remove("show");
+            dropdown.innerHTML = "";
+            activeIndex = -1;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function seleccionarServicio(itemData) {
+        if (!itemData) return;
+
+        if (inputServicio) {
+            inputServicio.value = itemData.servicio || "";
+        }
+        if (inputId) {
+            inputId.value = itemData.idservicio !== undefined && itemData.idservicio !== null ? itemData.idservicio : "";
+        }
+        if (inputGrupo) {
+            const valGrupo = itemData.idgrupo !== undefined && itemData.idgrupo !== null ? itemData.idgrupo : (itemData.grupo || "");
+            inputGrupo.value = valGrupo;
+        }
+        if (inputMedida) {
+            const valMedida = itemData.idmedida !== undefined && itemData.idmedida !== null ? itemData.idmedida : (itemData.medida || "");
+            inputMedida.value = valMedida;
+        }
+
+        hideDropdown();
+    }
+
+    if (inputServicio && dropdown) {
+        inputServicio.addEventListener("focus", function() {
+            renderDropdownItems(this.value);
+        });
+
+        inputServicio.addEventListener("click", function() {
+            renderDropdownItems(this.value);
+        });
+
+        inputServicio.addEventListener("input", function() {
+            renderDropdownItems(this.value);
+        });
+
+        inputServicio.addEventListener("keydown", function(e) {
+            const items = dropdown.querySelectorAll(".tpyc-autocomplete-item:not([style*='cursor: default'])");
+            if (!items.length || !dropdown.classList.contains("show")) return;
+
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                activeIndex = (activeIndex + 1) % items.length;
+                updateActiveItem(items);
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                updateActiveItem(items);
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    const idx = parseInt(items[activeIndex].getAttribute("data-index"), 10);
+                    const lista = getServicios();
+                    const query = inputServicio.value.trim().toLowerCase();
+                    const filtradas = query ? lista.filter(s => (s.servicio || "").toLowerCase().includes(query)) : lista;
+                    if (filtradas[idx]) {
+                        seleccionarServicio(filtradas[idx]);
+                    }
+                }
+            } else if (e.key === "Escape") {
+                hideDropdown();
             }
         });
-    });
 
-    // Eliminar filas
-    document.addEventListener("click", function(e) {
-        if (e.target && e.target.classList.contains("tpyc-btn-remove-row")) {
-            const tr = e.target.closest("tr");
-            if (tr) {
-                tr.remove();
-            }
+        function updateActiveItem(items) {
+            items.forEach((item, idx) => {
+                if (idx === activeIndex) {
+                    item.classList.add("active");
+                    item.scrollIntoView({ block: "nearest" });
+                } else {
+                    item.classList.remove("active");
+                }
+            });
         }
-    });
+
+        dropdown.addEventListener("click", function(e) {
+            const itemElem = e.target.closest(".tpyc-autocomplete-item");
+            if (itemElem && !itemElem.hasAttribute("style")) {
+                const idx = parseInt(itemElem.getAttribute("data-index"), 10);
+                const lista = getServicios();
+                const query = inputServicio ? inputServicio.value.trim().toLowerCase() : "";
+                const filtradas = query ? lista.filter(s => (s.servicio || "").toLowerCase().includes(query)) : lista;
+                if (filtradas[idx]) {
+                    seleccionarServicio(filtradas[idx]);
+                }
+            }
+        });
+
+        document.addEventListener("click", function(e) {
+            if (!inputServicio.contains(e.target) && !dropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+    }
 
     // Función Notificación Toast
     function showToast(message, type = 'info') {
@@ -83,6 +204,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 form.reset();
             }
             togglePanels();
+            hideDropdown();
             showToast("Formulario limpiado.", "warning");
         });
     }
