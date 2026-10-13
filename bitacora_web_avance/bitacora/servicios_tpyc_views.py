@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date
 
 from django.conf import settings
@@ -31,5 +32,6 @@ def servicios_tpyc_view(request):
             "usuario_cargo": request.session.get("usuario_cargo", ""),
             "fecha_actual": date.today(),
             "servicios": servicios,
+            "servicios_json": json.dumps(servicios),
         },
     )

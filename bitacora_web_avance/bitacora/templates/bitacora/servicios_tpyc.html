@@ -18,17 +18,19 @@
 
     <!-- Formulario Principal -->
     <div class="tpyc-card">
+        
         <form id="formServiciosTPyC" class="tpyc-main-form" onsubmit="event.preventDefault();">
             
             <!-- Datos Generales del Servicio -->
             <div class="tpyc-fields-grid">
                 <div class="tpyc-field-group">
                     <label for="inputId">Id</label>
-                    <input type="text" id="inputId" name="id" class="tpyc-input" placeholder="Ingrese ID">
+                    <input type="text" id="inputId" name="id" class="tpyc-input" placeholder="" readonly>
                 </div>
-                <div class="tpyc-field-group">
+                <div class="tpyc-field-group tpyc-field-group-relative">
                     <label for="inputServicio">Servicio</label>
-                    <input type="text" id="inputServicio" name="servicio" class="tpyc-input"  placeholder="Nombre del servicio">
+                    <input type="text" id="inputServicio" name="servicio" class="tpyc-input" placeholder="Nombre del servicio" autocomplete="off">
+                    <div id="dropdownServiciosTPyC" class="tpyc-autocomplete-dropdown"></div>
                 </div>
                 <div class="tpyc-field-group">
                     <label for="inputGrupo">Grupo</label>
@@ -39,6 +41,7 @@
                     <input type="text" id="inputMedida" name="medida" class="tpyc-input"  placeholder="Unidad de medida">
                 </div>
             </div>
+
 
             <!-- Checkboxes de Selección de Tarifas -->
             <div class="tpyc-checkboxes-bar">
@@ -63,8 +66,7 @@
                 <div class="tpyc-subpanel hidden" id="panelCabotaje">
                     <div class="tpyc-subpanel-header">
                         <span class="tpyc-subpanel-title">
-                            <span>🚢</span> T.Cabotaje
-                            <span class="tpyc-badge">Tarifas de Cabotaje</span>
+                            T.Cabotaje
                         </span>
                     </div>
                     <div class="tpyc-table-wrap">
@@ -73,34 +75,23 @@
                                 <tr>
                                     <th class="col-tarifa">Tarifa</th>
                                     <th>Descripción</th>
-                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value="OCUPACION DE AREAS PORT. (GRUAS M.M)"></td>
-                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value="OCUPACION DE AREAS PORT. (GRUAS A.P.)"></td>
-                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                    <td><input type="text" class="tpyc-input" value=""></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="tpyc-btn-add-row" data-target="tablaCabotaje">
-                        <span>➕</span> Agregar Tarifa Cabotaje
-                    </button>
                 </div>
 
                 <!-- Sección T.Especificas -->
                 <div class="tpyc-subpanel hidden" id="panelEspecificas">
                     <div class="tpyc-subpanel-header">
                         <span class="tpyc-subpanel-title">
-                            <span>⚙️</span> T.Especificas
-                            <span class="tpyc-badge">Tarifas Específicas</span>
+                            T.Especificas
                         </span>
                     </div>
                     <div class="tpyc-table-wrap">
@@ -109,34 +100,23 @@
                                 <tr>
                                     <th class="col-tarifa">Tarifa</th>
                                     <th>Descripción</th>
-                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value="GRUA DESCARGUE(ALQ. AREAS)"></td>
-                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción"></td>
-                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
+                                    <td><input type="text" class="tpyc-input" value=""></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="tpyc-btn-add-row" data-target="tablaEspecificas">
-                        <span>➕</span> Agregar Tarifa Específica
-                    </button>
                 </div>
 
                 <!-- Sección T.Naves -->
                 <div class="tpyc-subpanel hidden" id="panelNaves">
                     <div class="tpyc-subpanel-header">
                         <span class="tpyc-subpanel-title">
-                            <span>⚓</span> T.Naves
-                            <span class="tpyc-badge">Tarifas de Naves</span>
+                            T.Naves
                         </span>
                     </div>
                     <div class="tpyc-table-wrap">
@@ -145,29 +125,23 @@
                                 <tr>
                                     <th class="col-tarifa">Tarifa</th>
                                     <th>Descripción</th>
-                                    <th style="width: 40px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td><input type="number" class="tpyc-input" value="0" step="any"></td>
                                     <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción para naves"></td>
-                                    <td><button type="button" class="tpyc-btn-remove-row" title="Eliminar fila">&times;</button></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="tpyc-btn-add-row" data-target="tablaNaves">
-                        <span>➕</span> Agregar Tarifa Nave
-                    </button>
                 </div>
 
             </div>
         </form>
-            <!-- Toolbar de Acciones -->
-    <div class="tpyc-toolbar">
-        <div class="tpyc-toolbar-title">
-        </div>
+    </div>
+    <!-- Toolbar de Acciones (Limpiar / Guardar) -->
+    <div class="tpyc-toolbar-top">
         <div class="tpyc-toolbar-actions">
             <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnLimpiar">
                 Limpiar
@@ -177,11 +151,13 @@
             </button>
         </div>
     </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    window.SERVICIOS_DATA = {{ servicios_json|default:"[]"|safe }};
+</script>
 <script src="{% static 'bitacora/js/menu.js' %}"></script>
 <script src="{% static 'bitacora/js/password.js' %}"></script>
 <script src="{% static 'bitacora/js/servicios_tpyc.js' %}?v={% now 'U' %}"></script>
