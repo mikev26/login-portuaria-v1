@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
 from django.conf import settings
@@ -68,9 +69,9 @@ def obtener_operadores_movimiento(
 
 
 def obtener_operadores_listados() -> list[dict[str, Any]]:
-    """Obtiene el listado general de operadores."""
+    """Obtiene el listado general de operadores ordenado alfabéticamente."""
 
-    return execute_query(
+    resultados = execute_query(
         """
         DECLARE @res INT;
 
@@ -78,6 +79,14 @@ def obtener_operadores_listados() -> list[dict[str, Any]]:
             @sresult = @res OUTPUT;
         """
     )
+
+    if resultados and isinstance(resultados, list):
+        resultados = sorted(
+            resultados,
+            key=lambda x: str(_get_col(x, "usuario", "nombre", "operador")).strip().upper()
+        )
+
+    return resultados
 
 
 def _get_col(
@@ -199,7 +208,6 @@ def exportar_buques(
                 "fondeo" in ub_bd
                 or "fondeadero" in ub_bd
             )
-
         if condicion or not ub_bd:
 
             if tipo_info == "listado":
@@ -221,7 +229,6 @@ def exportar_buques(
                         "Ubicacion",
                     ),
                 ]
-
             else:
                 valores = [
                     _get_col(row, "Solicitud"),
@@ -265,8 +272,6 @@ def exportar_buques(
                 celda.font = fuente_negra
 
             fila_actual += 1
-
-    import io
 
     output = io.BytesIO()
     wb.save(output)
