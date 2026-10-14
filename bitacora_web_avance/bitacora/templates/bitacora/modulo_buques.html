@@ -99,25 +99,26 @@
                         </div>
                         <hr class="text-muted my-3">
 
-                        <!-- DATOS DEL BUQUE (CÓDIGO, MATRÍCULA, BANDERA, TIPO NAVE) -->
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Código</span>
-                                <span id="lblCodBuque" class="data-value fw-semibold">-</span>
+                        <!-- CÓDIGO, MATRÍCULA Y BANDERA EN HORIZONTAL -->
+                        <div class="row text-center bg-white p-2 rounded border shadow-sm">
+                            <div class="col">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">CÓDIGO</span>
+                                <span id="lblCodBuque" class="data-value fw-semibold small">-</span>
                             </div>
-                            <div class="col-6">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Matrícula</span>
-                                <span id="lblMatricula" class="data-value fw-semibold">-</span>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">MATRÍCULA</span>
+                                <span id="lblMatricula" class="data-value fw-semibold small">-</span>
                             </div>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">BANDERA</span>
+                                <span id="lblBandera" class="data-value fw-semibold small">-</span>
+                            </div>
+                        </div>
 
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Bandera</span>
-                                <span id="lblBandera" class="data-value fw-semibold">-</span>
-                            </div>
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Tipo de Nave</span>
-                                <span id="lblTipoNave" class="data-value fw-semibold">-</span>
-                            </div>
+                        <!-- TIPO DE NAVE SOLO EN SU PROPIA LÍNEA -->
+                        <div class="mt-2">
+                            <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Tipo de Nave</span>
+                            <span id="lblTipoNave" class="data-value fw-semibold">-</span>
                         </div>
 
                         <!-- FILA HORIZONTAL COMPACTA PARA MEDIDAS (Eslora, Manga, Calado, TRB, TRN) -->
@@ -172,13 +173,18 @@
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Armador</span>
                                 <span id="lblArmador" class="data-value fw-semibold">-</span>
                             </div>
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Teléfono Armador</span>
-                                <span id="lblTelfArmador" class="data-value fw-semibold">-</span>
-                            </div>
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Teléfono Usuario</span>
-                                <span id="lblTelfUsuario" class="data-value fw-semibold">-</span>
+                            <!-- TELÉFONOS EN UNA SOLA LÍNEA HORIZONTAL (FLEXBOX) -->
+                            <div class="col-12 mt-2">
+                                <div class="d-flex justify-content-between gap-3 bg-white p-2 rounded border">
+                                    <div>
+                                        <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Teléfono Armador</span>
+                                        <span id="lblTelfArmador" class="data-value fw-semibold">-</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Teléfono Usuario</span>
+                                        <span id="lblTelfUsuario" class="data-value fw-semibold">-</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- USUARIO ASOCIADO Y SALDOS EN LA MISMA FILA HORIZONTAL PERFECTA -->
