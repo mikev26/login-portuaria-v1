@@ -33,37 +33,36 @@
     </nav>
 
     <div class="container-fluid px-4">
+        <!-- BANNER / BLOQUE DE REPORTES EXCEL -->
+        <div class="card card-custom mb-4 bg-light border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                
+                <!-- Fila Superior: Tipo de Información Centrado -->
+                <div class="d-inline-flex align-items-center justify-content-center gap-3 mb-3 bg-white px-4 py-2 rounded-pill shadow-sm border">
+                    <span class="fw-bold text-secondary"><i class="fas fa-filter me-1"></i> Tipo de Información:</span>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="tipo_info" id="radioListado" value="listado" checked>
+                        <label class="form-check-label fw-semibold" for="radioListado">Listado</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="tipo_info" id="radioDetalle" value="detalle">
+                        <label class="form-check-label fw-semibold" for="radioDetalle">Detalle</label>
+                    </div>
+                </div>
 
-<!-- BANNER / BLOQUE DE REPORTES EXCEL -->
-<div class="card card-custom mb-4 bg-light border-0 shadow-sm">
-    <div class="card-body p-4 text-center">
-        
-        <!-- Fila Superior: Tipo de Información Centrado -->
-        <div class="d-inline-flex align-items-center justify-content-center gap-3 mb-3 bg-white px-4 py-2 rounded-pill shadow-sm border">
-            <span class="fw-bold text-secondary"><i class="fas fa-filter me-1"></i> Tipo de Información:</span>
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="radio" name="tipo_info" id="radioListado" value="listado" checked>
-                <label class="form-check-label fw-semibold" for="radioListado">Listado</label>
-            </div>
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="radio" name="tipo_info" id="radioDetalle" value="detalle">
-                <label class="form-check-label fw-semibold" for="radioDetalle">Detalle</label>
+                <!-- Fila Inferior: Botones de Exportar Centrados -->
+                <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                    <span class="fw-bold text-muted small text-uppercase">Exportar Reportes:</span>
+                    <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" onclick="exportarExcel('muelle')">
+                        <i class="fas fa-file-excel me-2"></i> Buques en Muelle
+                    </button>
+                    <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" onclick="exportarExcel('fondeo')">
+                        <i class="fas fa-file-excel me-2"></i> Buques en Fondeo
+                    </button>
+                </div> 
+
             </div>
         </div>
-
-        <!-- Fila Inferior: Botones de Exportar Centrados -->
-        <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-            <span class="fw-bold text-muted small text-uppercase">Exportar Reportes:</span>
-            <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" onclick="exportarExcel('muelle')">
-                <i class="fas fa-file-excel me-2"></i> Buques en Muelle
-            </button>
-            <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" onclick="exportarExcel('fondeo')">
-                <i class="fas fa-file-excel me-2"></i> Buques en Fondeo
-            </button>
-        </div>
-
-    </div>
-</div>
 
         <!-- CONTENIDO PRINCIPAL -->
         <div class="buques-main-row">
@@ -100,7 +99,7 @@
                         </div>
                         <hr class="text-muted my-3">
 
-                        <!-- DATOS DEL BUQUE (EN PAREJAS FILA POR FILA COMPACTO) -->
+                        <!-- DATOS DEL BUQUE (CÓDIGO, MATRÍCULA, BANDERA, TIPO NAVE) -->
                         <div class="row g-2">
                             <div class="col-6">
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Código</span>
@@ -119,28 +118,29 @@
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Tipo de Nave</span>
                                 <span id="lblTipoNave" class="data-value fw-semibold">-</span>
                             </div>
+                        </div>
 
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Eslora</span>
-                                <span id="lblEslora" class="data-value fw-semibold">-</span>
+                        <!-- FILA HORIZONTAL COMPACTA PARA MEDIDAS (Eslora, Manga, Calado, TRB, TRN) -->
+                        <div class="row mt-3 text-center bg-white p-2 rounded border shadow-sm">
+                            <div class="col">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">ESLORA</span>
+                                <span id="lblEslora" class="data-value fw-semibold small">-</span>
                             </div>
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Manga</span>
-                                <span id="lblManga" class="data-value fw-semibold">-</span>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">MANGA</span>
+                                <span id="lblManga" class="data-value fw-semibold small">-</span>
                             </div>
-
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Calado</span>
-                                <span id="lblCalado" class="data-value fw-semibold">-</span>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">CALADO</span>
+                                <span id="lblCalado" class="data-value fw-semibold small">-</span>
                             </div>
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">TRB</span>
-                                <span id="lblTRB" class="data-value fw-semibold">-</span>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">TRB</span>
+                                <span id="lblTRB" class="data-value fw-semibold small">-</span>
                             </div>
-
-                            <div class="col-6 mt-2">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">TRN</span>
-                                <span id="lblTRN" class="data-value fw-semibold">-</span>
+                            <div class="col border-start">
+                                <span class="data-label d-block text-muted" style="font-size: 0.7rem;">TRN</span>
+                                <span id="lblTRN" class="data-value fw-semibold small">-</span>
                             </div>
                         </div>
 
@@ -161,7 +161,7 @@
 
                         <hr class="text-muted my-3">
 
-                        <!-- AGENCIA / ARMADOR / SALDOS -->
+                        <!-- AGENCIA / ARMADOR / TELEFONOS -->
                         <div class="row g-2">
                             <div class="col-12">
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Agencia</span>
@@ -172,7 +172,6 @@
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Armador</span>
                                 <span id="lblArmador" class="data-value fw-semibold">-</span>
                             </div>
-
                             <div class="col-6 mt-2">
                                 <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Teléfono Armador</span>
                                 <span id="lblTelfArmador" class="data-value fw-semibold">-</span>
@@ -182,22 +181,23 @@
                                 <span id="lblTelfUsuario" class="data-value fw-semibold">-</span>
                             </div>
 
-                            <div class="col-7 mt-3">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Usuario Asociado</span>
-                                <span id="lblUsuario" class="data-value fw-semibold">-</span>
-                            </div>
-
-                            <!-- SALDOS -->
-                            <div class="col-5 mt-3">
-                                <span class="data-label d-block text-muted" style="font-size: 0.8rem;">
-                                    SALDOS
-                                </span>
-                                <span
-                                    id="lblDebe"
-                                    class="badge-debe mt-1 d-inline-block"
-                                >
-                                    $0.00
-                                </span>
+                            <!-- USUARIO ASOCIADO Y SALDOS EN LA MISMA FILA HORIZONTAL PERFECTA -->
+                            <div class="col-12 mt-3">
+                                <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded border">
+                                    <div>
+                                        <span class="data-label d-block text-muted" style="font-size: 0.8rem;">Usuario Asociado</span>
+                                        <span id="lblUsuario" class="data-value fw-semibold fs-6">-</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="data-label d-block text-muted fw-bold" style="font-size: 0.75rem;">SALDOS</span>
+                                        <span
+                                            id="lblDebe"
+                                            class="data-value fw-bold fs-3 text-danger d-inline-block"
+                                        >
+                                            $0.00
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -324,7 +324,6 @@
                         aria-label="Close"
                     ></button>
                 </div>
-
                 <div class="modal-body p-4 bg-light">
                     <div class="table-responsive bg-white p-3 rounded shadow-sm border">
                         <table class="table table-hover table-striped table-custom-style mb-0 align-middle" id="tablaModalOperadores">
