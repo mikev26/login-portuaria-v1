@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime
 import logging
 import io
 import os
@@ -25,9 +25,11 @@ from .services import (
     DatabaseContractError,
     generar_excel_datos_abiertos,
     obtener_buques_artesanales,
+    obtener_buques_info,
     obtener_buques_industriales,
     obtener_reporte_combustible,
     obtener_reporte_datos_abiertos,
+    obtener_registros_ocupacion,
     obtener_turnos_usuario,
     validar_usuario,
     obtener_reporte_inec,
@@ -148,7 +150,7 @@ def login_view(request):
 
                     return redirect("main_index")
 
-            except (DatabaseConfigurationError, DatabaseContractError) as exc:
+            except (DatabaseConfigurationError, DatabaseContractError):
                 logger.exception("Configuración o contrato de base de datos inválido")
                 messages.error(request, str(exc))
             except Exception:
@@ -1657,6 +1659,37 @@ def registro_combustible_home(request):
                         registro["c_ticket"] = registro["c_tikect"]
                     elif "c_tikect" in registro:
                         registro["c_ticket"] = registro.get("c_tikect", "")
+                    registro["licencia"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "licencia",
+                                "licencia_conductor",
+                                "licencia_no",
+                                "liciencia",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
+                    registro["estado"] = registro.get(
+                        "estado",
+                        registro.get("estado_registro", ""),
+                    )
+                    registro["tipo_carro"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "tipo_carro",
+                                "tipo_vehiculo",
+                                "tipo de vehiculo",
+                                "tipo de vehículo",
+                                "tipo",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
                 # Guardar último resultado de búsqueda en sesión para la exportación.
                 try:
                     def _serialize_value(v):
@@ -1684,27 +1717,19 @@ def registro_combustible_home(request):
                     logger.exception("No fue posible guardar el resultado en sesión para exportación")
                 if not registros:
                     msg = "No existen registros para el rango de fechas seleccionado."
-                    messages.info(request, msg)
                     ajax_response["messages"].append({"text": msg, "tags": "info"})
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Error de base de datos al obtener el reporte")
                 generic_msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
             except Exception:
                 logger.exception("Error inesperado al obtener el reporte de combustible")
                 generic_msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
         else:
             for field, errors in form.errors.items():
                 for error in errors:
                     ajax_response["messages"].append({"text": str(error), "tags": "error"})
-            messages.error(
-                request,
-                "Complete correctamente Fecha Desde y Fecha Hasta antes de buscar.",
-            )
-
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("accept", "")
 
     if is_ajax:
@@ -1715,6 +1740,28 @@ def registro_combustible_home(request):
                 "guia": str(registro.get("guia", "")),
                 "idplaca": str(registro.get("idplaca", "")),
                 "chofer": str(registro.get("chofer", "")),
+                "licencia": str(
+                    registro.get(
+                        "licencia",
+                        registro.get(
+                            "licencia_conductor",
+                            registro.get("licencia_no", registro.get("liciencia", "")),
+                        ),
+                    )
+                ),
+                "estado": str(registro.get("estado", registro.get("estado_registro", ""))),
+                "tipo_carro": str(
+                    registro.get(
+                        "tipo_carro",
+                        registro.get(
+                            "tipo_vehiculo",
+                            registro.get(
+                                "tipo de vehiculo",
+                                registro.get("tipo de vehículo", registro.get("tipo", "")),
+                            ),
+                        ),
+                    )
+                ),
                 "codbuque": str(registro.get("codbuque", "")),
                 "buque": str(registro.get("buque", "")),
                 "matricula": str(registro.get("matricula", "")),
@@ -1742,6 +1789,57 @@ def registro_combustible_home(request):
 
 @never_cache
 @require_http_methods(["GET"])
+def ocupacion_espacios_home(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    buques = []
+    try:
+        buques = obtener_buques_info()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de configuración al cargar buques de ocupación")
+        messages.error(request, str(exc))
+    except Exception:
+        logger.exception("Error al cargar buques desde dbo.SPJ_InfoBuques")
+        messages.error(request, "No fue posible cargar los buques desde SQL Server.")
+
+    return render(
+        request,
+        "bitacora/ocupacion_espacios.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
+            "buques": buques,
+        },
+    )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def ocupacion_registros_api(request):
+    if not request.session.get("usuario_id"):
+        return JsonResponse(
+            {"error": "Debe iniciar sesión para consultar los registros."},
+            status=401,
+        )
+
+    try:
+        registros = obtener_registros_ocupacion()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error al cargar registros para Ocupación de Espacios")
+        return JsonResponse({"error": str(exc)}, status=503)
+    except Exception:
+        logger.exception("Error inesperado al cargar registros de ocupación")
+        return JsonResponse(
+            {"error": "No fue posible cargar los registros desde SQL Server."},
+            status=500,
+        )
+
+    return JsonResponse({"registros": registros})
+
+
+@never_cache
+@require_http_methods(["GET"])
 def datos_abiertos_home(request):
     if not request.session.get("usuario_id"):
         return redirect("login")
@@ -1752,6 +1850,36 @@ def datos_abiertos_home(request):
     fecha_emision = date.today()
     anio_sel = None
     semestre_sel = None
+    report_notices = {
+        "filtro": {
+            "text": "Primero debe realizar una búsqueda antes de exportar la información.",
+            "tags": "info",
+        },
+        "plantilla": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "base-datos": {
+            "text": "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "consulta": {
+            "text": "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "sin-registros": {
+            "text": "No existen registros para exportar.",
+            "tags": "info",
+        },
+        "archivo": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "excel": {
+            "text": "Ocurrió un error técnico al generar el archivo Excel.",
+            "tags": "error",
+        },
+    }
 
     ajax_response = {
         "fecha_emision": fecha_emision.isoformat(),
@@ -1814,6 +1942,11 @@ def datos_abiertos_home(request):
             "anio": anio_sel,
             "semestre": semestre_sel,
             "current_year": fecha_emision.year,
+            "report_messages": (
+                [report_notices[request.GET["aviso"]]]
+                if request.GET.get("aviso") in report_notices
+                else []
+            ),
         },
     )
 
@@ -1828,6 +1961,9 @@ def datos_abiertos_exportar_view(request):
         or "application/json" in request.headers.get("accept", "")
     )
 
+    def redirect_with_notice(notice):
+        return redirect(f"{reverse('datos_abiertos')}?aviso={notice}")
+
     form = DatosAbiertosFilterForm(request.GET or None)
     buscar_flag = request.GET.get("buscar")
 
@@ -1838,8 +1974,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=400,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("filtro")
 
     anio_sel = form.cleaned_data.get("anio")
     semestre_sel = form.cleaned_data.get("semestre")
@@ -1854,8 +1989,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("plantilla")
 
     try:
         semestre_num = 1 if semestre_sel in {"1er", "1", 1} else 2
@@ -1868,8 +2002,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("base-datos")
     except Exception:
         logger.exception("Error inesperado al obtener reporte para exportación de datos abiertos")
         msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
@@ -1878,8 +2011,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("consulta")
 
     if not registros:
         msg = "No existen registros para exportar."
@@ -1888,8 +2020,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=200,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("sin-registros")
 
     output_dir = getattr(settings, "RUTA_EXPORTACION_DATOS_ABIERTOS", "")
     try:
@@ -1906,8 +2037,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("archivo")
     except Exception:
         logger.exception("Error al generar archivo Excel de Datos Abiertos")
         msg = "Ocurrió un error técnico al generar el archivo Excel."
@@ -1916,8 +2046,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("excel")
 
     fecha_str = date.today().strftime("%Y-%m-%d")
     filename = f"F004_GSW_DATO_{fecha_str}.xlsx"
@@ -2050,6 +2179,24 @@ def exportar_excel(request):
                 cell.value = val
                 cell.font = Font(name="Calibri", size=11, color="000000", bold=False)
 
+        headers = [
+            "Fecha",
+            "Tickets",
+            "Guía",
+            "Placa",
+            "Chofer",
+            "Liciencia",
+            "CodBuque",
+            "Buque",
+            "Matrícula",
+            "Galones",
+            "Motivo",
+            "Estado",
+            "Tipo de Vehiculo",
+        ]
+        for column, header in enumerate(headers, start=1):
+            safe_write_cell(ws, 7, column, header)
+
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
 
         safe_write_cell(
@@ -2118,6 +2265,35 @@ def exportar_excel(request):
 
             return ""
 
+        def excel_datetime(value):
+            if isinstance(value, datetime):
+                parsed = value
+            elif isinstance(value, date):
+                parsed = datetime.combine(value, datetime.min.time())
+            else:
+                raw_value = str(value or "").strip()
+                if not raw_value:
+                    return ""
+                try:
+                    parsed = datetime.fromisoformat(
+                        raw_value.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    try:
+                        parsed = datetime.combine(
+                            date.fromisoformat(raw_value[:10]),
+                            datetime.min.time(),
+                        )
+                    except ValueError:
+                        try:
+                            parsed = datetime.strptime(raw_value, "%d/%m/%Y")
+                        except ValueError:
+                            return raw_value
+
+            if timezone.is_aware(parsed):
+                parsed = timezone.localtime(parsed).replace(tzinfo=None)
+            return parsed.replace(microsecond=0)
+
         for rng in list(ws.merged_cells.ranges):
 
             if rng.min_row >= 8:
@@ -2131,14 +2307,16 @@ def exportar_excel(request):
         ):
 
             fila = [
-                first_value(
-                    reg,
-                    (
-                        "fecha_ingresa",
-                        "fecha",
-                        "fecha_registro",
-                        "fecha_mov",
-                    ),
+                excel_datetime(
+                    first_value(
+                        reg,
+                        (
+                            "fecha_ingresa",
+                            "fecha",
+                            "fecha_registro",
+                            "fecha_mov",
+                        ),
+                    )
                 ),
 
                 first_value(
@@ -2183,6 +2361,7 @@ def exportar_excel(request):
                         "licencia",
                         "licencia_conductor",
                         "licencia_no",
+                        "liciencia",
                     ),
                 ),
 
@@ -2235,6 +2414,9 @@ def exportar_excel(request):
                     (
                         "tipo_carro",
                         "tipo carro",
+                        "tipo_vehiculo",
+                        "tipo de vehiculo",
+                        "tipo de vehículo",
                         "tipo",
                     ),
                 ),
@@ -2250,6 +2432,10 @@ def exportar_excel(request):
                     col_idx,
                     value,
                 )
+                if col_idx == 1 and isinstance(value, datetime):
+                    ws.cell(row=idx, column=col_idx).number_format = (
+                        "yyyy-mm-dd hh:mm:ss"
+                    )
 
         last_data_row = (
             start_row

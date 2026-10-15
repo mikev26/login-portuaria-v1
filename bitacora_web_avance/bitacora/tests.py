@@ -1,15 +1,469 @@
+import io
+from datetime import date
 from unittest.mock import patch
 
+from django.contrib.messages import get_messages
 from django.test import TestCase, override_settings
 
+import openpyxl
+
+from bitacora.services.db_connection import (
+    DatabaseConfigurationError,
+    DatabaseContractError,
+    get_connection,
+    pyodbc,
+)
 from bitacora.services.datos_abiertos import obtener_reporte_datos_abiertos
+from bitacora.services.ship_service import (
+    obtener_buques_info,
+    obtener_registros_ocupacion,
+)
+
 
 @override_settings(DEMO_MODE=True)
 class ProjectSmokeTest(TestCase):
+    @patch("bitacora.services.ship_service.execute_procedure")
+    @patch("bitacora.services.ship_service.timezone.localdate")
+    def test_obtener_registros_ocupacion_uses_fixed_dates_and_database(
+        self,
+        mock_localdate,
+        mock_execute_procedure,
+    ):
+        mock_localdate.return_value = date(2026, 10, 7)
+        mock_execute_procedure.return_value = [
+            {
+                "scregistro": "REG-001",
+                "buque": "Mar Azul",
+                "otra_columna": "No exponer",
+            }
+        ]
+
+        registros = obtener_registros_ocupacion()
+
+        self.assertEqual(
+            registros,
+            [{"scregistro": "REG-001", "buque": "Mar Azul"}],
+        )
+        mock_execute_procedure.assert_called_once_with(
+            "dbo.SPJ_ReporteRegistroBuques",
+            (
+                ("@s_fechaInit", date(2010, 1, 1)),
+                ("@s_fechaFin", date(2026, 10, 8)),
+            ),
+            database_name="dim_sis_puerto_v1",
+        )
+
+    @patch("bitacora.services.ship_service.execute_procedure")
+    def test_obtener_registros_ocupacion_rejects_missing_columns(
+        self,
+        mock_execute_procedure,
+    ):
+        mock_execute_procedure.return_value = [
+            {"scregistro": "REG-001", "nombre": "Mar Azul"}
+        ]
+
+        with self.assertRaisesRegex(
+            DatabaseContractError,
+            "scregistro y buque",
+        ):
+            obtener_registros_ocupacion()
+
+    @patch.dict(
+        "os.environ",
+        {
+            "DB_SERVER": "sql.example.test",
+            "DB_NAME": "port_database",
+            "DB_USER": "app-user",
+            "DB_PASSWORD": "test-password",
+            "DB_TRUSTED_CONNECTION": "no",
+        },
+    )
+    @patch("bitacora.services.db_connection.pyodbc.connect")
+    def test_connection_error_identifies_network_and_vpn_checks(
+        self,
+        mock_connect,
+    ):
+        mock_connect.side_effect = pyodbc.OperationalError(
+            "08001",
+            "network endpoint unavailable",
+        )
+
+        with self.assertRaisesRegex(
+            DatabaseConfigurationError,
+            "red o VPN institucional",
+        ):
+            get_connection()
+
+    def test_fuel_report_keeps_date_filters_and_removes_informational_dates(
+        self,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/registro-combustible/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "F.Desde")
+        self.assertContains(response, "F.Hasta")
+        self.assertContains(response, ">Liciencia</th>")
+        self.assertContains(response, ">Estado</th>")
+        self.assertContains(response, ">Tipo de Vehiculo</th>")
+        header_start = response.content.index(b"<thead>")
+        header_end = response.content.index(b"</thead>", header_start)
+        headers = response.content[header_start:header_end]
+        expected_headers = [
+            b"Fecha",
+            b"Tickets",
+            b"Gu\xc3\xada",
+            b"Placa",
+            b"Chofer",
+            b"Liciencia",
+            b"CodBuque",
+            b"Buque",
+            b"Matr\xc3\xadcula",
+            b"Galones",
+            b"Motivo",
+            b"Estado",
+            b"Tipo de Vehiculo",
+        ]
+        positions = [headers.index(header) for header in expected_headers]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotContains(response, "header-fecha-desde")
+        self.assertNotContains(response, "header-fecha-hasta")
+        self.assertNotContains(response, "Fecha Desde")
+        self.assertNotContains(response, "Fecha Hasta")
+
+    @patch(
+        "bitacora.views.obtener_reporte_combustible",
+        return_value=[
+            {
+                "fecha_ingresa": "2025-02-14T09:59:49.780000",
+                "tikect": "T-101",
+                "guia": "G-22",
+                "idplaca": "ABC-123",
+                "chofer": "Conductor",
+                "licencia": "LIC-01",
+                "codbuque": "B-1",
+                "buque": "Mar Azul",
+                "matricula": "M-01",
+                "galones": 25,
+                "motivo": "Prueba",
+                "estado": "Activo",
+                "tipo_carro": "Camión",
+            }
+        ],
+    )
+    def test_fuel_report_ajax_maps_state_and_vehicle_type(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/registro-combustible/",
+            {
+                "fecha_inicio": "2025-02-01",
+                "fecha_fin": "2025-02-28",
+                "buscar": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        row = response.json()["rows"][0]
+        self.assertEqual(row["licencia"], "LIC-01")
+        self.assertEqual(row["estado"], "Activo")
+        self.assertEqual(row["tipo_carro"], "Camión")
+        self.assertEqual(mock_obtener_reporte.call_count, 1)
+
+    @patch("bitacora.views.obtener_reporte_combustible", return_value=[])
+    def test_fuel_empty_result_message_is_not_stored_globally(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/registro-combustible/",
+            {
+                "fecha_inicio": "2025-02-01",
+                "fecha_fin": "2025-02-28",
+                "buscar": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["messages"],
+            [{
+                "text": "No existen registros para el rango de fechas seleccionado.",
+                "tags": "info",
+            }],
+        )
+        self.assertEqual(list(get_messages(response.wsgi_request)), [])
+        mock_obtener_reporte.assert_called_once()
+
+    def test_datos_abiertos_page_keeps_filters_and_starts_with_export_disabled(self):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/datos-abiertos/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="anio"')
+        self.assertContains(response, 'name="semestre"')
+        self.assertContains(response, 'id="btn-exportar-excel"')
+        self.assertContains(response, "disabled")
+        self.assertContains(response, "datos_abiertos.js?v=20261012-1")
+        self.assertContains(response, "datos_abiertos.css?v=20261012-1")
+        self.assertNotContains(response, 'id="header-anio"')
+        self.assertNotContains(response, 'id="header-semestre"')
+
+    @patch("bitacora.views.obtener_reporte_datos_abiertos", return_value=[])
+    def test_datos_abiertos_empty_result_message_is_local_to_report(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/datos-abiertos/",
+            {"anio": "2026", "semestre": "1er", "buscar": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["messages"],
+            [{"text": "No existen registros.", "tags": "info"}],
+        )
+        self.assertEqual(list(get_messages(response.wsgi_request)), [])
+        mock_obtener_reporte.assert_called_once_with(2026, 1)
+
+    @patch(
+        "bitacora.views.obtener_reporte_datos_abiertos",
+        return_value=[{"Registro": 101, "BUQUE": "Mar Azul"}],
+    )
+    def test_datos_abiertos_ajax_search_returns_json_rows(
+        self,
+        mock_obtener_reporte,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get(
+            "/datos-abiertos/",
+            {"anio": "2026", "semestre": "1er", "buscar": "1"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["rows"],
+            [{"Registro": 101, "Buque": "Mar Azul"}],
+        )
+        mock_obtener_reporte.assert_called_once_with(2026, 1)
+
+    @patch(
+        "bitacora.views._obtener_datos_exportacion",
+        return_value={
+            "fecha_desde": "2025-02-01",
+            "fecha_hasta": "2025-02-28",
+            "registros": [
+                {
+                    "fecha_ingresa": "2025-02-14T09:59:49.780000",
+                    "c_tikect": "T-101",
+                    "guia": "G-22",
+                    "idplaca": "ABC-123",
+                    "chofer": "Conductor",
+                    "licencia": "LIC-01",
+                    "codbuque": "B-1",
+                    "buque": "Mar Azul",
+                    "matricula": "M-01",
+                    "galones": 25,
+                    "motivo": "Prueba",
+                    "estado": "Activo",
+                    "tipo_carro": "Camión",
+                }
+            ],
+        },
+    )
+    def test_fuel_excel_writes_required_headers_and_date_time_format(
+        self,
+        mock_export_data,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/registro-combustible/exportar-excel/")
+
+        self.assertEqual(response.status_code, 200)
+        workbook = openpyxl.load_workbook(io.BytesIO(response.content))
+        worksheet = workbook.active
+        self.assertEqual(
+            [worksheet.cell(7, column).value for column in range(1, 14)],
+            [
+                "Fecha",
+                "Tickets",
+                "Guía",
+                "Placa",
+                "Chofer",
+                "Liciencia",
+                "CodBuque",
+                "Buque",
+                "Matrícula",
+                "Galones",
+                "Motivo",
+                "Estado",
+                "Tipo de Vehiculo",
+            ],
+        )
+        self.assertEqual(
+            worksheet["A8"].value.strftime("%Y-%m-%d %H:%M:%S"),
+            "2025-02-14 09:59:49",
+        )
+        self.assertEqual(worksheet["A8"].value.microsecond, 0)
+        self.assertEqual(
+            worksheet["A8"].number_format,
+            "yyyy-mm-dd hh:mm:ss",
+        )
+        self.assertEqual(worksheet["L8"].value, "Activo")
+        self.assertEqual(worksheet["M8"].value, "Camión")
+        mock_export_data.assert_called_once()
+
     def test_login_page_loads(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sistema de Reportes")
+
+    @patch("bitacora.services.ship_service.execute_procedure")
+    @patch("bitacora.services.ship_service.validated_procedure")
+    def test_obtener_buques_info_returns_only_ship_names(
+        self,
+        mock_validated_procedure,
+        mock_execute_procedure,
+    ):
+        mock_validated_procedure.return_value = "dbo.SPJ_InfoBuques"
+        mock_execute_procedure.return_value = [
+            {"buque": "Mar Azul", "idbuque": 14},
+            {"buque": "  ", "idbuque": 15},
+            {"otra_columna": "Ignorar"},
+        ]
+
+        buques = obtener_buques_info()
+
+        self.assertEqual(buques, [{"nombre": "Mar Azul"}])
+        mock_validated_procedure.assert_called_once_with("SP_INFO_BUQUES")
+        mock_execute_procedure.assert_called_once_with("dbo.SPJ_InfoBuques")
+
+    @patch("bitacora.views.obtener_buques_info")
+    def test_occupacion_view_renders_buque_selection_modal(self, mock_obtener_buques):
+        mock_obtener_buques.return_value = [{"nombre": "Mar Azul"}]
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/ocupacion-espacios/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["buques"], [{"nombre": "Mar Azul"}])
+        self.assertContains(response, 'id="buquesModal"')
+        self.assertContains(response, ">Nombre</th>")
+        mock_obtener_buques.assert_called_once_with()
+
+    @patch("bitacora.views.obtener_buques_info", return_value=[])
+    def test_occupacion_view_renders_register_modal_and_api_url(
+        self,
+        mock_obtener_buques,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/ocupacion-espacios/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="registrosModal"')
+        self.assertContains(response, 'id="registrosModalBody"')
+        self.assertContains(response, "ocupacion-espacios/registros/")
+        self.assertContains(response, ">Registro</th>")
+        self.assertContains(response, ">Buque</th>")
+        mock_obtener_buques.assert_called_once_with()
+
+    @patch(
+        "bitacora.views.obtener_registros_ocupacion",
+        return_value=[{"scregistro": "REG-001", "buque": "Mar Azul"}],
+    )
+    def test_occupacion_register_api_returns_only_requested_fields(
+        self,
+        mock_obtener_registros,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/ocupacion-espacios/registros/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"registros": [{"scregistro": "REG-001", "buque": "Mar Azul"}]},
+        )
+        mock_obtener_registros.assert_called_once_with()
+
+    def test_occupacion_register_api_requires_login(self):
+        response = self.client.get("/ocupacion-espacios/registros/")
+
+        self.assertEqual(response.status_code, 401)
+
+    @patch("bitacora.views.obtener_buques_info")
+    def test_occupacion_view_handles_database_connection_error_gracefully(self, mock_obtener_buques):
+        mock_obtener_buques.side_effect = DatabaseConfigurationError(
+            "No fue posible conectar a SQL Server."
+        )
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/ocupacion-espacios/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["buques"], [])
+        self.assertContains(response, 'id="ocupacionBuquesData"')
+
+    @patch("bitacora.views.obtener_buques_info", return_value=[])
+    def test_occupacion_view_serializes_empty_ship_list_as_array(
+        self,
+        mock_obtener_buques,
+    ):
+        session = self.client.session
+        session["usuario_id"] = 7
+        session.save()
+
+        response = self.client.get("/ocupacion-espacios/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<script id="ocupacionBuquesData" type="application/json">[]</script>',
+            html=True,
+        )
+        mock_obtener_buques.assert_called_once_with()
 
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")
@@ -45,6 +499,25 @@ class ProjectSmokeTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Usuario o contraseña incorrectos.")
+
+    @patch("bitacora.views.validar_usuario")
+    def test_login_displays_network_guidance_when_sql_server_is_unreachable(
+        self,
+        mock_validar,
+    ):
+        mock_validar.side_effect = DatabaseConfigurationError(
+            "No fue posible alcanzar SQL Server por la red "
+            "(ODBC 08001). Conéctese a la red o VPN institucional."
+        )
+
+        response = self.client.post(
+            "/",
+            {"usuario": "usuario.institucional", "clave": "no-real-password"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ODBC 08001")
+        self.assertContains(response, "VPN institucional")
 
     @patch("bitacora.views.obtener_turnos_usuario")
     @patch("bitacora.views.validar_usuario")
@@ -508,5 +981,3 @@ class ProjectSmokeTest(TestCase):
         self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         self.assertIn("attachment", response["Content-Disposition"])
         self.assertIn("F004_GSW_DATO", response["Content-Disposition"])
-
-
