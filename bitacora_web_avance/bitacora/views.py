@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime
 import logging
 import io
 import os
@@ -14,6 +14,10 @@ from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from copy import copy 
+from openpyxl.utils.cell import range_boundaries 
+from openpyxl.utils import get_column_letter
+
 
 from .forms import LoginForm, RegistroCombustibleFilterForm, DatosAbiertosFilterForm
 from .services import (
@@ -21,9 +25,11 @@ from .services import (
     DatabaseContractError,
     generar_excel_datos_abiertos,
     obtener_buques_artesanales,
+    obtener_buques_info,
     obtener_buques_industriales,
     obtener_reporte_combustible,
     obtener_reporte_datos_abiertos,
+    obtener_registros_ocupacion,
     obtener_turnos_usuario,
     validar_usuario,
     obtener_reporte_inec,
@@ -41,7 +47,6 @@ from .services import (
     obtener_operadores_movimiento as obtener_operadores_movimiento_service,
     obtener_operadores_listados as obtener_operadores_listados_service,
     exportar_buques as exportar_buques_service,
-    
     guardar_inflacion,
     obtener_historico_tarifas,
     obtener_listado_cabeceras_historico,
@@ -79,8 +84,6 @@ def _normalizar_fila_datos_abiertos(row):
     }
     return {key: value for key, value in mapeo.items() if value is not None}
 
-
-
 def _iniciar_sesion(request, datos_usuario, turnos=None):
     """Inicia sesión aunque el usuario no tenga turno de Bitácora."""
     turnos = turnos or []
@@ -94,7 +97,6 @@ def _iniciar_sesion(request, datos_usuario, turnos=None):
         else datos_usuario.get("cargo")
     ) or "Usuario"
     request.session["puede_registrar_bitacora"] = bool(turnos)
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -112,7 +114,6 @@ def main_index(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
-
 
 @require_http_methods(["GET", "POST"])
 def login_view(request):
@@ -149,7 +150,7 @@ def login_view(request):
 
                     return redirect("main_index")
 
-            except (DatabaseConfigurationError, DatabaseContractError) as exc:
+            except (DatabaseConfigurationError, DatabaseContractError):
                 logger.exception("Configuración o contrato de base de datos inválido")
                 messages.error(request, str(exc))
             except Exception:
@@ -175,7 +176,6 @@ TIPOS_NOVEDAD_BITACORA = {
     "industrial": 47,
     "artesanal": 48,
 }
-
 
 MESES_BITACORA = [
     (1, "Enero"),
@@ -257,7 +257,6 @@ def _convertir_fecha_bitacora(valor):
 
     return None
 
-
 def _obtener_anios_bitacora(bitacora):
     """Devuelve los años realmente presentes en las novedades."""
     anios = set()
@@ -272,7 +271,6 @@ def _obtener_anios_bitacora(bitacora):
                 anios.add(fecha.year)
 
     return sorted(anios, reverse=True)
-
 
 def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
     """
@@ -310,7 +308,6 @@ def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
             resultado.append(bloque_filtrado)
 
     return resultado
-
 
 def _agrupar_bitacora_por_fecha(bitacora):
     """
@@ -361,7 +358,6 @@ def _agrupar_bitacora_por_fecha(bitacora):
             resultado.append(bloque_fecha)
 
     return resultado
-
 
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -816,7 +812,6 @@ def bitacora_home(request):
         },
     )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def tarifa_view(request):
@@ -889,6 +884,22 @@ def exportar_reporte_inec_excel(
     )
 
     START_ROW = 9
+
+    #buscar tabla
+    if not worksheet.tables:
+        raise ValueError(
+            "No se encontró una tabla"
+        )
+
+    tabla = next(iter(worksheet.tables.values()))
+    min_col, min_row, max_col, max_row = range_boundaries(
+        tabla.ref
+    )
+    if min_row != START_ROW -1:
+        raise ValueError(
+            f"La tabla epieza en la fila {min_row},"
+            f"encabezado esperado en {START_ROW -1}."
+        )
 
     columnas = [
         "idregistro",
@@ -1080,10 +1091,43 @@ def exportar_reporte_inec_excel(
 
         return ""
 
+    fila_modelo = START_ROW
+    estilos_modelo = {}
+    for columna in range (min_col, max_col +1):
+        celda = worksheet.cell(
+            row=fila_modelo,
+            column=columna,
+        )
+
+        estilos_modelo[columna] = {
+            "font": copy(celda.font),
+            "fill": copy(celda.fill),
+            "border": copy(celda.border),
+            "alignment": copy(celda.alignment),
+            "number_format": celda.number_format,
+            "protection": copy(celda.protection),
+        }
+    altura_modelo = worksheet.row_dimensions[fila_modelo].height
+    
     for numero_fila, registro_original in enumerate(
         rows,
         start=START_ROW,
     ):
+        if numero_fila > max_row:
+            for columna, estilo in estilos_modelo.items():
+                celda = worksheet.cell(
+                    row=numero_fila,
+                    column=columna,
+                )
+
+                celda.font = copy(estilo["font"])
+                celda.fill = copy(estilo["fill"])
+                celda.border = copy(estilo["border"])
+                celda.alignment = copy(estilo["alignment"])
+                celda.number_format = estilo["number_format"]
+                celda.protection = copy(estilo["protection"])
+            if altura_modelo is not None:
+                worksheet.row_dimensions[numero_fila].height = (altura_modelo)
 
         registro = preparar_registro(
             registro_original
@@ -1094,10 +1138,7 @@ def exportar_reporte_inec_excel(
             start=1,
         ):
 
-            valor = obtener_valor(
-                registro,
-                campo,
-            )
+            valor = obtener_valor( registro, campo)
 
             worksheet.cell(
                 row=numero_fila,
@@ -1115,6 +1156,16 @@ def exportar_reporte_inec_excel(
         ultima_fila_datos = START_ROW
 
     sig_start = ultima_fila_datos + 3
+
+    cantidad_registros = len(rows)
+    ultima_fila_tabla = max( min_row, START_ROW + cantidad_registros - 1)
+    nueva_referencia =(
+        f"{get_column_letter(min_col)}{min_row}:"
+        f"{get_column_letter(max_col)}{ultima_fila_tabla}"
+    )
+    tabla.ref = nueva_referencia
+    if tabla.autoFilter is not None:
+        tabla.autoFilter.ref = nueva_referencia
 
     # REPORTE INEC
 
@@ -1158,7 +1209,6 @@ def exportar_reporte_inec_excel(
         9,
         12,
     )
-
 
     # -------------------------
     # PREPARADO POR
@@ -1245,7 +1295,6 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
-
     # Cargo del usuario
     worksheet.merge_cells(
         start_row=sig_start + 4,
@@ -1297,7 +1346,6 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
-
     # Línea de firma derecha
     worksheet.merge_cells(
         start_row=sig_start + 2,
@@ -1325,7 +1373,6 @@ def exportar_reporte_inec_excel(
         horizontal="center",
         vertical="center",
     )
-
 
     # Texto debajo de la firma derecha
     worksheet.merge_cells(
@@ -1567,7 +1614,6 @@ def reporte_inec_view(request):
         },
     )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def registro_combustible_home(request):
@@ -1613,6 +1659,37 @@ def registro_combustible_home(request):
                         registro["c_ticket"] = registro["c_tikect"]
                     elif "c_tikect" in registro:
                         registro["c_ticket"] = registro.get("c_tikect", "")
+                    registro["licencia"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "licencia",
+                                "licencia_conductor",
+                                "licencia_no",
+                                "liciencia",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
+                    registro["estado"] = registro.get(
+                        "estado",
+                        registro.get("estado_registro", ""),
+                    )
+                    registro["tipo_carro"] = next(
+                        (
+                            registro[key]
+                            for key in (
+                                "tipo_carro",
+                                "tipo_vehiculo",
+                                "tipo de vehiculo",
+                                "tipo de vehículo",
+                                "tipo",
+                            )
+                            if registro.get(key) not in (None, "")
+                        ),
+                        "",
+                    )
                 # Guardar último resultado de búsqueda en sesión para la exportación.
                 try:
                     def _serialize_value(v):
@@ -1640,27 +1717,19 @@ def registro_combustible_home(request):
                     logger.exception("No fue posible guardar el resultado en sesión para exportación")
                 if not registros:
                     msg = "No existen registros para el rango de fechas seleccionado."
-                    messages.info(request, msg)
                     ajax_response["messages"].append({"text": msg, "tags": "info"})
             except (DatabaseConfigurationError, DatabaseContractError) as exc:
                 logger.exception("Error de base de datos al obtener el reporte")
                 generic_msg = "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
             except Exception:
                 logger.exception("Error inesperado al obtener el reporte de combustible")
                 generic_msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
-                messages.error(request, generic_msg)
                 ajax_response["messages"].append({"text": generic_msg, "tags": "error"})
         else:
             for field, errors in form.errors.items():
                 for error in errors:
                     ajax_response["messages"].append({"text": str(error), "tags": "error"})
-            messages.error(
-                request,
-                "Complete correctamente Fecha Desde y Fecha Hasta antes de buscar.",
-            )
-
     is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("accept", "")
 
     if is_ajax:
@@ -1671,6 +1740,28 @@ def registro_combustible_home(request):
                 "guia": str(registro.get("guia", "")),
                 "idplaca": str(registro.get("idplaca", "")),
                 "chofer": str(registro.get("chofer", "")),
+                "licencia": str(
+                    registro.get(
+                        "licencia",
+                        registro.get(
+                            "licencia_conductor",
+                            registro.get("licencia_no", registro.get("liciencia", "")),
+                        ),
+                    )
+                ),
+                "estado": str(registro.get("estado", registro.get("estado_registro", ""))),
+                "tipo_carro": str(
+                    registro.get(
+                        "tipo_carro",
+                        registro.get(
+                            "tipo_vehiculo",
+                            registro.get(
+                                "tipo de vehiculo",
+                                registro.get("tipo de vehículo", registro.get("tipo", "")),
+                            ),
+                        ),
+                    )
+                ),
                 "codbuque": str(registro.get("codbuque", "")),
                 "buque": str(registro.get("buque", "")),
                 "matricula": str(registro.get("matricula", "")),
@@ -1696,6 +1787,56 @@ def registro_combustible_home(request):
         },
     )
 
+@never_cache
+@require_http_methods(["GET"])
+def ocupacion_espacios_home(request):
+    if not request.session.get("usuario_id"):
+        return redirect("login")
+
+    buques = []
+    try:
+        buques = obtener_buques_info()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error de configuración al cargar buques de ocupación")
+        messages.error(request, str(exc))
+    except Exception:
+        logger.exception("Error al cargar buques desde dbo.SPJ_InfoBuques")
+        messages.error(request, "No fue posible cargar los buques desde SQL Server.")
+
+    return render(
+        request,
+        "bitacora/ocupacion_espacios.html",
+        {
+            "usuario_nombre": request.session.get("usuario_nombre", ""),
+            "usuario_cargo": request.session.get("usuario_cargo", ""),
+            "buques": buques,
+        },
+    )
+
+
+@never_cache
+@require_http_methods(["GET"])
+def ocupacion_registros_api(request):
+    if not request.session.get("usuario_id"):
+        return JsonResponse(
+            {"error": "Debe iniciar sesión para consultar los registros."},
+            status=401,
+        )
+
+    try:
+        registros = obtener_registros_ocupacion()
+    except (DatabaseConfigurationError, DatabaseContractError) as exc:
+        logger.exception("Error al cargar registros para Ocupación de Espacios")
+        return JsonResponse({"error": str(exc)}, status=503)
+    except Exception:
+        logger.exception("Error inesperado al cargar registros de ocupación")
+        return JsonResponse(
+            {"error": "No fue posible cargar los registros desde SQL Server."},
+            status=500,
+        )
+
+    return JsonResponse({"registros": registros})
+
 
 @never_cache
 @require_http_methods(["GET"])
@@ -1709,6 +1850,36 @@ def datos_abiertos_home(request):
     fecha_emision = date.today()
     anio_sel = None
     semestre_sel = None
+    report_notices = {
+        "filtro": {
+            "text": "Primero debe realizar una búsqueda antes de exportar la información.",
+            "tags": "info",
+        },
+        "plantilla": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "base-datos": {
+            "text": "No fue posible obtener los datos del reporte. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "consulta": {
+            "text": "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador.",
+            "tags": "error",
+        },
+        "sin-registros": {
+            "text": "No existen registros para exportar.",
+            "tags": "info",
+        },
+        "archivo": {
+            "text": "No se encontró la plantilla Excel configurada para exportar.",
+            "tags": "error",
+        },
+        "excel": {
+            "text": "Ocurrió un error técnico al generar el archivo Excel.",
+            "tags": "error",
+        },
+    }
 
     ajax_response = {
         "fecha_emision": fecha_emision.isoformat(),
@@ -1771,9 +1942,13 @@ def datos_abiertos_home(request):
             "anio": anio_sel,
             "semestre": semestre_sel,
             "current_year": fecha_emision.year,
+            "report_messages": (
+                [report_notices[request.GET["aviso"]]]
+                if request.GET.get("aviso") in report_notices
+                else []
+            ),
         },
     )
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -1786,6 +1961,9 @@ def datos_abiertos_exportar_view(request):
         or "application/json" in request.headers.get("accept", "")
     )
 
+    def redirect_with_notice(notice):
+        return redirect(f"{reverse('datos_abiertos')}?aviso={notice}")
+
     form = DatosAbiertosFilterForm(request.GET or None)
     buscar_flag = request.GET.get("buscar")
 
@@ -1796,8 +1974,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=400,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("filtro")
 
     anio_sel = form.cleaned_data.get("anio")
     semestre_sel = form.cleaned_data.get("semestre")
@@ -1812,8 +1989,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("plantilla")
 
     try:
         semestre_num = 1 if semestre_sel in {"1er", "1", 1} else 2
@@ -1826,8 +2002,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("base-datos")
     except Exception:
         logger.exception("Error inesperado al obtener reporte para exportación de datos abiertos")
         msg = "No fue posible cargar los datos desde SQL Server. Revise la conexión o consulte al administrador."
@@ -1836,8 +2011,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("consulta")
 
     if not registros:
         msg = "No existen registros para exportar."
@@ -1846,8 +2020,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "info"}]},
                 status=200,
             )
-        messages.info(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("sin-registros")
 
     output_dir = getattr(settings, "RUTA_EXPORTACION_DATOS_ABIERTOS", "")
     try:
@@ -1864,8 +2037,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=404,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("archivo")
     except Exception:
         logger.exception("Error al generar archivo Excel de Datos Abiertos")
         msg = "Ocurrió un error técnico al generar el archivo Excel."
@@ -1874,8 +2046,7 @@ def datos_abiertos_exportar_view(request):
                 {"status": "error", "messages": [{"text": msg, "tags": "error"}]},
                 status=500,
             )
-        messages.error(request, msg)
-        return redirect("datos_abiertos")
+        return redirect_with_notice("excel")
 
     fecha_str = date.today().strftime("%Y-%m-%d")
     filename = f"F004_GSW_DATO_{fecha_str}.xlsx"
@@ -1886,7 +2057,6 @@ def datos_abiertos_exportar_view(request):
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
-
 
 def _obtener_datos_exportacion(request):
 
@@ -1936,7 +2106,6 @@ def _obtener_datos_exportacion(request):
             pass
 
     return last
-
 
 @require_http_methods(["GET"])
 def exportar_excel(request):
@@ -2010,6 +2179,24 @@ def exportar_excel(request):
                 cell.value = val
                 cell.font = Font(name="Calibri", size=11, color="000000", bold=False)
 
+        headers = [
+            "Fecha",
+            "Tickets",
+            "Guía",
+            "Placa",
+            "Chofer",
+            "Liciencia",
+            "CodBuque",
+            "Buque",
+            "Matrícula",
+            "Galones",
+            "Motivo",
+            "Estado",
+            "Tipo de Vehiculo",
+        ]
+        for column, header in enumerate(headers, start=1):
+            safe_write_cell(ws, 7, column, header)
+
         fecha_emision_str = date.today().strftime("%d/%m/%Y")
 
         safe_write_cell(
@@ -2078,6 +2265,35 @@ def exportar_excel(request):
 
             return ""
 
+        def excel_datetime(value):
+            if isinstance(value, datetime):
+                parsed = value
+            elif isinstance(value, date):
+                parsed = datetime.combine(value, datetime.min.time())
+            else:
+                raw_value = str(value or "").strip()
+                if not raw_value:
+                    return ""
+                try:
+                    parsed = datetime.fromisoformat(
+                        raw_value.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    try:
+                        parsed = datetime.combine(
+                            date.fromisoformat(raw_value[:10]),
+                            datetime.min.time(),
+                        )
+                    except ValueError:
+                        try:
+                            parsed = datetime.strptime(raw_value, "%d/%m/%Y")
+                        except ValueError:
+                            return raw_value
+
+            if timezone.is_aware(parsed):
+                parsed = timezone.localtime(parsed).replace(tzinfo=None)
+            return parsed.replace(microsecond=0)
+
         for rng in list(ws.merged_cells.ranges):
 
             if rng.min_row >= 8:
@@ -2091,14 +2307,16 @@ def exportar_excel(request):
         ):
 
             fila = [
-                first_value(
-                    reg,
-                    (
-                        "fecha_ingresa",
-                        "fecha",
-                        "fecha_registro",
-                        "fecha_mov",
-                    ),
+                excel_datetime(
+                    first_value(
+                        reg,
+                        (
+                            "fecha_ingresa",
+                            "fecha",
+                            "fecha_registro",
+                            "fecha_mov",
+                        ),
+                    )
                 ),
 
                 first_value(
@@ -2143,6 +2361,7 @@ def exportar_excel(request):
                         "licencia",
                         "licencia_conductor",
                         "licencia_no",
+                        "liciencia",
                     ),
                 ),
 
@@ -2195,6 +2414,9 @@ def exportar_excel(request):
                     (
                         "tipo_carro",
                         "tipo carro",
+                        "tipo_vehiculo",
+                        "tipo de vehiculo",
+                        "tipo de vehículo",
                         "tipo",
                     ),
                 ),
@@ -2210,6 +2432,10 @@ def exportar_excel(request):
                     col_idx,
                     value,
                 )
+                if col_idx == 1 and isinstance(value, datetime):
+                    ws.cell(row=idx, column=col_idx).number_format = (
+                        "yyyy-mm-dd hh:mm:ss"
+                    )
 
         last_data_row = (
             start_row
@@ -3388,13 +3614,11 @@ def cambiar_contrasena_view(request):
             status=500,
         )
 
-
 @require_http_methods(["POST"])
 def logout_view(request):
     request.session.flush()
     messages.success(request, "Sesión cerrada correctamente.")
     return redirect("login")
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -3413,7 +3637,6 @@ def tarifa_view(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -3442,7 +3665,6 @@ def tarifa_inflacion_view(request):
             "anio_anterior": current_year - 1,
         },
     )
-
 
 @never_cache
 @require_http_methods(["POST"])
@@ -3510,7 +3732,6 @@ def guardar_tarifa_inflacion_view(request):
     except Exception as exc:
         logger.exception("Error al aplicar inflación a las tarifas")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
-
 
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -3604,7 +3825,6 @@ def exportar_tarifa_inflacion_pdf_view(request):
         logger.exception("Error al generar PDF de tarifas por inflación")
         return HttpResponse(f"Error al generar el documento PDF: {str(exc)}", status=500)
 
-
 @never_cache
 @require_http_methods(["GET"])
 def obtener_historico_tarifas_view(request):
@@ -3669,7 +3889,6 @@ def obtener_historico_tarifas_view(request):
         logger.exception("Error al consultar histórico de tarifas")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
-
 @never_cache
 @require_http_methods(["GET"])
 def tarifa_listado_view(request):
@@ -3694,8 +3913,6 @@ def tarifa_listado_view(request):
             "filtro": filtro,
         },
     )
-
-from django.http import JsonResponse, HttpResponse
 
 
 @never_cache
@@ -3741,7 +3958,6 @@ def api_buscar_tasa(request):
             {"success": False, "error": "No se pudo consultar la tasa."}, status=500
         )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def api_siguiente_codigo(request):
@@ -3761,7 +3977,6 @@ def api_siguiente_codigo(request):
         return JsonResponse(
             {"success": False, "error": "No se pudo calcular el siguiente código."}, status=500
         )
-
 
 @never_cache
 @require_http_methods(["POST"])
@@ -3859,7 +4074,6 @@ def guardar_tarifa_view(request):
         logger.exception("Error al ejecutar guardado de tarifa")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
-
 @never_cache
 @require_http_methods(["POST"])
 def anular_tarifa_view(request):
@@ -3878,7 +4092,6 @@ def anular_tarifa_view(request):
     except Exception as exc:
         logger.exception("Error al anular tarifa")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -4106,7 +4319,6 @@ def exportar_tarifas_view(request):
         logger.exception("Error al exportar tarifas a excel")
         return HttpResponse(f"Error interno al exportar Excel: {str(exc)}", status=500)
 
-
 def obtener_filtro_multiple(request, nombre):
     # Detectar dinámicamente el método de la petición
     data = request.POST if request.method == "POST" else request.GET
@@ -4290,7 +4502,6 @@ def exportar_reporte_buques(request):
     except Exception as exc:
         logger.exception("Error generando Excel del reporte de buques")
         return HttpResponse(f"No se pudo generar el Excel: {exc}", status=500)
-
 
 # ==========================================
 # MÓDULO DE BUQUES Y EXPORTACIÓN A EXCEL (Ivanna)
@@ -4487,7 +4698,6 @@ def obtener_operadores_listados(request):
             status=500,
         )
     
-
 @require_http_methods(["GET"])
 def exportar_buques(request):
     ubicacion_param = request.GET.get(

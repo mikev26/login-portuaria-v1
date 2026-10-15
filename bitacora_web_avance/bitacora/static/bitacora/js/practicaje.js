@@ -14,6 +14,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setExportEnabled(exportButton.dataset.hasRows === "true");
 
+    form.addEventListener("submit", function () {
+        setExportEnabled(false);
+        if (exportMessage) {
+            exportMessage.innerHTML = "";
+        }
+    });
+
     exportButton.addEventListener("click", async function () {
         if (exportButton.disabled) {
             return;

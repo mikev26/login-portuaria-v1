@@ -24,9 +24,10 @@ COLUMNAS_PRACTICAJE = (
 
 def crear_excel_practicaje(
     registros: list[dict[str, Any]],
-    sano: str = "",
+    fecha_inicio: str = "",
+    fecha_fin: str = "",
 ) -> bytes:
-    """Construye el Excel con el encabezado dinámico y filas formateadas."""
+    """Construye el Excel con el rango consultado y las filas del reporte."""
     import openpyxl
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -35,19 +36,10 @@ def crear_excel_practicaje(
     worksheet = workbook.active
     worksheet.title = "datos_practicaje"
 
-    # Determinar el año seleccionado
-    anio_str = str(sano).strip()
-    if not anio_str and registros:
-        for r in registros:
-            if r.get("ano"):
-                anio_str = str(r["ano"]).strip()
-                break
-    if not anio_str:
-        anio_str = "2025"
-
-    # Fila 1: Encabezado principal del servicio de practicaje
     titulo_encabezado = (
-        f"SERVICIO DE PRACTICAJE  AÑO {anio_str} - TPyC y TERMINALES PRIVADOS EXCEPTO TPM."
+        "SERVICIO DE PRACTICAJE "
+        f"DEL {fecha_inicio} AL {fecha_fin} - "
+        "TPyC y TERMINALES PRIVADOS EXCEPTO TPM."
     )
     total_columnas = len(COLUMNAS_PRACTICAJE)
     worksheet.merge_cells(

@@ -19,6 +19,7 @@
     <!-- Formulario Principal -->
     <div class="tpyc-card">
         
+        
         <form id="formServiciosTPyC" class="tpyc-main-form" onsubmit="event.preventDefault();">
             
             <!-- Datos Generales del Servicio -->
@@ -28,17 +29,40 @@
                     <input type="text" id="inputId" name="id" class="tpyc-input" placeholder="" readonly>
                 </div>
                 <div class="tpyc-field-group tpyc-field-group-relative">
+                <div class="tpyc-field-group tpyc-field-group-relative">
                     <label for="inputServicio">Servicio</label>
                     <input type="text" id="inputServicio" name="servicio" class="tpyc-input" placeholder="Nombre del servicio" autocomplete="off">
                     <div id="dropdownServiciosTPyC" class="tpyc-autocomplete-dropdown"></div>
+                    <input type="text" id="inputServicio" name="servicio" class="tpyc-input" placeholder="Nombre del servicio" autocomplete="off">
+                    <div id="dropdownServiciosTPyC" class="tpyc-autocomplete-dropdown"></div>
                 </div>
-                <div class="tpyc-field-group">
+                <div class="tpyc-field-group tpyc-field-group-relative">
                     <label for="inputGrupo">Grupo</label>
-                    <input type="text" id="inputGrupo" name="grupo" class="tpyc-input" placeholder="Grupo de servicio">
+                    <input type="text" id="inputGrupo" name="grupo" class="tpyc-input" placeholder="Seleccione grupo..." autocomplete="off">
+                    <input type="hidden" id="inputIdGrupo" name="idgrupo">
+                    <div id="dropdownGrupoServicio" class="tpyc-autocomplete-dropdown"></div>
                 </div>
-                <div class="tpyc-field-group">
+                <div class="tpyc-field-group tpyc-field-group-relative">
                     <label for="inputMedida">Medida</label>
-                    <input type="text" id="inputMedida" name="medida" class="tpyc-input"  placeholder="Unidad de medida">
+                    <input type="text" id="inputMedida" name="medida" class="tpyc-input" placeholder="Seleccione medida..." autocomplete="off">
+                    <input type="hidden" id="inputIdMedida" name="idmedida">
+                    <div id="dropdownMedidaServicio" class="tpyc-autocomplete-dropdown"></div>
+                </div>
+            </div>
+
+            <!-- Detalle General del Servicio y Acciones -->
+            <div class="tpyc-detalle-actions-row">
+                <div class="tpyc-field-group tpyc-detalle-input-wrapper">
+                    <label for="inputDetalleServicio">Detalle</label>
+                    <textarea id="inputDetalleServicio" name="detalle" class="tpyc-input tpyc-textarea tpyc-no-resize" rows="2" placeholder="Ingrese el detalle general del servicio..."></textarea>
+                </div>
+                <div class="tpyc-actions-inline">
+                    <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnLimpiar">
+                        Limpiar
+                    </button>
+                    <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnGuardar">
+                        Guardar
+                    </button>
                 </div>
             </div>
 
@@ -79,8 +103,16 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value=""></td>
+                                    <td>
+                                        <input type="text" id="inputScTarifaCabotaje" name="sctarifa_cabotaje" class="tpyc-input" value="" placeholder="ID" readonly>
+                                        <input type="hidden" id="inputIdTarifaCabotaje" name="idtarifa_cabotaje">
+                                    </td>
+                                    <td>
+                                        <div class="tpyc-field-group-relative">
+                                            <input type="text" id="inputNombreTarifaCabotaje" name="tarifa_cabotaje" class="tpyc-input" value="" placeholder="Nombre de tarifa" autocomplete="off">
+                                            <div id="dropdownNombreTarifaCabotaje" class="tpyc-autocomplete-dropdown"></div>
+                                        </div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -104,8 +136,16 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value=""></td>
+                                    <td>
+                                        <input type="text" id="inputScTarifaEspecificas" name="sctarifa_especificas" class="tpyc-input" value="" placeholder="ID" readonly>
+                                        <input type="hidden" id="inputIdTarifaEspecificas" name="idtarifa_especificas">
+                                    </td>
+                                    <td>
+                                        <div class="tpyc-field-group-relative">
+                                            <input type="text" id="inputNombreTarifaEspecificas" name="tarifa_especificas" class="tpyc-input" value="" placeholder="Nombre de tarifa" autocomplete="off">
+                                            <div id="dropdownNombreTarifaEspecificas" class="tpyc-autocomplete-dropdown"></div>
+                                        </div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -129,8 +169,16 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="number" class="tpyc-input" value="0" step="any"></td>
-                                    <td><input type="text" class="tpyc-input" value="" placeholder="Ingrese descripción para naves"></td>
+                                    <td>
+                                        <input type="text" id="inputScTarifaNaves" name="sctarifa_naves" class="tpyc-input" value="" placeholder="ID" readonly>
+                                        <input type="hidden" id="inputIdTarifaNaves" name="idtarifa_naves">
+                                    </td>
+                                    <td>
+                                        <div class="tpyc-field-group-relative">
+                                            <input type="text" id="inputNombreTarifaNaves" name="tarifa_naves" class="tpyc-input" value="" placeholder="Nombre de tarifa" autocomplete="off">
+                                            <div id="dropdownNombreTarifaNaves" class="tpyc-autocomplete-dropdown"></div>
+                                        </div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -140,15 +188,78 @@
             </div>
         </form>
     </div>
-    <!-- Toolbar de Acciones (Limpiar / Guardar) -->
-    <div class="tpyc-toolbar-top">
-        <div class="tpyc-toolbar-actions">
-            <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnLimpiar">
-                Limpiar
-            </button>
-            <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnGuardar">
-                Guardar
-            </button>
+
+    <!-- Modal de Confirmación para Crear Nuevo Servicio -->
+    <div class="tpyc-modal-overlay hidden" id="modalConfirmarCrear">
+        <div class="tpyc-modal-card">
+            <div class="tpyc-modal-header">
+                <div class="tpyc-modal-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <h3 class="tpyc-modal-title">¿Desea registrar este servicio?</h3>
+            </div>
+            <div class="tpyc-modal-body">
+                <p id="modalCrearTexto">Está a punto de registrar un nuevo servicio. ¿Desea continuar?</p>
+            </div>
+            <div class="tpyc-modal-actions">
+                <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnCancelarCrear">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnConfirmarCrear">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación para Actualizar Servicio -->
+    <div class="tpyc-modal-overlay hidden" id="modalConfirmarActualizar">
+        <div class="tpyc-modal-card">
+            <div class="tpyc-modal-header">
+                <div class="tpyc-modal-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <h3 class="tpyc-modal-title">¿Desea actualizar este servicio?</h3>
+            </div>
+            <div class="tpyc-modal-body">
+                <p id="modalConfirmarTexto">Está a punto de modificar la información del servicio existente. ¿Desea aplicar y guardar los cambios?</p>
+            </div>
+            <div class="tpyc-modal-actions">
+                <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnCancelarActualizar">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnConfirmarActualizar">
+                    Sí, Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Central de Éxito / Resultado -->
+    <div class="tpyc-modal-overlay hidden" id="modalExito">
+        <div class="tpyc-modal-card tpyc-modal-card-center">
+            <div class="tpyc-modal-icon tpyc-modal-icon-success">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h3 class="tpyc-modal-title" id="modalExitoTitulo">¡Guardado Exitosamente!</h3>
+            <div class="tpyc-modal-body">
+                <p id="modalExitoTexto">El servicio se ha guardado correctamente en el sistema.</p>
+            </div>
+            <div class="tpyc-modal-actions tpyc-modal-actions-center">
+                <button type="button" class="btn-tpyc btn-tpyc-primary" id="btnCerrarExito">
+                    Aceptar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -157,6 +268,9 @@
 {% block extra_js %}
 <script>
     window.SERVICIOS_DATA = {{ servicios_json|default:"[]"|safe }};
+    window.TARIFAS_DATA = {{ tarifas_json|default:"[]"|safe }};
+    window.GRUPOS_DATA = {{ grupos_json|default:"[]"|safe }};
+    window.MEDIDAS_DATA = {{ medidas_json|default:"[]"|safe }};
 </script>
 <script src="{% static 'bitacora/js/menu.js' %}"></script>
 <script src="{% static 'bitacora/js/password.js' %}"></script>

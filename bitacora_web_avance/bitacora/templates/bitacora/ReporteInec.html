@@ -98,7 +98,15 @@
 </section>
 
 <section class="section">
-    <div class="section-title">Resultados</div>
+    <div class="section-title">Resultados
+        <span class="results-count">
+            {% if rows %}
+                ({{ rows|length }} )
+            {% else %}
+                (0 )
+            {% endif %}
+        </span>
+    </div>
 
     {% if rows %}
         <div class="table-wrap">

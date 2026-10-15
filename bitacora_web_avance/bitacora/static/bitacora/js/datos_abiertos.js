@@ -2,45 +2,58 @@ document.addEventListener("DOMContentLoaded", function () {
     const form = document.querySelector(".date-range-form");
     const tableBody = document.querySelector("#report-table-body");
     const messagesContainer = document.querySelector("#report-messages");
-    const anioHeader = document.querySelector("#header-anio");
-    const semestreHeader = document.querySelector("#header-semestre");
-    const submitButton = form.querySelector("button[type=submit]");
+    const submitButton = form?.querySelector("button[type=submit]");
     const exportButton = document.querySelector("#btn-exportar-excel");
+
+    if (!form || !tableBody || !submitButton || !exportButton) {
+        return;
+    }
 
     const EMPTY_TABLE_MESSAGE = "No hay datos disponibles. Seleccione año y semestre, y presione Buscar.";
     const NO_RESULTS_MESSAGE = "No existen registros.";
-
-    let hasSearched = false;
-    let currentRowsCount = 0;
+    let messagesTimeout;
     let inputsChanged = false;
 
-    // Detectar si la página cargó inicialmente con datos
-    const initialRows = tableBody.querySelectorAll("tr:not(.table-placeholder)");
-    if (initialRows.length > 0) {
-        hasSearched = true;
-        currentRowsCount = initialRows.length;
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
     }
 
-    const anioSelect = form.querySelector("[name=anio]");
-    const semestreSelect = form.querySelector("[name=semestre]");
+    function setMessages(messages) {
+        if (!messagesContainer) {
+            return;
+        }
 
-    if (anioSelect) {
-        anioSelect.addEventListener("change", () => { inputsChanged = true; });
-    }
-    if (semestreSelect) {
-        semestreSelect.addEventListener("change", () => { inputsChanged = true; });
-    }
-
-    function buildMessageHtml(messages) {
-        return messages
-            .map(msg => `<div class="message-banner ${msg.tags}">${msg.text}</div>`)
+        window.clearTimeout(messagesTimeout);
+        messagesContainer.innerHTML = (messages || [])
+            .map(message => `
+                <div class="message-banner ${escapeHtml(message.tags || "info")}">
+                    ${escapeHtml(message.text)}
+                </div>
+            `)
             .join("");
+
+        if (messagesContainer.childElementCount > 0) {
+            messagesTimeout = window.setTimeout(function () {
+                messagesContainer.replaceChildren();
+            }, 5000);
+        }
+    }
+
+    function setExportEnabled(enabled) {
+        exportButton.disabled = !enabled;
+        exportButton.setAttribute("aria-disabled", String(!enabled));
     }
 
     function buildEmptyTableRow(message) {
         return `
             <tr class="table-placeholder">
-                <td colspan="12">${message}</td>
+                <td colspan="12">${escapeHtml(message)}</td>
             </tr>
         `;
     }
@@ -53,25 +66,54 @@ document.addEventListener("DOMContentLoaded", function () {
         return rows
             .map(row => `
                 <tr>
-                    <td>${row["Registro"] ?? ""}</td>
-                    <td>${row["CodBuque"] ?? ""}</td>
-                    <td>${row["Matrícula"] ?? row["Matricula"] ?? ""}</td>
-                    <td>${row["Buque"] ?? ""}</td>
-                    <td>${row["Tipo de Nave"] ?? row["TipoNave"] ?? ""}</td>
-                    <td>${row["Arribo"] ?? ""}</td>
-                    <td>${row["Zarpe"] ?? ""}</td>
-                    <td>${row["Bandera"] ?? ""}</td>
-                    <td>${row["TRB"] ?? ""}</td>
-                    <td>${row["TRN"] ?? ""}</td>
-                    <td>${row["Agencia"] ?? ""}</td>
-                    <td>${row["Total Descarga"] ?? row["TotalDescarga"] ?? ""}</td>
+                    <td>${escapeHtml(row["Registro"])}</td>
+                    <td>${escapeHtml(row["CodBuque"])}</td>
+                    <td>${escapeHtml(row["Matrícula"] ?? row["Matricula"])}</td>
+                    <td>${escapeHtml(row["Buque"])}</td>
+                    <td>${escapeHtml(row["Tipo de Nave"] ?? row["TipoNave"] ?? row["Tipo_de_Nave"])}</td>
+                    <td>${escapeHtml(row["Arribo"])}</td>
+                    <td>${escapeHtml(row["Zarpe"])}</td>
+                    <td>${escapeHtml(row["Bandera"])}</td>
+                    <td>${escapeHtml(row["TRB"])}</td>
+                    <td>${escapeHtml(row["TRN"])}</td>
+                    <td>${escapeHtml(row["Agencia"])}</td>
+                    <td>${escapeHtml(row["Total Descarga"] ?? row["TotalDescarga"] ?? row["Total_Descarga"])}</td>
                 </tr>
             `)
             .join("");
     }
 
+    const initialRows = tableBody.querySelectorAll("tr:not(.table-placeholder)");
+    let currentRowsCount = initialRows.length;
+    let hasSearched = currentRowsCount > 0;
+    setExportEnabled(hasSearched);
+
+    if (messagesContainer?.childElementCount) {
+        setMessages(Array.from(messagesContainer.children).map(message => ({
+            text: message.textContent.trim(),
+            tags: Array.from(message.classList).find(tag => tag !== "message-banner") || "info"
+        })));
+    }
+
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.has("aviso")) {
+        currentUrl.searchParams.delete("aviso");
+        window.history.replaceState({}, "", currentUrl);
+    }
+
+    form.querySelectorAll("[name=anio], [name=semestre]").forEach(function (control) {
+        control.addEventListener("change", function () {
+            inputsChanged = true;
+            setExportEnabled(false);
+            setMessages([]);
+        });
+    });
+
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
+        setExportEnabled(false);
+        setMessages([]);
+
         const originalText = submitButton.textContent;
         submitButton.disabled = true;
         submitButton.textContent = "Buscando...";
@@ -92,111 +134,91 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!response.ok) {
                 throw new Error("Network response was not ok");
             }
+
             const data = await response.json();
-
-            messagesContainer.innerHTML = buildMessageHtml(data.messages || []);
-            anioHeader.textContent = data.anio || "—";
-            semestreHeader.textContent = data.semestre || "—";
-            tableBody.innerHTML = buildTableRows(data.rows || []);
-
+            const rows = Array.isArray(data.rows) ? data.rows : [];
+            tableBody.innerHTML = buildTableRows(rows);
+            currentRowsCount = rows.length;
             hasSearched = true;
             inputsChanged = false;
-            currentRowsCount = Array.isArray(data.rows) ? data.rows.length : 0;
-
-            if (!data.rows || !data.rows.length) {
-                const noDataMessage = data.messages?.some(m => m.tags === "info")
-                    ? data.messages.find(m => m.tags === "info").text
-                    : NO_RESULTS_MESSAGE;
-                messagesContainer.innerHTML = buildMessageHtml(data.messages && data.messages.length ? data.messages : [{ text: noDataMessage, tags: "info" }]);
-                tableBody.innerHTML = buildEmptyTableRow(noDataMessage);
-            }
-
+            setMessages(data.messages || []);
+            setExportEnabled(currentRowsCount > 0);
         } catch (error) {
-            messagesContainer.innerHTML = `<div class="message-banner error">No fue posible comunicarse con el servidor. Intente nuevamente.</div>`;
+            currentRowsCount = 0;
+            hasSearched = false;
+            inputsChanged = true;
             tableBody.innerHTML = buildEmptyTableRow(EMPTY_TABLE_MESSAGE);
+            setMessages([{
+                text: "No fue posible comunicarse con el servidor. Intente nuevamente.",
+                tags: "error"
+            }]);
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = originalText;
         }
     });
 
-    if (exportButton) {
-        exportButton.addEventListener("click", async function () {
-            if (!hasSearched || inputsChanged) {
-                messagesContainer.innerHTML = buildMessageHtml([
-                    { text: "Primero debe realizar una búsqueda antes de exportar la información.", tags: "info" }
-                ]);
+    exportButton.addEventListener("click", async function () {
+        if (exportButton.disabled || !hasSearched || inputsChanged || currentRowsCount === 0) {
+            return;
+        }
+
+        const exportUrl = exportButton.dataset.exportUrl || "/datos-abiertos/exportar-excel/";
+        const formData = new FormData(form);
+        formData.set("buscar", "1");
+        const params = new URLSearchParams(formData);
+        const fullExportUrl = `${exportUrl}?${params.toString()}`;
+        const originalBtnHtml = exportButton.innerHTML;
+
+        setExportEnabled(false);
+        exportButton.textContent = "Exportando...";
+
+        try {
+            const response = await fetch(fullExportUrl, {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/json",
+                },
+            });
+            const contentType = response.headers.get("content-type") || "";
+
+            if (contentType.includes("application/json")) {
+                const data = await response.json();
+                setMessages(data.messages || []);
                 return;
             }
 
-            if (currentRowsCount === 0) {
-                messagesContainer.innerHTML = buildMessageHtml([
-                    { text: "No existen registros para exportar.", tags: "info" }
-                ]);
-                return;
+            if (!response.ok) {
+                throw new Error(`Error en el servidor (${response.status})`);
             }
 
-            const exportUrl = exportButton.dataset.exportUrl || "/datos-abiertos/exportar-excel/";
-            const formData = new FormData(form);
-            formData.set("buscar", "1");
-            const params = new URLSearchParams(formData);
-            const fullExportUrl = `${exportUrl}?${params.toString()}`;
-
-            const originalBtnHtml = exportButton.innerHTML;
-            exportButton.disabled = true;
-            exportButton.textContent = "Exportando...";
-
-            try {
-                const response = await fetch(fullExportUrl, {
-                    method: "GET",
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest",
-                        "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/json",
-                    },
-                });
-
-                const contentType = response.headers.get("content-type") || "";
-
-                if (contentType.includes("application/json")) {
-                    const data = await response.json();
-                    if (data.messages && data.messages.length > 0) {
-                        messagesContainer.innerHTML = buildMessageHtml(data.messages);
-                    }
-                    return;
+            const blob = await response.blob();
+            const disposition = response.headers.get("content-disposition");
+            let filename = "F004_GSW_DATO.xlsx";
+            if (disposition && disposition.includes("filename=")) {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match?.[1]) {
+                    filename = match[1];
                 }
-
-                if (!response.ok) {
-                    throw new Error(`Error en el servidor (${response.status})`);
-                }
-
-                const blob = await response.blob();
-                const disposition = response.headers.get("content-disposition");
-                let filename = "F004_GSW_DATO.xlsx";
-                if (disposition && disposition.includes("filename=")) {
-                    const match = disposition.match(/filename="?([^"]+)"?/);
-                    if (match && match[1]) {
-                        filename = match[1];
-                    }
-                }
-
-                const blobUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = blobUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(blobUrl);
-
-            } catch (error) {
-                messagesContainer.innerHTML = buildMessageHtml([
-                    { text: "Ocurrió un error al intentar exportar la información. Intente nuevamente.", tags: "error" }
-                ]);
-            } finally {
-                exportButton.disabled = false;
-                exportButton.innerHTML = originalBtnHtml;
             }
-        });
-    }
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            setMessages([{
+                text: "Ocurrió un error al intentar exportar la información. Intente nuevamente.",
+                tags: "error"
+            }]);
+        } finally {
+            exportButton.innerHTML = originalBtnHtml;
+            setExportEnabled(hasSearched && !inputsChanged && currentRowsCount > 0);
+        }
+    });
 });
-

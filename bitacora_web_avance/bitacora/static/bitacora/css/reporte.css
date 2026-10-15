@@ -77,8 +77,9 @@
 .table-wrap {
     width: 100%;
     max-width: 100%;
+    max-height: 400px;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
     background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -87,7 +88,8 @@
 
 /* Barra de desplazamiento */
 .table-wrap::-webkit-scrollbar {
-    height: 8px;
+    height: 6px;
+    width: 6px;
 }
 
 .table-wrap::-webkit-scrollbar-track {
@@ -115,6 +117,10 @@
 
 /* Encabezado */
 .table-wrap thead {
+    background: var(--navy);
+    position: sticky;
+    top: 0;
+    z-index: 2;
     background: var(--navy);
 }
 

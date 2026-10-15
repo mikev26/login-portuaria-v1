@@ -312,11 +312,12 @@
         }
         .table-wrapper {
             width: 100%;
-            overflow-x: auto;
+            max-height: 70vh;
+            overflow: auto;
         }
         .report-table {
-            width: 100%;
-            table-layout: fixed;
+            width: max(100%, 1500px);
+            table-layout: auto;
             border-collapse: collapse;
             margin-top: 10px;
         }
@@ -326,9 +327,7 @@
             padding: 10px 10px;
             font-size: 12px;
             line-height: 1.35;
-            white-space: normal;
-            word-break: break-word;
-            overflow-wrap: break-word;
+            white-space: nowrap;
         }
         .report-table th {
             background: var(--header-bg);
