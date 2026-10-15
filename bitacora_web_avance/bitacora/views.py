@@ -14,6 +14,10 @@ from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from copy import copy 
+from openpyxl.utils.cell import range_boundaries 
+from openpyxl.utils import get_column_letter
+
 
 from .forms import LoginForm, RegistroCombustibleFilterForm, DatosAbiertosFilterForm
 from .services import (
@@ -41,7 +45,6 @@ from .services import (
     obtener_operadores_movimiento as obtener_operadores_movimiento_service,
     obtener_operadores_listados as obtener_operadores_listados_service,
     exportar_buques as exportar_buques_service,
-    
     guardar_inflacion,
     obtener_historico_tarifas,
     obtener_listado_cabeceras_historico,
@@ -79,8 +82,6 @@ def _normalizar_fila_datos_abiertos(row):
     }
     return {key: value for key, value in mapeo.items() if value is not None}
 
-
-
 def _iniciar_sesion(request, datos_usuario, turnos=None):
     """Inicia sesión aunque el usuario no tenga turno de Bitácora."""
     turnos = turnos or []
@@ -94,7 +95,6 @@ def _iniciar_sesion(request, datos_usuario, turnos=None):
         else datos_usuario.get("cargo")
     ) or "Usuario"
     request.session["puede_registrar_bitacora"] = bool(turnos)
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -112,7 +112,6 @@ def main_index(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
-
 
 @require_http_methods(["GET", "POST"])
 def login_view(request):
@@ -175,7 +174,6 @@ TIPOS_NOVEDAD_BITACORA = {
     "industrial": 47,
     "artesanal": 48,
 }
-
 
 MESES_BITACORA = [
     (1, "Enero"),
@@ -257,7 +255,6 @@ def _convertir_fecha_bitacora(valor):
 
     return None
 
-
 def _obtener_anios_bitacora(bitacora):
     """Devuelve los años realmente presentes en las novedades."""
     anios = set()
@@ -272,7 +269,6 @@ def _obtener_anios_bitacora(bitacora):
                 anios.add(fecha.year)
 
     return sorted(anios, reverse=True)
-
 
 def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
     """
@@ -310,7 +306,6 @@ def _filtrar_bitacora_por_periodo(bitacora, anio=None, mes=None):
             resultado.append(bloque_filtrado)
 
     return resultado
-
 
 def _agrupar_bitacora_por_fecha(bitacora):
     """
@@ -361,7 +356,6 @@ def _agrupar_bitacora_por_fecha(bitacora):
             resultado.append(bloque_fecha)
 
     return resultado
-
 
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -816,7 +810,6 @@ def bitacora_home(request):
         },
     )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def tarifa_view(request):
@@ -889,6 +882,22 @@ def exportar_reporte_inec_excel(
     )
 
     START_ROW = 9
+
+    #buscar tabla
+    if not worksheet.tables:
+        raise ValueError(
+            "No se encontró una tabla"
+        )
+
+    tabla = next(iter(worksheet.tables.values()))
+    min_col, min_row, max_col, max_row = range_boundaries(
+        tabla.ref
+    )
+    if min_row != START_ROW -1:
+        raise ValueError(
+            f"La tabla epieza en la fila {min_row},"
+            f"encabezado esperado en {START_ROW -1}."
+        )
 
     columnas = [
         "idregistro",
@@ -1080,10 +1089,43 @@ def exportar_reporte_inec_excel(
 
         return ""
 
+    fila_modelo = START_ROW
+    estilos_modelo = {}
+    for columna in range (min_col, max_col +1):
+        celda = worksheet.cell(
+            row=fila_modelo,
+            column=columna,
+        )
+
+        estilos_modelo[columna] = {
+            "font": copy(celda.font),
+            "fill": copy(celda.fill),
+            "border": copy(celda.border),
+            "alignment": copy(celda.alignment),
+            "number_format": celda.number_format,
+            "protection": copy(celda.protection),
+        }
+    altura_modelo = worksheet.row_dimensions[fila_modelo].height
+    
     for numero_fila, registro_original in enumerate(
         rows,
         start=START_ROW,
     ):
+        if numero_fila > max_row:
+            for columna, estilo in estilos_modelo.items():
+                celda = worksheet.cell(
+                    row=numero_fila,
+                    column=columna,
+                )
+
+                celda.font = copy(estilo["font"])
+                celda.fill = copy(estilo["fill"])
+                celda.border = copy(estilo["border"])
+                celda.alignment = copy(estilo["alignment"])
+                celda.number_format = estilo["number_format"]
+                celda.protection = copy(estilo["protection"])
+            if altura_modelo is not None:
+                worksheet.row_dimensions[numero_fila].height = (altura_modelo)
 
         registro = preparar_registro(
             registro_original
@@ -1094,10 +1136,7 @@ def exportar_reporte_inec_excel(
             start=1,
         ):
 
-            valor = obtener_valor(
-                registro,
-                campo,
-            )
+            valor = obtener_valor( registro, campo)
 
             worksheet.cell(
                 row=numero_fila,
@@ -1115,6 +1154,16 @@ def exportar_reporte_inec_excel(
         ultima_fila_datos = START_ROW
 
     sig_start = ultima_fila_datos + 3
+
+    cantidad_registros = len(rows)
+    ultima_fila_tabla = max( min_row, START_ROW + cantidad_registros - 1)
+    nueva_referencia =(
+        f"{get_column_letter(min_col)}{min_row}:"
+        f"{get_column_letter(max_col)}{ultima_fila_tabla}"
+    )
+    tabla.ref = nueva_referencia
+    if tabla.autoFilter is not None:
+        tabla.autoFilter.ref = nueva_referencia
 
     # REPORTE INEC
 
@@ -1158,7 +1207,6 @@ def exportar_reporte_inec_excel(
         9,
         12,
     )
-
 
     # -------------------------
     # PREPARADO POR
@@ -1245,7 +1293,6 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
-
     # Cargo del usuario
     worksheet.merge_cells(
         start_row=sig_start + 4,
@@ -1297,7 +1344,6 @@ def exportar_reporte_inec_excel(
         vertical="center",
     )
 
-
     # Línea de firma derecha
     worksheet.merge_cells(
         start_row=sig_start + 2,
@@ -1325,7 +1371,6 @@ def exportar_reporte_inec_excel(
         horizontal="center",
         vertical="center",
     )
-
 
     # Texto debajo de la firma derecha
     worksheet.merge_cells(
@@ -1567,7 +1612,6 @@ def reporte_inec_view(request):
         },
     )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def registro_combustible_home(request):
@@ -1696,7 +1740,6 @@ def registro_combustible_home(request):
         },
     )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def datos_abiertos_home(request):
@@ -1773,7 +1816,6 @@ def datos_abiertos_home(request):
             "current_year": fecha_emision.year,
         },
     )
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -1887,7 +1929,6 @@ def datos_abiertos_exportar_view(request):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
-
 def _obtener_datos_exportacion(request):
 
     last = request.session.get("reporte_combustible_last")
@@ -1936,7 +1977,6 @@ def _obtener_datos_exportacion(request):
             pass
 
     return last
-
 
 @require_http_methods(["GET"])
 def exportar_excel(request):
@@ -3388,13 +3428,11 @@ def cambiar_contrasena_view(request):
             status=500,
         )
 
-
 @require_http_methods(["POST"])
 def logout_view(request):
     request.session.flush()
     messages.success(request, "Sesión cerrada correctamente.")
     return redirect("login")
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -3413,7 +3451,6 @@ def tarifa_view(request):
             "demo_mode": settings.DEMO_MODE,
         },
     )
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -3442,7 +3479,6 @@ def tarifa_inflacion_view(request):
             "anio_anterior": current_year - 1,
         },
     )
-
 
 @never_cache
 @require_http_methods(["POST"])
@@ -3510,7 +3546,6 @@ def guardar_tarifa_inflacion_view(request):
     except Exception as exc:
         logger.exception("Error al aplicar inflación a las tarifas")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
-
 
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -3604,7 +3639,6 @@ def exportar_tarifa_inflacion_pdf_view(request):
         logger.exception("Error al generar PDF de tarifas por inflación")
         return HttpResponse(f"Error al generar el documento PDF: {str(exc)}", status=500)
 
-
 @never_cache
 @require_http_methods(["GET"])
 def obtener_historico_tarifas_view(request):
@@ -3669,7 +3703,6 @@ def obtener_historico_tarifas_view(request):
         logger.exception("Error al consultar histórico de tarifas")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
-
 @never_cache
 @require_http_methods(["GET"])
 def tarifa_listado_view(request):
@@ -3694,8 +3727,6 @@ def tarifa_listado_view(request):
             "filtro": filtro,
         },
     )
-
-from django.http import JsonResponse, HttpResponse
 
 
 @never_cache
@@ -3741,7 +3772,6 @@ def api_buscar_tasa(request):
             {"success": False, "error": "No se pudo consultar la tasa."}, status=500
         )
 
-
 @never_cache
 @require_http_methods(["GET"])
 def api_siguiente_codigo(request):
@@ -3761,7 +3791,6 @@ def api_siguiente_codigo(request):
         return JsonResponse(
             {"success": False, "error": "No se pudo calcular el siguiente código."}, status=500
         )
-
 
 @never_cache
 @require_http_methods(["POST"])
@@ -3859,7 +3888,6 @@ def guardar_tarifa_view(request):
         logger.exception("Error al ejecutar guardado de tarifa")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
-
 @never_cache
 @require_http_methods(["POST"])
 def anular_tarifa_view(request):
@@ -3878,7 +3906,6 @@ def anular_tarifa_view(request):
     except Exception as exc:
         logger.exception("Error al anular tarifa")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
-
 
 @never_cache
 @require_http_methods(["GET"])
@@ -4106,7 +4133,6 @@ def exportar_tarifas_view(request):
         logger.exception("Error al exportar tarifas a excel")
         return HttpResponse(f"Error interno al exportar Excel: {str(exc)}", status=500)
 
-
 def obtener_filtro_multiple(request, nombre):
     # Detectar dinámicamente el método de la petición
     data = request.POST if request.method == "POST" else request.GET
@@ -4290,7 +4316,6 @@ def exportar_reporte_buques(request):
     except Exception as exc:
         logger.exception("Error generando Excel del reporte de buques")
         return HttpResponse(f"No se pudo generar el Excel: {exc}", status=500)
-
 
 # ==========================================
 # MÓDULO DE BUQUES Y EXPORTACIÓN A EXCEL (Ivanna)
@@ -4487,7 +4512,6 @@ def obtener_operadores_listados(request):
             status=500,
         )
     
-
 @require_http_methods(["GET"])
 def exportar_buques(request):
     ubicacion_param = request.GET.get(
