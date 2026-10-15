@@ -24,6 +24,7 @@ urlpatterns = [
     path("tarifa/", views.tarifa_view, name="tarifa"),
     path("tarifa/inflacion/", views.tarifa_inflacion_view, name="tarifa_inflacion"),
     path("tarifa/servicios-tpyc/", servicios_tpyc_views.servicios_tpyc_view, name="servicios_tpyc"),
+    path("tarifa/servicios-tpyc/guardar/", servicios_tpyc_views.guardar_servicio_tpyc_view, name="servicios_tpyc_guardar"),
     path("tarifa/inflacion/guardar/", views.guardar_tarifa_inflacion_view, name="tarifa_inflacion_guardar"),
     path("tarifa/inflacion/exportar-pdf/", views.exportar_tarifa_inflacion_pdf_view, name="tarifa_inflacion_exportar_pdf"),
     path("tarifa/inflacion/historico/", views.obtener_historico_tarifas_view, name="tarifa_inflacion_historico"),
