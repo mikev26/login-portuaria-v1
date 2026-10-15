@@ -19,6 +19,7 @@
     <!-- Formulario Principal -->
     <div class="tpyc-card">
         
+        
         <form id="formServiciosTPyC" class="tpyc-main-form" onsubmit="event.preventDefault();">
             
             <!-- Datos Generales del Servicio -->
@@ -28,7 +29,10 @@
                     <input type="text" id="inputId" name="id" class="tpyc-input" placeholder="" readonly>
                 </div>
                 <div class="tpyc-field-group tpyc-field-group-relative">
+                <div class="tpyc-field-group tpyc-field-group-relative">
                     <label for="inputServicio">Servicio</label>
+                    <input type="text" id="inputServicio" name="servicio" class="tpyc-input" placeholder="Nombre del servicio" autocomplete="off">
+                    <div id="dropdownServiciosTPyC" class="tpyc-autocomplete-dropdown"></div>
                     <input type="text" id="inputServicio" name="servicio" class="tpyc-input" placeholder="Nombre del servicio" autocomplete="off">
                     <div id="dropdownServiciosTPyC" class="tpyc-autocomplete-dropdown"></div>
                 </div>
