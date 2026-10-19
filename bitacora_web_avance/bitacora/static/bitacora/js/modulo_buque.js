@@ -17,16 +17,26 @@ let listaBuques = [];
         });
 
         // Función JavaScript para activar la descarga del reporte conectándose al Flask
-        function descargarReporteBuques(ubicacion) {
-            const tipoInfo = document.querySelector('input[name="tipoInformacion"]:checked').value;
-            const url = `/api/exportar-buques?ubicacion=${ubicacion}&tipo=${tipoInfo}`;
-            
-            const a = document.createElement('a');
+        function exportarExcel(ubicacion) {
+            const radioSeleccionado = document.querySelector(
+                'input[name="tipo_info"]:checked'
+            );
+
+            if (!radioSeleccionado) {
+                alert("Seleccione el tipo de información que desea exportar.");
+                return;
+            }
+
+            const tipoInfo = radioSeleccionado.value;
+
+            const url = `/api/exportar-buques?ubicacion=${encodeURIComponent(ubicacion)}&tipo=${encodeURIComponent(tipoInfo)}`;
+
+            const a = document.createElement("a");
             a.href = url;
-            a.download = '';
+            a.download = "";
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
+            a.remove();
         }
 
         const inputBuscador = document.getElementById('buscadorBuque');
@@ -322,3 +332,4 @@ function abrirModalOperadores() {
                 })
                 .catch(error => console.error("Error al cargar listado general de operadores:", error));
         }
+        window.exportarExcel = exportarExcel;
