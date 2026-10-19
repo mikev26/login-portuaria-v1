@@ -17,16 +17,26 @@ let listaBuques = [];
         });
 
         // Función JavaScript para activar la descarga del reporte conectándose al Flask
-        function descargarReporteBuques(ubicacion) {
-            const tipoInfo = document.querySelector('input[name="tipoInformacion"]:checked').value;
-            const url = `/api/exportar-buques?ubicacion=${ubicacion}&tipo=${tipoInfo}`;
-            
-            const a = document.createElement('a');
+        function exportarExcel(ubicacion) {
+            const radioSeleccionado = document.querySelector(
+                'input[name="tipo_info"]:checked'
+            );
+
+            if (!radioSeleccionado) {
+                alert("Seleccione el tipo de información que desea exportar.");
+                return;
+            }
+
+            const tipoInfo = radioSeleccionado.value;
+
+            const url = `/api/exportar-buques?ubicacion=${encodeURIComponent(ubicacion)}&tipo=${encodeURIComponent(tipoInfo)}`;
+
+            const a = document.createElement("a");
             a.href = url;
-            a.download = '';
+            a.download = "";
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
+            a.remove();
         }
 
         const inputBuscador = document.getElementById('buscadorBuque');
@@ -125,7 +135,7 @@ let listaBuques = [];
                 "$" + (isNaN(saldo) ? "0.00" : saldo.toFixed(2));
         }
 
-        function cargarDatosRegistro(idBuque) {
+function cargarDatosRegistro(idBuque) {
             if (!idBuque) return;
             fetch(`/api/registros?buque=${idBuque}`)
                 .then(response => response.json())
@@ -165,6 +175,7 @@ let listaBuques = [];
                         
                         let agencia = reg.agencia || reg.nombre_agencia || '-';
 
+                        // Seleccionar por defecto el primer registro (el más reciente)
                         if (index === 0) {
                             document.getElementById('lblSolicitud').innerText = solicitudTexto;
                             document.getElementById('lblFechaArrivo').innerText = fechaArribo;
@@ -176,8 +187,30 @@ let listaBuques = [];
                             }
                         }
 
+                        // Crear la fila con efecto visual de puntero (cursor pointer)
                         let tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        tr.title = 'Haz clic para ver la información de este registro';
                         tr.innerHTML = `<td class="fw-semibold">${solicitudTexto}</td><td>${idRegistro}</td><td>${fechaArribo}</td><td>${fechaZarpe}</td><td>${agencia}</td>`;
+
+                        // EVENTO DE CLIC EN CADA FILA HISTÓRICA
+                        tr.addEventListener('click', function() {
+                            // Remover la clase de selección previa si la hubiera y resaltar la actual
+                            document.querySelectorAll('#tablaHistoricosBody tr').forEach(row => row.classList.remove('table-active'));
+                            tr.classList.add('table-active');
+
+                            // Actualizar la sección de Información del Registro
+                            document.getElementById('lblSolicitud').innerText = solicitudTexto;
+                            document.getElementById('lblFechaArrivo').innerText = fechaArribo;
+                            document.getElementById('lblFechaZarpe').innerText = fechaZarpe;
+                            document.getElementById('lblAgenciaReg').innerText = agencia;
+
+                            // Cargar los operadores asociados a esta solicitud seleccionada
+                            if (solicitudTexto && solicitudTexto !== '-') {
+                                cargarOperadoresPorSolicitud(solicitudTexto);
+                            }
+                        });
+
                         tbody.appendChild(tr);
                     });
                 })
@@ -235,7 +268,7 @@ let listaBuques = [];
                 .catch(error => console.error("Error al cargar operadores por solicitud:", error));
         }
 
-        function abrirModalOperadores() {
+function abrirModalOperadores() {
             var modal = new bootstrap.Modal(document.getElementById('modalOperadores'));
             modal.show();
 
@@ -254,18 +287,49 @@ let listaBuques = [];
 
                     if (arrayModal.length === 0) return;
                     
-                    let keys = Object.keys(arrayModal[0]);
+                    // Columnas internas / de auditoría que NO deben mostrarse
+                    const columnasOcultas = [
+                        'idtipooperadortl', 
+                        'idestado', 
+                        'fechamovimiento', 
+                        'id', 
+                        'idusuariotl', 
+                        'idusuario'
+                    ];
+
+                    // Filtrar las claves para excluir las columnas no deseadas
+                    let keys = Object.keys(arrayModal[0]).filter(k => 
+                        !columnasOcultas.includes(k.toLowerCase())
+                    );
+
                     let thead = document.querySelector('#tablaModalOperadores thead');
                     let tbody = document.querySelector('#tablaModalOperadores tbody');
                     
-                    thead.innerHTML = '<tr>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr>';
+                    // Encabezados claros, legibles y sin romperse[cite: 10]
+                    thead.innerHTML = '<tr class="text-uppercase bg-dark text-white fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">' + 
+                        keys.map(k => `<th class="py-3 px-3 text-nowrap">${k.replace(/_/g, ' ')}</th>`).join('') + 
+                        '</tr>';
+                    
                     tbody.innerHTML = '';
 
                     arrayModal.forEach(op => {
                         let tr = document.createElement('tr');
-                        tr.innerHTML = keys.map(k => `<td>${op[k] !== null ? op[k] : '-'}</td>`).join('');
+                        
+                        let tdHtml = keys.map(k => {
+                            let val = op[k];
+                            if (val === null || val === undefined) {
+                                val = '-';
+                            } else if (typeof val === 'string' && val.includes('T00:00:00')) {
+                                // Formatear fechas quitando la hora T00:00:00
+                                val = val.split('T')[0];
+                            }
+                            return `<td class="py-2 px-3 text-nowrap align-middle" style="font-size: 0.88rem; font-weight: 500;">${val}</td>`;
+                        }).join('');
+
+                        tr.innerHTML = tdHtml;
                         tbody.appendChild(tr);
                     });
                 })
                 .catch(error => console.error("Error al cargar listado general de operadores:", error));
         }
+        window.exportarExcel = exportarExcel;
