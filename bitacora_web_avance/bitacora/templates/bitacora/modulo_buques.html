@@ -310,6 +310,7 @@
     </div>
 
     <!-- MODAL OPERADORES -->
+<!-- MODAL OPERADORES -->
     <div
         class="modal fade"
         id="modalOperadores"
@@ -317,7 +318,7 @@
         aria-labelledby="modalOperadoresLabel"
         aria-hidden="true"
     >
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-dialog modal-fullscreen p-3">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
                 <div class="modal-header bg-dark text-white" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
                     <h5 class="modal-title fw-bold" id="modalOperadoresLabel">
@@ -330,17 +331,19 @@
                         aria-label="Close"
                     ></button>
                 </div>
-                <div class="modal-body p-4 bg-light">
-                    <div class="table-responsive bg-white p-3 rounded shadow-sm border">
-                        <table class="table table-hover table-striped table-custom-style mb-0 align-middle" id="tablaModalOperadores">
+
+                <div class="modal-body p-3 bg-light">
+                    <!-- Contenedor con scroll horizontal para mantener el tamaño legible -->
+                    <div class="table-responsive bg-white p-2 rounded shadow-sm border" style="max-height: 80vh; overflow-y: auto; overflow-x: auto;">
+                        <table class="table table-hover table-striped align-middle mb-0" id="tablaModalOperadores" style="min-width: 1200px;">
                             <thead>
                                 <tr>
-                                    <th>Cargando...</th>
+                                    <th class="py-3 px-3">Cargando...</th>
                                 </tr>
                             </thead>
                             <tbody id="modalOperadoresBody">
                                 <tr>
-                                    <td class="text-center py-4">
+                                    <td class="text-center py-4 text-muted">
                                         Cargando registros...
                                     </td>
                                 </tr>
@@ -361,8 +364,6 @@
             </div>
         </div>
     </div>
-
-</div>
 {% endblock %}
 
 {% block extra_js %}
