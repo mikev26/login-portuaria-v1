@@ -8,11 +8,7 @@ from typing import Any
 from django.conf import settings
 
 from .db_connection import (
-    DatabaseConfigurationError,
-    _IDENTIFIER_RE,
-    _PARAMETER_RE,
     _rows_as_dicts,
-    execute_procedure,
     get_connection,
     bool_value,
     first_value,

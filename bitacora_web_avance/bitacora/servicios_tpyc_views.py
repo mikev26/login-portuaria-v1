@@ -90,19 +90,6 @@ def guardar_servicio_tpyc_view(request):
     cdeta = data.get("cdeta", "")
     edeta = data.get("edeta", "")
 
-    idgrupo = data.get("idgrupo")
-    idmedida = data.get("idmedida")
-
-    try:
-        idgrupo_int = int(idgrupo) if idgrupo is not None and str(idgrupo).isdigit() else None
-    except Exception:
-        idgrupo_int = None
-
-    try:
-        idmedida_int = int(idmedida) if idmedida is not None and str(idmedida).isdigit() else None
-    except Exception:
-        idmedida_int = None
-
     if idservicio and idservicio > 0:
         resultado = actualizar_servicio_tpyc(
             idservicio=idservicio,
@@ -129,11 +116,7 @@ def guardar_servicio_tpyc_view(request):
             cidtarifa=cidtarifa,
             eidtarifa=eidtarifa,
             nidtarifa=nidtarifa,
-            cdeta=cdeta,
-            edeta=edeta,
             civa=0,
-            idgrupo=idgrupo_int,
-            idmedida=idmedida_int,
         )
 
     status_code = 200 if resultado.get("success") else 400

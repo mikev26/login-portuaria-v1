@@ -11,7 +11,7 @@ urlpatterns = [
     path("index/", views.main_index, name="main_index"),
     path("bitacora/", views.bitacora_home, name="bitacora_home"),
     path("bitacora/exportar-excel/",views.exportar_bitacora_excel,name="bitacora_exportar_excel"),
-    #path("tarifario/", views.tarifa_view, name="tarifa"),
+
     path("reporte/inec/", views.reporte_inec_view, name="reporte_inec"),
     path("registro-combustible/", views.registro_combustible_home, name="registro_combustible"),
     path("datos-practicaje/", practicaje_views.datos_practicaje_home, name="datos_practicaje"),

@@ -6,18 +6,6 @@
     padding: 10px 0 30px 0;
 }
 
-.tpyc-toolbar-top {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin: 14px 0 18px 0;
-}
-
-.tpyc-toolbar-actions {
-    display: flex;
-    gap: 10px;
-}
-
 .btn-tpyc {
     display: inline-flex;
     align-items: center;
@@ -283,21 +271,6 @@
 }
 
 /* Área de Texto Detalle del Servicio */
-.tpyc-detalle-group {
-    margin-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.tpyc-detalle-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--navy, #0d4777);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
 .tpyc-textarea {
     width: 100%;
     min-height: 45px;

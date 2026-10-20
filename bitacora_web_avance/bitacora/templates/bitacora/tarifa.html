@@ -14,19 +14,7 @@
 <!-- Toast Notifications -->
 <div class="toast-container" id="toastContainer"></div>
 
-{% if demo_mode %}
-<div class="demo"
-     style="margin-bottom: 18px;
-            padding: 10px 13px;
-            border-radius: 7px;
-            background: #fff7db;
-            border: 1px solid #efd78a;
-            color: #654d00;
-            font-size: 12.5px;">
-    <strong>Modo demostración:</strong>
-    los datos del tarifario no modifican directamente la base de datos de producción.
-</div>
-{% endif %}
+
 
 
 <!-- =========================================================
@@ -136,7 +124,7 @@
         Datos del Tarifario
     </div>
 
-    <form id="tarifaForm"
+    <form id="tarifaForm" autocomplete="off"
           onsubmit="event.preventDefault();">
 
         {% csrf_token %}
@@ -245,7 +233,7 @@
                 </label>
 
                 <input type="text"
-                       id="tarifaName"
+                       id="tarifaName" autocomplete="off"
                        name="tarifa"
                        maxlength="80"
                        placeholder="Ingrese descripción detallada de la tarifa">
@@ -312,7 +300,7 @@
                 </label>
 
                 <input type="text"
-                       id="tarifaFormula"
+                       id="tarifaFormula" autocomplete="off"
                        name="formula"
                        maxlength="50"
                        placeholder="Ingrese fórmula de cálculo">
@@ -332,7 +320,7 @@
                 </label>
 
                 <input type="text"
-                       id="tarifaDetalle"
+                       id="tarifaDetalle" autocomplete="off"
                        name="detalle"
                        maxlength="50"
                        placeholder="Observaciones o especificaciones de cobro">
@@ -356,7 +344,7 @@
                         </label>
 
                         <input type="text"
-                               id="tarifaValor"
+                               id="tarifaValor" autocomplete="off"
                                name="valor"
                                value="0.0000"
                                inputmode="decimal"

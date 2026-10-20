@@ -9,6 +9,7 @@ import threading
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -816,24 +817,6 @@ def bitacora_home(request):
         },
     )
 
-
-@never_cache
-@require_http_methods(["GET"])
-def tarifa_view(request):
-    """Página base del tarifario."""
-    if not request.session.get("usuario_id"):
-        return redirect("login")
-
-    return render(
-        request,
-        "bitacora/tarifa.html",
-        {
-            "usuario_nombre": request.session.get("usuario_nombre"),
-            "usuario_login": request.session.get("usuario_login"),
-            "usuario_cargo": request.session.get("usuario_cargo"),
-            "demo_mode": settings.DEMO_MODE,
-        },
-    )
 
 def exportar_reporte_inec_excel(
     rows,
@@ -3695,7 +3678,7 @@ def tarifa_listado_view(request):
         },
     )
 
-from django.http import JsonResponse, HttpResponse
+
 
 
 @never_cache

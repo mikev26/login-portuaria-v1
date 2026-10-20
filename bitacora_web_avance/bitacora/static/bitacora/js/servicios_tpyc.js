@@ -135,14 +135,48 @@ document.addEventListener("DOMContentLoaded", function() {
         });
         inputNombre.addEventListener("input", function() {
             renderDropdownNombre(this.value);
-            if (!this.value.trim()) {
+            const val = this.value.trim().toLowerCase();
+            if (!val) {
+                if (inputSc) inputSc.value = "";
+                if (inputIdTarifa) inputIdTarifa.value = "";
+                return;
+            }
+            const lista = getTarifasPorTasa();
+            const coincidencia = lista.find(t => (t.tarifa || "").trim().toLowerCase() === val);
+            if (coincidencia) {
+                if (inputSc) inputSc.value = coincidencia.sctarifa || coincidencia.codigo || "";
+                if (inputIdTarifa) inputIdTarifa.value = coincidencia.idtarifa || coincidencia.id || "";
+            } else {
                 if (inputSc) inputSc.value = "";
                 if (inputIdTarifa) inputIdTarifa.value = "";
             }
         });
 
+        inputNombre.addEventListener("blur", function() {
+            setTimeout(() => {
+                const val = inputNombre.value.trim().toLowerCase();
+                if (!val) {
+                    if (inputSc) inputSc.value = "";
+                    if (inputIdTarifa) inputIdTarifa.value = "";
+                    return;
+                }
+                const lista = getTarifasPorTasa();
+                const coincidencia = lista.find(t => (t.tarifa || "").trim().toLowerCase() === val);
+                if (coincidencia) {
+                    inputNombre.value = coincidencia.tarifa || "";
+                    if (inputSc) inputSc.value = coincidencia.sctarifa || coincidencia.codigo || "";
+                    if (inputIdTarifa) inputIdTarifa.value = coincidencia.idtarifa || coincidencia.id || "";
+                } else {
+                    inputNombre.value = "";
+                    if (inputSc) inputSc.value = "";
+                    if (inputIdTarifa) inputIdTarifa.value = "";
+                }
+            }, 200);
+        });
+
         if (dropdownNombre) {
-            dropdownNombre.addEventListener("click", function(e) {
+            dropdownNombre.addEventListener("mousedown", function(e) {
+                e.preventDefault();
                 const itemElem = e.target.closest(".tpyc-autocomplete-item");
                 if (itemElem && !itemElem.hasAttribute("style")) {
                     const idx = parseInt(itemElem.getAttribute("data-index"), 10);
@@ -237,14 +271,6 @@ document.addEventListener("DOMContentLoaded", function() {
             dropdown.innerHTML = "";
             activeIndex = -1;
         }
-    }
-
-    function escapeHtml(str) {
-        if (!str) return "";
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
     }
 
     function seleccionarServicio(itemData) {
@@ -579,9 +605,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const container = document.getElementById("toastContainer");
         if (!container) return;
         const toast = document.createElement("div");
-        toast.className = `toast ${type} show`;
-        toast.innerHTML = `<span>${message}</span>`;
+        toast.className = `toast ${type}`;
+
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+        } else if (type === 'warning') {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
+        } else if (type === 'info') {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-4h-2V7h2v6z"/></svg>';
+        } else {
+            iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4H11V7h2v6z"/></svg>';
+        }
+
+        toast.innerHTML = `${iconSvg} <span>${message}</span>`;
         container.appendChild(toast);
+        setTimeout(() => toast.classList.add("show"), 50);
         setTimeout(() => {
             toast.classList.remove("show");
             setTimeout(() => toast.remove(), 300);
@@ -621,6 +660,12 @@ document.addEventListener("DOMContentLoaded", function() {
                     cerrarModales();
                 }
             });
+        }
+    });
+
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+            cerrarModales();
         }
     });
 
@@ -664,7 +709,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     const itemDataActualizado = {
                         idservicio: result.idservicio,
                         servicio: payload.servicio,
+                        idgrupo: payload.idgrupo,
                         grupo: payload.grupo,
+                        idmedida: payload.idmedida,
                         medida: payload.medida,
                         detalle: payload.detalle,
                         t_n: payload.t_n,
@@ -729,6 +776,25 @@ document.addEventListener("DOMContentLoaded", function() {
             const cidtarifa = isCabotaje && inputIdTarifaCabotaje ? parseInt(inputIdTarifaCabotaje.value || "0", 10) : 0;
             const eidtarifa = isEspecificas && inputIdTarifaEspecificas ? parseInt(inputIdTarifaEspecificas.value || "0", 10) : 0;
             const nidtarifa = isNaves && inputIdTarifaNaves ? parseInt(inputIdTarifaNaves.value || "0", 10) : 0;
+
+            if (isCabotaje && (!cidtarifa || isNaN(cidtarifa) || cidtarifa <= 0)) {
+                showToast("Por favor seleccione una tarifa válida para T.Cabotaje o desmarque la casilla.", "warning");
+                const inputNombreCab = document.getElementById("inputNombreTarifaCabotaje");
+                if (inputNombreCab) inputNombreCab.focus();
+                return;
+            }
+            if (isEspecificas && (!eidtarifa || isNaN(eidtarifa) || eidtarifa <= 0)) {
+                showToast("Por favor seleccione una tarifa válida para T.Especificas o desmarque la casilla.", "warning");
+                const inputNombreEsp = document.getElementById("inputNombreTarifaEspecificas");
+                if (inputNombreEsp) inputNombreEsp.focus();
+                return;
+            }
+            if (isNaves && (!nidtarifa || isNaN(nidtarifa) || nidtarifa <= 0)) {
+                showToast("Por favor seleccione una tarifa válida para T.Naves o desmarque la casilla.", "warning");
+                const inputNombreNav = document.getElementById("inputNombreTarifaNaves");
+                if (inputNombreNav) inputNombreNav.focus();
+                return;
+            }
 
             const detalleVal = inputDetalleServicio ? inputDetalleServicio.value.trim() : "";
             const idgrupoVal = inputIdGrupo && inputIdGrupo.value ? parseInt(inputIdGrupo.value, 10) : null;

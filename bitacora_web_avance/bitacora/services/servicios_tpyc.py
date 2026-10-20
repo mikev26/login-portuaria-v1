@@ -190,11 +190,7 @@ def insertar_servicio_tpyc(
     cidtarifa: int = 0,
     eidtarifa: int = 0,
     nidtarifa: int = 0,
-    cdeta: str = "",
-    edeta: str = "",
     civa: int = 0,
-    idgrupo: int | None = None,
-    idmedida: int | None = None,
 ) -> dict[str, Any]:
     """
     Inserta un nuevo servicio ejecutando dbo.SPJ_Insert_Servicios.
@@ -222,8 +218,6 @@ def insertar_servicio_tpyc(
         @st_e = ?,
         @scidtarifa = ?,
         @seidtarifa = ?,
-        @scdeta = ?,
-        @sedeta = ?,
         @sciva = ?,
         @st_i = ?,
         @snidtarifa = ?,
@@ -240,8 +234,6 @@ def insertar_servicio_tpyc(
         int(t_e),
         int(cidtarifa or 0),
         int(eidtarifa or 0),
-        str(cdeta or "")[:20],
-        str(edeta or "")[:20],
         int(civa or 0),
         int(t_i),
         int(nidtarifa or 0),

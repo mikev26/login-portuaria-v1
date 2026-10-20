@@ -121,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 showToast(`Consultando registro histórico del Año ${anoIngresado}...`, 'info');
-                const url = "{% url 'tarifa_inflacion_historico' %}?anio=" + anoIngresado;
+                const baseUrl = (window.INFLACION_URLS && window.INFLACION_URLS.historico) || '/tarifa/inflacion/historico/';
+                const url = baseUrl + "?anio=" + anoIngresado;
                 const resp = await fetch(url);
                 const data = await resp.json();
 
@@ -570,7 +571,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (historicoModalOverlay && historicoModalOverlay.classList.contains('active')) {
+                if (resultadoHistoricoModalOverlay && resultadoHistoricoModalOverlay.classList.contains('active')) {
+                    closeResultadoHistoricoModal();
+                } else if (historicoModalOverlay && historicoModalOverlay.classList.contains('active')) {
                     closeHistoricoModal();
                 } else if (dateAlertModalOverlay && dateAlertModalOverlay.classList.contains('active')) {
                     closeDateAlertModal();
@@ -648,7 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         params.append('codigos', codigos);
                     }
 
-                    const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
+                    const exportBaseUrl = (window.INFLACION_URLS && window.INFLACION_URLS.exportarPdf) || '/tarifa/inflacion/exportar-pdf/';
+                    const exportUrl = exportBaseUrl + "?" + params.toString();
                     window.location.href = exportUrl;
                 } else {
                     showToast('La función de exportación directa solo está disponible al consultar un registro histórico.', 'warning');
@@ -705,7 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnGuardar.disabled = true;
 
-            fetch("{% url 'tarifa_inflacion_guardar' %}", {
+            const guardarUrl = (window.INFLACION_URLS && window.INFLACION_URLS.guardar) || '/tarifa/inflacion/guardar/';
+            fetch(guardarUrl, {
                 method: "POST",
                 body: formDataToSend
             })
@@ -725,7 +730,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (fechaInflacion) params.append('fecha_inflacion', fechaInflacion);
                     if (detalle) params.append('detalle', detalle);
 
-                    const exportUrl = "{% url 'tarifa_inflacion_exportar_pdf' %}?" + params.toString();
+                    const exportBaseUrl = (window.INFLACION_URLS && window.INFLACION_URLS.exportarPdf) || '/tarifa/inflacion/exportar-pdf/';
+                    const exportUrl = exportBaseUrl + "?" + params.toString();
 
                     const link = document.createElement('a');
                     link.href = exportUrl;

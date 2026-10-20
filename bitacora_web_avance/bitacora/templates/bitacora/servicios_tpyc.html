@@ -19,7 +19,7 @@
     <!-- Formulario Principal -->
     <div class="tpyc-card">
         
-        <form id="formServiciosTPyC" class="tpyc-main-form" onsubmit="event.preventDefault();">
+        <form id="formServiciosTPyC" class="tpyc-main-form" autocomplete="off" onsubmit="event.preventDefault();">
             
             <!-- Datos Generales del Servicio -->
             <div class="tpyc-fields-grid">
@@ -50,7 +50,7 @@
             <div class="tpyc-detalle-actions-row">
                 <div class="tpyc-field-group tpyc-detalle-input-wrapper">
                     <label for="inputDetalleServicio">Detalle</label>
-                    <textarea id="inputDetalleServicio" name="detalle" class="tpyc-input tpyc-textarea tpyc-no-resize" rows="2" placeholder="Ingrese el detalle general del servicio..."></textarea>
+                    <textarea id="inputDetalleServicio" name="detalle" class="tpyc-input tpyc-textarea tpyc-no-resize" rows="2" autocomplete="off" placeholder="Ingrese el detalle general del servicio..."></textarea>
                 </div>
                 <div class="tpyc-actions-inline">
                     <button type="button" class="btn-tpyc btn-tpyc-secondary" id="btnLimpiar">

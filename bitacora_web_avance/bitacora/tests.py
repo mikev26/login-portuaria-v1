@@ -509,4 +509,54 @@ class ProjectSmokeTest(TestCase):
         self.assertIn("attachment", response["Content-Disposition"])
         self.assertIn("F004_GSW_DATO", response["Content-Disposition"])
 
+    def test_tarifa_inflacion_page_and_historico_and_pdf(self):
+        self._authenticate()
+
+        # 1. Carga de vista principal de inflación
+        res_page = self.client.get("/tarifa/inflacion/")
+        self.assertEqual(res_page.status_code, 200)
+        self.assertContains(res_page, "Ajuste de Tarifas por Inflación Anual")
+        self.assertContains(res_page, "window.INFLACION_URLS")
+
+        # 2. Consulta de histórico por año
+        res_hist = self.client.get("/tarifa/inflacion/historico/?anio=2026")
+        self.assertEqual(res_hist.status_code, 200)
+        hist_json = res_hist.json()
+        self.assertTrue(hist_json["success"])
+        self.assertGreaterEqual(len(hist_json["tarifas"]), 1)
+
+        # 3. Exportación de PDF de inflación
+        res_pdf = self.client.get("/tarifa/inflacion/exportar-pdf/?es_historico=1&anio=2026&id_cabotaje=1")
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertEqual(res_pdf["Content-Type"], "application/pdf")
+
+    def test_servicios_tpyc_page_and_crud(self):
+        self._authenticate()
+
+        # 1. Carga de vista Servicios TPyC
+        res_page = self.client.get("/tarifa/servicios-tpyc/")
+        self.assertEqual(res_page.status_code, 200)
+        self.assertContains(res_page, "SERVICIOS TPyC")
+        self.assertContains(res_page, "window.SERVICIOS_DATA")
+
+        # 2. Creación de servicio nuevo
+        res_insert = self.client.post(
+            "/tarifa/servicios-tpyc/guardar/",
+            data='{"servicio": "SERVICIO PRUEBA", "grupo": "PRAC", "medida": "Horas", "detalle": "Detalle", "t_n": 1, "cidtarifa": 1}',
+            content_type="application/json",
+        )
+        self.assertEqual(res_insert.status_code, 200)
+        self.assertTrue(res_insert.json()["success"])
+
+        # 3. Actualización de servicio existente
+        res_update = self.client.post(
+            "/tarifa/servicios-tpyc/guardar/",
+            data='{"idservicio": 52, "servicio": "SERVICIO ACTUALIZADO", "grupo": "PRAC", "medida": "Horas", "detalle": "Detalle edit", "t_n": 1, "cidtarifa": 1}',
+            content_type="application/json",
+        )
+        self.assertEqual(res_update.status_code, 200)
+        self.assertTrue(res_update.json()["success"])
+        self.assertEqual(res_update.json()["idservicio"], 52)
+
+
 

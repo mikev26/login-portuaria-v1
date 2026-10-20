@@ -13,6 +13,7 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <section class="section">
+    {% csrf_token %}
     <div class="section-title">Ajuste de Tarifas por Inflación Anual</div>
 
     <!-- Recuadro Gris de Controles (Solo contiene los 4 inputs) -->
@@ -262,7 +263,13 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'bitacora/js/menu.js' %}"></script>
-<script src="{% static 'bitacora/js/password.js' %}"></script>
+{{ block.super }}
+<script>
+    window.INFLACION_URLS = {
+        historico: "{% url 'tarifa_inflacion_historico' %}",
+        guardar: "{% url 'tarifa_inflacion_guardar' %}",
+        exportarPdf: "{% url 'tarifa_inflacion_exportar_pdf' %}"
+    };
+</script>
 <script src="{% static 'bitacora/js/tarifa_inflacion.js' %}?v={% now 'U' %}"></script>
 {% endblock %}
