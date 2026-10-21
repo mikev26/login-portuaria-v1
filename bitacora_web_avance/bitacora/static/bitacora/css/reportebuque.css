@@ -405,7 +405,18 @@
 
 .table-wrapper {
     width: 100%;
+    max-height: 400px;
     overflow-x: auto;
+    overflow-y: auto;
+}
+.table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #b8c2cc #f1f3f5;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
 
 .table-wrapper table {
